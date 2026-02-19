@@ -25,44 +25,8 @@ fun HomeScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Welcome to my app")
+                Text("Home Screen")
                 ClickableButton()
-            }
-
-            // Bottom navbar
-            NavigationBar(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-            )
-        }
-    }
-}
-
-
-
-@Composable
-fun ClickableButton() {
-    var buttonText by remember { mutableStateOf("Meow") }
-    var clickNum by remember { mutableIntStateOf(0) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Button(
-            onClick = {
-                if(buttonText != "Clicked") {
-                    buttonText = "Clicked"
-                }
-                clickNum++
-            }
-        ) {
-            if(clickNum > 0) {
-                Text("$buttonText $clickNum")
-            }
-            else {
-                Text(buttonText)
             }
         }
     }
