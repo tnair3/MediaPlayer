@@ -25,7 +25,18 @@ fun HomeScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Home Screen")
+                TopNavigation("Library", { }, { })
+
+                var selectedFilter by remember { mutableIntStateOf(1) }
+                FilterRow(
+                    listOf("Albums", "Songs", "Playlists", "Artists"),
+                    selectedIndex = selectedFilter,
+                    onOptionSelected = { selectedFilter = it }
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
                 ClickableButton()
             }
         }
