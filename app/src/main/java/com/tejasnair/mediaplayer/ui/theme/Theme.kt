@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFBB86FC),       // soft purple accent
+    primary = Color(0xFFA164EE),       // soft purple accent
     onPrimary = Color.White,           // text/icons on primary
     secondary = Color(0xFF03DAC6),    // teal accent
     onSecondary = Color.Black,
@@ -28,8 +28,8 @@ val LightColorScheme = lightColorScheme(
     onPrimary = Color.White,
     secondary = Color(0xFF03DAC6),     // teal accent
     onSecondary = Color.Black,
-    background = Color(0xFFFFFFFF),    // white background
-    onBackground = Color(0xFF1C1C1C),  // dark text
+    background = Color(0xFFFFFFFF),    // black background
+    onBackground = Color(0xFF1C1C1C),  // light text
     surface = Color(0xFFF5F5F5),       // light gray for cards
     onSurface = Color(0xFF1C1C1C),
     error = Color(0xFFB00020),
