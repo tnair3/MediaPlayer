@@ -14,9 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tejasnair.mediaplayer.R
 import androidx.compose.foundation.lazy.LazyColumn
-import com.tejasnair.mediaplayer.data.Artist
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Button
 import androidx.compose.ui.graphics.Color
 
 @Composable
@@ -52,7 +53,8 @@ fun EmptyLibrary() {
 fun <T> DisplayList(
     items: List<T>,
     title: (T) -> String,
-    subtitle: (T) -> String
+    subtitle: (T) -> String,
+    onClick: () -> Unit
 ) {
     LazyColumn {
         items(items) { item ->
@@ -61,6 +63,7 @@ fun <T> DisplayList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clickable {onClick}
             ) {
                 // Placeholder for artwork
                 Box(

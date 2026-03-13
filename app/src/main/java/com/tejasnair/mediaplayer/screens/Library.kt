@@ -13,10 +13,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tejasnair.mediaplayer.data.Album
 import com.tejasnair.mediaplayer.data.Song
 import com.tejasnair.mediaplayer.data.Artist
-import kotlin.time.Duration
 
 @Composable
-fun HomeScreen(viewModel: LibraryViewModel = viewModel()) {
+fun LibraryScreen(viewModel: LibraryViewModel = viewModel()) {
 
     LaunchedEffect(Unit) {
         if (viewModel.songs.value.isEmpty()) {
@@ -25,11 +24,6 @@ fun HomeScreen(viewModel: LibraryViewModel = viewModel()) {
             val album1 = Album(
                 id = "album1",
                 title = "Test Album 1",
-                albumArtist = testArtist
-            )
-            val album2 = Album(
-                id = "album2",
-                title = "Test Album 2",
                 albumArtist = testArtist
             )
 
@@ -77,10 +71,22 @@ fun HomeScreen(viewModel: LibraryViewModel = viewModel()) {
                 }
                 else {
                     when (selectedFilter) {
-                        0 -> DisplayList(viewModel.albums.value.keys.toList(), title = { it.title }, subtitle = { it.albumArtist.name })
-                        1 -> DisplayList(viewModel.songs.value, title = { it.title }, subtitle = { it.artist.name })
-                        2 -> DisplayList(viewModel.artists.value.keys.toList(), title = { it.name }, subtitle = { "" })
-                        3 -> { }
+                        0 -> DisplayList( // Albums
+                            items = viewModel.albums.value.keys.toList(),
+                            title = { it.title },
+                            subtitle = { it.albumArtist.name },
+                            onClick = { })
+                        1 -> DisplayList( // Songs
+                            items = viewModel.songs.value,
+                            title = { it.title },
+                            subtitle = { it.artist.name },
+                            onClick = { })
+                        2 -> DisplayList( // Artists
+                            items = viewModel.artists.value.keys.toList(),
+                            title = { it.name },
+                            subtitle = { "" },
+                            onClick = { })
+                        3 -> { } // Playlists
                         else -> { }
                     }
                 }

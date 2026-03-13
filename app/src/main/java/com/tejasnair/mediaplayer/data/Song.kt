@@ -11,6 +11,6 @@ data class Song(
     val discNumber : Int = 1,
     val trackNumber : Int = 1,
     val album : Album? = UnknownAlbum,
-    val songArtUri: String? = null   // always the song's own art
+    val songArtUri: String? = null
 )
 
