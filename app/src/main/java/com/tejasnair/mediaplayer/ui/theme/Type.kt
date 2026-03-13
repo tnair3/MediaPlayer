@@ -24,9 +24,14 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp
     ),
-    titleLarge = TextStyle(
+    bodySmall = TextStyle(
         fontFamily = Sora,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = Sora,
+        fontWeight = FontWeight.Medium,
         fontSize = 22.sp
     ),
     labelLarge = TextStyle(

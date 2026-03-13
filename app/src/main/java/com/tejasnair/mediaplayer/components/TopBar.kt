@@ -6,7 +6,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,12 +19,17 @@ fun TopNavigation(
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background
             ),
-            title = { Text(title) },
+            title = { Text(
+                style = MaterialTheme.typography.titleMedium,
+                text = title
+            )
+                    },
             navigationIcon = {
                 IconButton(onClick = onUploadClick) {
                     Icon(
                         painter = painterResource(R.drawable.nav_upload),
-                        contentDescription = "Upload"
+                        contentDescription = "Upload",
+                        tint = MaterialTheme.colorScheme.tertiary
                     )
                 }
             },
@@ -33,7 +37,8 @@ fun TopNavigation(
                 IconButton(onClick = onSettingsClick) {
                     Icon(
                         painter = painterResource(R.drawable.nav_settings),
-                        contentDescription = "settings"
+                        contentDescription = "settings",
+                        tint = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }

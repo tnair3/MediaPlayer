@@ -11,27 +11,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFA164EE),       // soft purple accent
-    onPrimary = Color.White,           // text/icons on primary
-    secondary = Color(0xFF03DAC6),    // teal accent
+    primary = Color(0xFFA164EE),
+    onPrimary = Color.White,
+    secondary = Color(0xFF03DAC6),
     onSecondary = Color.Black,
-    background = Color(0xFF121212),   // deep dark gray
-    onBackground = Color(0xFFE0E0E0), // light gray text
-    surface = Color(0xFF1E1E1E),      // slightly lighter dark for cards
+    tertiary = Color.White,
+    onTertiary = Color.Black,
+    background = Color(0xFF111111),
+    onBackground = Color(0xFFE0E0E0),
+    surface = Color(0xFF1E1E1E),
     onSurface = Color(0xFFE0E0E0),
-    error = Color(0xFFCF6679),        // reddish alert
+    onSurfaceVariant = Color(0xFF555555),
+    outline = Color.White,
+    error = Color(0xFFCF6679),
     onError = Color.Black
 )
 
 val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF6200EE),       // vibrant purple accent
+    primary = Color(0xFF6200EE),
     onPrimary = Color.White,
-    secondary = Color(0xFF03DAC6),     // teal accent
+    secondary = Color(0xFF03DAC6),
     onSecondary = Color.Black,
-    background = Color(0xFFFFFFFF),    // black background
-    onBackground = Color(0xFF1C1C1C),  // light text
-    surface = Color(0xFFF5F5F5),       // light gray for cards
+    tertiary = Color.Black,
+    onTertiary = Color.White,
+    background = Color(0xFFFFFFFF),
+    onBackground = Color(0xFF1C1C1C),
+    surface = Color(0xFFF5F5F5),
     onSurface = Color(0xFF1C1C1C),
+    onSurfaceVariant = Color(0xFF9A9A9A),
+    outline = Color.Black,
     error = Color(0xFFB00020),
     onError = Color.White
 )

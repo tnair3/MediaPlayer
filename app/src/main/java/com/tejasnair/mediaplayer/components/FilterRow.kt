@@ -1,8 +1,6 @@
 package com.tejasnair.mediaplayer.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,34 +20,42 @@ fun FilterRow(
     selectedIndex: Int,
     onOptionSelected: (Int) -> Unit
 ) {
-    LazyRow(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        itemsIndexed(options) { index, label ->
+        options.forEachIndexed { index, label ->
 
             val isSelected = index == selectedIndex
 
             Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
+                    .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .border(
-                        width = 1.dp,
-                        color = Color.White,
-                        shape = RoundedCornerShape(10.dp)
+                        1.dp,
+                        MaterialTheme.colorScheme.outline,
+                        RoundedCornerShape(10.dp)
                     )
                     .background(
-                        if (isSelected) Color.White else Color.Transparent
+                        if (isSelected)
+                            MaterialTheme.colorScheme.tertiary
+                        else
+                            Color.Transparent
                     )
                     .clickable { onOptionSelected(index) }
-                    .padding(horizontal = 18.dp, vertical = 10.dp)
+                    .padding(vertical = 10.dp)
             ) {
                 Text(
                     text = label,
-                    color = if (isSelected) Color.Black else Color.White
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (isSelected)
+                        MaterialTheme.colorScheme.onTertiary
+                    else
+                        MaterialTheme.colorScheme.onSurface
                 )
             }
         }
