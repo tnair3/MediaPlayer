@@ -1,5 +1,6 @@
 package com.tejasnair.mediaplayer.components
 
+import androidx.collection.ObjectList
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -13,11 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tejasnair.mediaplayer.R
 import androidx.compose.foundation.lazy.LazyColumn
-import com.tejasnair.mediaplayer.data.Song
+import com.tejasnair.mediaplayer.data.Artist
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.background
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun EmptyLibrary() {
@@ -49,9 +49,13 @@ fun EmptyLibrary() {
 }
 
 @Composable
-fun LibraryDisplay(songs: List<Song>) {
+fun <T> DisplayList(
+    items: List<T>,
+    title: (T) -> String,
+    subtitle: (T) -> String
+) {
     LazyColumn {
-        items(songs) { song ->
+        items(items) { item ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -69,12 +73,12 @@ fun LibraryDisplay(songs: List<Song>) {
 
                 Column {
                     Text(
-                        text = song.title,
+                        text = title(item),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = song.artist,
+                        text = subtitle(item),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
