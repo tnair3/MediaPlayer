@@ -1,6 +1,5 @@
 package com.tejasnair.mediaplayer.components
 
-import androidx.collection.ObjectList
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -54,7 +53,7 @@ fun <T> DisplayList(
     items: List<T>,
     title: (T) -> String,
     subtitle: (T) -> String,
-    onClick: () -> Unit
+    onClick: (T) -> Unit
 ) {
     LazyColumn {
         items(items) { item ->
@@ -63,7 +62,7 @@ fun <T> DisplayList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable {onClick}
+                    .clickable { onClick(item) }
             ) {
                 // Placeholder for artwork
                 Box(

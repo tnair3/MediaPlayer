@@ -1,7 +1,6 @@
 package com.tejasnair.mediaplayer.data
 
 import java.util.UUID
-import com.tejasnair.mediaplayer.data.Artist.Companion.UnknownArtist
 
 data class Album(
     val id : String = UUID.randomUUID().toString(),
@@ -14,7 +13,8 @@ data class Album(
         val UnknownAlbum = Album(
             id = "unknown",
             title = "Unknown Album",
-            albumArtist = UnknownArtist
+            albumArtist = Artist.UnknownArtist,
+            year = 2026
         )
     }
 }

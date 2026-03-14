@@ -10,19 +10,21 @@ import com.tejasnair.mediaplayer.ui.theme.*
 import androidx.compose.ui.unit.dp
 import com.tejasnair.mediaplayer.viewmodel.LibraryViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.tejasnair.mediaplayer.data.Album
 import com.tejasnair.mediaplayer.data.Song
 import com.tejasnair.mediaplayer.data.Artist
 
 @Composable
-fun LibraryScreen(viewModel: LibraryViewModel = viewModel()) {
-
+fun LibraryScreen(
+    viewModel: LibraryViewModel = viewModel(),
+    navController: NavController
+) {
     LaunchedEffect(Unit) {
-        if (viewModel.songs.value.isEmpty()) {
-            val testArtist = Artist("Test Artist")
+        if (viewModel.songs.values.isEmpty()) {
+            val testArtist = Artist(name = "Test Artist")
 
             val album1 = Album(
-                id = "album1",
                 title = "Test Album 1",
                 albumArtist = testArtist
             )
@@ -50,12 +52,15 @@ fun LibraryScreen(viewModel: LibraryViewModel = viewModel()) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
 
-                TopNavigation("Library", { }, { })
+                TopNavigation(
+                    title = "Library",
+                    onUploadClick = { },
+                    onSettingsClick = { })
 
                 var selectedFilter by remember { mutableIntStateOf(0) }
-                if (!viewModel.songs.value.isEmpty()) {
+                if (!viewModel.songs.values.isEmpty()) {
                     FilterRow(
-                        listOf("Albums", "Songs", "Artists", "Playlists"),
+                        options = listOf("Albums", "Songs", "Artists", "Playlists"),
                         selectedIndex = selectedFilter,
                         onOptionSelected = { selectedFilter = it }
                     )
@@ -66,27 +71,29 @@ fun LibraryScreen(viewModel: LibraryViewModel = viewModel()) {
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
-                if (viewModel.songs.value.isEmpty()) {
+                if (viewModel.songs.values.isEmpty()) {
                     EmptyLibrary()
                 }
                 else {
                     when (selectedFilter) {
-                        0 -> DisplayList( // Albums
-                            items = viewModel.albums.value.keys.toList(),
+                        0 -> DisplayList(
+                            items = viewModel.albums.values.toList(),
                             title = { it.title },
                             subtitle = { it.albumArtist.name },
-                            onClick = { })
-                        1 -> DisplayList( // Songs
-                            items = viewModel.songs.value,
+                            onClick = {  }
+                        )
+                        1 -> DisplayList(
+                            items = viewModel.songs.values.toList(),
                             title = { it.title },
                             subtitle = { it.artist.name },
-                            onClick = { })
-                        2 -> DisplayList( // Artists
-                            items = viewModel.artists.value.keys.toList(),
+                            onClick = {  }
+                        )
+                        2 -> DisplayList(
+                            items = viewModel.artists.values.toList(),
                             title = { it.name },
                             subtitle = { "" },
-                            onClick = { })
-                        3 -> { } // Playlists
+                            onClick = {  }
+                        )
                         else -> { }
                     }
                 }

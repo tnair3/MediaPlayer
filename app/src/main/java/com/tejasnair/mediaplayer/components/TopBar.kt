@@ -29,7 +29,7 @@ fun TopNavigation(
                     Icon(
                         painter = painterResource(R.drawable.nav_upload),
                         contentDescription = "Upload",
-                        tint = MaterialTheme.colorScheme.tertiary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             },
@@ -38,7 +38,7 @@ fun TopNavigation(
                     Icon(
                         painter = painterResource(R.drawable.nav_settings),
                         contentDescription = "settings",
-                        tint = MaterialTheme.colorScheme.tertiary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }

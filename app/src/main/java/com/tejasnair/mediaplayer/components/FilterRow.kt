@@ -42,7 +42,7 @@ fun FilterRow(
                     )
                     .background(
                         if (isSelected)
-                            MaterialTheme.colorScheme.tertiary
+                            MaterialTheme.colorScheme.primary
                         else
                             Color.Transparent
                     )
@@ -53,7 +53,7 @@ fun FilterRow(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
                     color = if (isSelected)
-                        MaterialTheme.colorScheme.onTertiary
+                        MaterialTheme.colorScheme.onPrimary
                     else
                         MaterialTheme.colorScheme.onSurface
                 )

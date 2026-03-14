@@ -24,10 +24,20 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp
     ),
+    bodyMedium = TextStyle(
+        fontFamily = Sora,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp
+    ),
     bodySmall = TextStyle(
         fontFamily = Sora,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = Sora,
+        fontWeight = FontWeight.Medium,
+        fontSize = 36.sp
     ),
     titleMedium = TextStyle(
         fontFamily = Sora,
@@ -38,5 +48,10 @@ val Typography = Typography(
         fontFamily = Sora,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = Comfortaa,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp
     )
 )
