@@ -19,6 +19,21 @@ val Comfortaa = FontFamily(
 )
 
 val Typography = Typography(
+    titleLarge = TextStyle(
+        fontFamily = Sora,
+        fontWeight = FontWeight.Medium,
+        fontSize = 26.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = Sora,
+        fontWeight = FontWeight.Medium,
+        fontSize = 22.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = Comfortaa,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp
+    ),
     bodyLarge = TextStyle(
         fontFamily = Sora,
         fontWeight = FontWeight.Normal,
@@ -34,24 +49,14 @@ val Typography = Typography(
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp
     ),
-    titleLarge = TextStyle(
-        fontFamily = Sora,
-        fontWeight = FontWeight.Medium,
-        fontSize = 36.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = Sora,
-        fontWeight = FontWeight.Medium,
-        fontSize = 22.sp
-    ),
     labelLarge = TextStyle(
         fontFamily = Sora,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp
     ),
-    headlineLarge = TextStyle(
-        fontFamily = Comfortaa,
-        fontWeight = FontWeight.Bold,
-        fontSize = 36.sp
+    labelMedium = TextStyle(
+        fontFamily = Sora,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp
     )
 )

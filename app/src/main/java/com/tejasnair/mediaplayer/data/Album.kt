@@ -1,5 +1,8 @@
 package com.tejasnair.mediaplayer.data
 
+import com.tejasnair.mediaplayer.R
+import androidx.annotation.DrawableRes
+
 import java.util.UUID
 
 data class Album(
@@ -7,14 +10,21 @@ data class Album(
     val title : String,
     val albumArtist : Artist,
     val year : Int? = null,
-    var albumArtUri: String? = null,  // default from disc 1 track 1
+
+    val albumArtUri: String? = null,   // external art
+    @param:DrawableRes val albumArtRes: Int? = null  // bundled art
 ) {
     companion object {
         val UnknownAlbum = Album(
             id = "unknown",
             title = "Unknown Album",
             albumArtist = Artist.UnknownArtist,
-            year = 2026
+            albumArtRes = R.drawable.unknown_album_art
         )
     }
+
+    val artModel: Any?
+        get() = albumArtUri
+            ?: albumArtRes
+            ?: UnknownAlbum.albumArtRes
 }
