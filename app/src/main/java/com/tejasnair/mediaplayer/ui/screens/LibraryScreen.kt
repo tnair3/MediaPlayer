@@ -1,21 +1,24 @@
-package com.tejasnair.mediaplayer.screens
+package com.tejasnair.mediaplayer.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.tejasnair.mediaplayer.components.*
 import com.tejasnair.mediaplayer.ui.theme.*
 import androidx.compose.ui.unit.dp
-import com.tejasnair.mediaplayer.viewmodel.LibraryViewModel
+import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import androidx.navigation.NavController
-import com.tejasnair.mediaplayer.data.Album
-import com.tejasnair.mediaplayer.data.Song
-import com.tejasnair.mediaplayer.data.Artist
+import com.tejasnair.mediaplayer.data.model.Album
+import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.data.model.Artist
 import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.ui.components.DisplayList
+import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
+import com.tejasnair.mediaplayer.ui.components.FilterRow
+import com.tejasnair.mediaplayer.ui.components.SongSheet
+import com.tejasnair.mediaplayer.ui.components.TopNavigation
 import java.util.Locale
-import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun LibraryScreen(
@@ -83,7 +86,6 @@ fun LibraryScreen(
                 .fillMaxSize()
                 .safeDrawingPadding()
         ) {
-            // Main content in a Column
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -93,8 +95,10 @@ fun LibraryScreen(
 
                 TopNavigation(
                     title = "Library",
-                    onUploadClick = { },
-                    onSettingsClick = { })
+                    onVinylClick = { },
+                    onFavouriteClick = { },
+                    onUploadClick = { navController.navigate("upload") },
+                    onSettingsClick = { navController.navigate("settings") })
 
                 if (!viewModel.songs.values.isEmpty()) {
                     FilterRow(
@@ -134,14 +138,16 @@ fun LibraryScreen(
                         1 -> DisplayList(
                             items = viewModel.songs.values.toList().sortedWith(
                                 comparator = compareBy(
-                                    { it.album?.title }, { it.discNumber }, { it.trackNumber })),
+                                    { it.album?.title }, { it.discNumber }, { it.trackNumber })
+                            ),
                             title = { it.title },
-                            subtitle = { it.artist.name + " • " + String.format(
-                                Locale.getDefault(),
-                                format = "%02d:%02d",
-                                it.duration / 60, it.duration % 60
-                            )
-                                       },
+                            subtitle = {
+                                it.artist.name + " • " + String.format(
+                                    Locale.getDefault(),
+                                    format = "%02d:%02d",
+                                    it.duration / 60, it.duration % 60
+                                )
+                            },
                             artModel = { it.artModel },
                             trackNumber = { -1 },
                             onClick = { song -> selectedSong = song }
@@ -152,7 +158,7 @@ fun LibraryScreen(
                             subtitle = { "" },
                             artModel = { -1 },
                             trackNumber = { -1 },
-                            onClick = {  }
+                            onClick = { }
                         )
                         else -> { }
                     }

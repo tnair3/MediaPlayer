@@ -1,4 +1,4 @@
-package com.tejasnair.mediaplayer.components
+package com.tejasnair.mediaplayer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.material3.*
@@ -12,10 +12,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
-import com.tejasnair.mediaplayer.data.Song
+import com.tejasnair.mediaplayer.data.model.Song
 
 @Composable
 fun SongSheet(
@@ -51,13 +52,15 @@ fun SongSheet(
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
                     )
 
                     Text(
                         text = song.artist.name,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
 
                 Box(

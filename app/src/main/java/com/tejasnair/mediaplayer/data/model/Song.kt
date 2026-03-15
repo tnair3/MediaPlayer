@@ -1,8 +1,7 @@
-package com.tejasnair.mediaplayer.data
+package com.tejasnair.mediaplayer.data.model
 
 import androidx.annotation.DrawableRes
 import com.tejasnair.mediaplayer.R
-import com.tejasnair.mediaplayer.data.Album.Companion.UnknownAlbum
 import java.util.UUID
 
 data class Song(

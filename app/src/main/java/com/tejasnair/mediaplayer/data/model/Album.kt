@@ -1,4 +1,4 @@
-package com.tejasnair.mediaplayer.data
+package com.tejasnair.mediaplayer.data.model
 
 import com.tejasnair.mediaplayer.R
 import androidx.annotation.DrawableRes

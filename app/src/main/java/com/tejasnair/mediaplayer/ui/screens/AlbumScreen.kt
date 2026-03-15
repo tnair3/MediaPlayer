@@ -1,6 +1,5 @@
-package com.tejasnair.mediaplayer.screens
+package com.tejasnair.mediaplayer.ui.screens
 
-import android.view.Display
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.tejasnair.mediaplayer.data.Album
+import com.tejasnair.mediaplayer.data.model.Album
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
-import com.tejasnair.mediaplayer.viewmodel.LibraryViewModel
-import com.tejasnair.mediaplayer.components.DisplayList
-import com.tejasnair.mediaplayer.data.Song
+import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
+import com.tejasnair.mediaplayer.ui.components.DisplayList
+import com.tejasnair.mediaplayer.data.model.Song
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import coil.compose.AsyncImage
@@ -33,7 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import com.tejasnair.mediaplayer.components.SongSheet
+import com.tejasnair.mediaplayer.ui.components.SongSheet
 import java.util.Locale
 
 @Composable

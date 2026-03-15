@@ -1,12 +1,12 @@
-package com.tejasnair.mediaplayer.viewmodel
+package com.tejasnair.mediaplayer.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.derivedStateOf
-import com.tejasnair.mediaplayer.data.Song
-import com.tejasnair.mediaplayer.data.Album
-import com.tejasnair.mediaplayer.data.Artist
+import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.data.model.Album
+import com.tejasnair.mediaplayer.data.model.Artist
 
 class LibraryViewModel : ViewModel() {
     // Core Storage
