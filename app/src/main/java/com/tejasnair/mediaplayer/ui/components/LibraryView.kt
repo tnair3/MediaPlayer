@@ -21,7 +21,10 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 
 @Composable
-fun EmptyLibrary() {
+fun EmptyLibrary(
+    primaryText: String,
+    secondaryText: String
+) {
     Column(
         modifier = Modifier
             .fillMaxSize(),
@@ -38,13 +41,13 @@ fun EmptyLibrary() {
         Text(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            text = "Library is empty"
+            text = primaryText
         )
 
         Text(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            text = "Upload media to listen"
+            text = secondaryText
         )
     }
 }

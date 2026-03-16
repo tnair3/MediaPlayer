@@ -15,14 +15,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
-
 import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
-
 import com.tejasnair.mediaplayer.data.model.Album
 import com.tejasnair.mediaplayer.ui.screens.AlbumScreen
+import com.tejasnair.mediaplayer.ui.screens.FavouritesScreen
 import com.tejasnair.mediaplayer.ui.screens.LibraryScreen
 import com.tejasnair.mediaplayer.ui.screens.SettingsScreen
 import com.tejasnair.mediaplayer.ui.screens.UploadScreen
+import com.tejasnair.mediaplayer.ui.viewmodel.FavouritesViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.SettingsViewModel
 
@@ -35,6 +35,9 @@ class MainActivity : ComponentActivity() {
             // View Models
             val libraryViewModel: LibraryViewModel = viewModel()
             val settingsViewModel: SettingsViewModel = viewModel()
+            val favouritesViewModel: FavouritesViewModel = viewModel()
+
+            TestAdd(libraryViewModel)
 
             setContent {
                 // Collect the theme preference from the ViewModel
@@ -96,7 +99,18 @@ class MainActivity : ComponentActivity() {
                         composable(
                             route = "upload"
                         ) {
-                            UploadScreen()
+                            UploadScreen(
+                                navController = navController
+                            )
+                        }
+
+                        composable(
+                            route = "favourites"
+                        ) {
+                            FavouritesScreen(
+                                viewModel = favouritesViewModel,
+                                navController = navController
+                            )
                         }
 
                         composable(

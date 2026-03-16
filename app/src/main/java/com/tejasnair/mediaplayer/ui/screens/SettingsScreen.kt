@@ -100,10 +100,11 @@ fun SettingsScreen(
                     ) {
                         RadioButton(
                             selected = (setting == currentSetting),
-                            onClick = null // Selected via the Row's clickable
+                            onClick = null
                         )
                         Text(
-                            text = setting.name.lowercase().replaceFirstChar{ if (it.isLowerCase()) it.titlecase() else it.toString() },
+                            text = setting.name.lowercase().replaceFirstChar{
+                                if (it.isLowerCase()) it.titlecase() else it.toString() },
                             modifier = Modifier.padding(start = 16.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onBackground
