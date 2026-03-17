@@ -22,6 +22,7 @@ import com.tejasnair.mediaplayer.ui.screens.FavouritesScreen
 import com.tejasnair.mediaplayer.ui.screens.LibraryScreen
 import com.tejasnair.mediaplayer.ui.screens.SettingsScreen
 import com.tejasnair.mediaplayer.ui.screens.UploadScreen
+import com.tejasnair.mediaplayer.ui.screens.VinylsScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.FavouritesViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.SettingsViewModel
@@ -113,6 +114,13 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        composable(
+                            route = "vinyls"
+                        ) {
+                            VinylsScreen(
+                                navController = navController
+                            )
+                        }
                         composable(
                             route = "album/{albumId}"
                         ) { backStackEntry ->

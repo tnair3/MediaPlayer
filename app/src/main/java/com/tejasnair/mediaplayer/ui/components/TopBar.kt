@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,5 +133,36 @@ fun FilterRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun StandardUIBar(
+    navController: NavController,
+    title: String
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+    ) {
+
+        IconButton(
+            onClick = { navController.navigateUp() },
+            modifier = Modifier.align(Alignment.CenterStart)
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.nav_back_arrow),
+                contentDescription = "Back",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.align(Alignment.Center)
+        )
     }
 }

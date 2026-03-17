@@ -1,6 +1,5 @@
 package com.tejasnair.mediaplayer.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
@@ -8,14 +7,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
 
 @Composable
@@ -63,28 +62,84 @@ fun SongSheet(
                         textAlign = TextAlign.Center
                     )
 
-                Box(
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .fillMaxWidth()
-                        .height(1.dp) // Your thickness
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.outlineVariant,
-                                    Color.Transparent
-                                )
-                            )
+                Spacer(Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = {  },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            painter = painterResource(R.drawable.options_delete),
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                )
+                    }
 
-                Spacer(Modifier.height(16.dp))
+                    IconButton(
+                        onClick = {  },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            painter = painterResource(R.drawable.song_play),
+                            contentDescription = "Play",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-                Text("Play")
-                Text("Play Next")
-                Text("Add to Queue")
-                Text("Save to Playlist")
+                    IconButton(
+                        onClick = {  },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            painter = painterResource(R.drawable.song_next),
+                            contentDescription = "Play Next",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(
+                        onClick = {  },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            painter = painterResource(R.drawable.song_options_addtoqueue),
+                            contentDescription = "Add to Queue",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {  },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            painter = painterResource(R.drawable.song_options_playlist),
+                            contentDescription = "Save to Playlist",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
     }

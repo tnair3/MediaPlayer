@@ -1,6 +1,11 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.oss.licenses)
 }
 
 android {
@@ -28,6 +33,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "BUILD_DATE", "\"${SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())}\"")
+        }
+
+        debug {
+            buildConfigField("String", "BUILD_DATE", "\"${SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())}\"")
         }
     }
     compileOptions {
@@ -36,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -51,6 +62,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.play.services.oss.licenses)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

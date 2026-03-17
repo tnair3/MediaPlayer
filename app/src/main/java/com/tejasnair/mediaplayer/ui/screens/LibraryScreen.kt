@@ -40,7 +40,7 @@ fun LibraryScreen(
 
                 TopNavigation(
                     title = "Library",
-                    onVinylClick = { },
+                    onVinylClick = { navController.navigate("vinyls") },
                     onFavouriteClick = { navController.navigate("favourites") },
                     onUploadClick = { navController.navigate("upload") },
                     onSettingsClick = { navController.navigate("settings") })

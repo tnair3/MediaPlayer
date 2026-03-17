@@ -8,15 +8,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.tejasnair.mediaplayer.ui.components.DisplayList
-import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.StandardUIBar
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
-import com.tejasnair.mediaplayer.ui.viewmodel.FavouritesViewModel
 
 @Composable
-fun FavouritesScreen(
-    viewModel: FavouritesViewModel,
+fun VinylsScreen(
     navController: NavController
 ) {
     ThemedScreen {
@@ -31,7 +27,7 @@ fun FavouritesScreen(
             ) {
                 StandardUIBar(
                     navController = navController,
-                    title = "Favourites"
+                    title = "Vinyls"
                 )
                 // ragebait
                 HorizontalDivider(
@@ -40,27 +36,6 @@ fun FavouritesScreen(
                     thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
-
-                if (viewModel.songs.values.isEmpty()) {
-                    EmptyLibrary(
-                        primaryText = "No favourites",
-                        secondaryText = "Add songs to favourite to view"
-                    )
-                }
-                else {
-                    DisplayList(
-                        items = viewModel.songs.values.toList().sortedWith(
-                            comparator = compareBy(
-                                { it.album?.title }, { it.discNumber }, { it.trackNumber }
-                            )
-                        ),
-                        title = { it.title },
-                        subtitle = { it.artist.name },
-                        artModel = { it.artModel },
-                        trackNumber = { -1 },
-                        onClick = {  }
-                            )
-                    }
             }
         }
     }

@@ -16,15 +16,15 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.RadioButton
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextDecoration
 import android.content.Intent
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.res.painterResource
 import androidx.core.net.toUri
 import androidx.navigation.NavController
-import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.ui.components.StandardUIBar
 import com.tejasnair.mediaplayer.ui.components.ThemeMode
+import com.tejasnair.mediaplayer.BuildConfig
+import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
 
 @Composable
 fun SettingsScreen(
@@ -33,6 +33,10 @@ fun SettingsScreen(
     currentSetting: ThemeMode,
     onSettingChanged: (ThemeMode) -> Unit
 ) {
+
+    val context = LocalContext.current
+    val packageInfo = context.packageManager
+        .getPackageInfo(context.packageName, 0)
 
     ThemedScreen {
         Box(
@@ -44,30 +48,10 @@ fun SettingsScreen(
                 modifier = Modifier
                     .padding(bottom = 56.dp, top = 16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp)
-                ) {
-
-                    IconButton(
-                        onClick = { navController.navigateUp() },
-                        modifier = Modifier.align(Alignment.CenterStart)
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.nav_back_arrow),
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Text(
-                        text = "Settings",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+                StandardUIBar(
+                    navController = navController,
+                    title = "Settings"
+                )
 
                 HorizontalDivider(
                     modifier = Modifier
@@ -121,9 +105,7 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-                val context = LocalContext.current
-                val packageInfo = context.packageManager
-                    .getPackageInfo(context.packageName, 0)
+
                 Text(
                     text = "Version " + packageInfo.versionName,
                     modifier = Modifier.padding(start = 16.dp),
@@ -131,22 +113,42 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                TextButton(
-                    onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            "https://github.com/tnair3/".toUri()
-                        )
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.padding(start = 16.dp)
-                ) {
-                    Text(
-                        text = "GitHub",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "Build: ${BuildConfig.BUILD_TYPE} ${BuildConfig.BUILD_DATE}",
+                    modifier = Modifier.padding(start = 16.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
+                    text = "Third-Party Licenses",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        textDecoration = TextDecoration.Underline
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(start = 16.dp)
+                        .clickable {
+                            context.startActivity(Intent(context, OssLicensesMenuActivity::class.java))
+                        }
+                )
+
+                Text(
+                    text = "GitHub",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        textDecoration = TextDecoration.Underline
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(top = 8.dp, start = 16.dp)
+                        .clickable {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                "https://github.com/tnair3/".toUri()
+                            )
+                            context.startActivity(intent)
+                        }
+                )
             }
         }
     }
