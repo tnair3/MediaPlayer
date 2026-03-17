@@ -65,7 +65,7 @@ fun SongSheet(
                 Spacer(Modifier.height(12.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
@@ -101,17 +101,17 @@ fun SongSheet(
                         Icon(
                             modifier = Modifier
                                 .fillMaxSize(),
-                            painter = painterResource(R.drawable.song_next),
+                            painter = painterResource(R.drawable.song_options_playnext),
                             contentDescription = "Play Next",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(26.dp))
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(32.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(

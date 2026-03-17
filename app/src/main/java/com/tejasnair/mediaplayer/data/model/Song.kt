@@ -12,13 +12,13 @@ data class Song(
     val discNumber : Int = 1,
     val trackNumber : Int = 1,
     val album : Album? = Album.UnknownAlbum,
+    val isFavourite : Boolean = false,
 
-    val songArtUri: String? = null,
-    @param:DrawableRes val songArtRes: Int? = null  // bundled art
+    val songArtUri : String? = null,
+    @param:DrawableRes val songArtRes: Int? = null
 ) {
     val artModel: Any
         get() = songArtUri
             ?: songArtRes
             ?: R.drawable.unknown_song_art
 }
-
