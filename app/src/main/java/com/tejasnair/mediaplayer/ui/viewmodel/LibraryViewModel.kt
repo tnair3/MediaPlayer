@@ -1,46 +1,38 @@
 package com.tejasnair.mediaplayer.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.derivedStateOf
-import com.tejasnair.mediaplayer.data.model.Song
-import com.tejasnair.mediaplayer.data.model.Album
-import com.tejasnair.mediaplayer.data.model.Artist
+import androidx.lifecycle.viewModelScope
+import com.tejasnair.mediaplayer.data.model.*
+import com.tejasnair.mediaplayer.data.repository.MusicRepository
+import com.tejasnair.mediaplayer.data.local.entities.*
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.Flow
 
-class LibraryViewModel : ViewModel() {
-    // Core Storage
-    private val _songs = mutableStateMapOf<String, Song>()
-    private val _albums = mutableStateMapOf<String, Album>()
-    private val _artists = mutableStateMapOf<String, Artist>()
+class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
 
-    // Public read-only access
-    val songs: Map<String, Song> get() = _songs
-    val albums: Map<String, Album> get() = _albums
-    val artists: Map<String, Artist> get() = _artists
+    val allSongs: StateFlow<List<Song>> = repository.allSongs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Derived Storage
-    val albumsToSongs: State<Map<String, List<String>>> = derivedStateOf {
-        _songs.values.groupBy { it.album?.id ?: Album.UnknownAlbum.id }
-            .mapValues { it.value.map { song -> song.id } }
+    val allAlbums: StateFlow<List<Album>> = repository.allAlbums
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allArtists: StateFlow<List<Artist>> = repository.allArtists
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun addSong(song: Song, artists: List<Artist>, album: Album?) {
+        viewModelScope.launch {
+            repository.insertFullSongData(song, artists, album)
+        }
     }
 
-    val artistsToSongs: State<Map<String, List<String>>> = derivedStateOf {
-        _songs.values.groupBy { it.artist.id }
-            .mapValues { it.value.map { song -> song.id } }
+    fun getSongById(songId: String): Song? {
+        return allSongs.value.find { it.id == songId }
     }
 
-    fun addSong(song: Song) {
-        _songs[song.id] = song
-
-        song.album?.let { album ->
-            if (!_albums.containsKey(album.id)) {
-                _albums[album.id] = album
-            }
-        }
-
-        if (!_artists.containsKey(song.artist.id)) {
-            _artists[song.artist.id] = song.artist
-        }
+    fun getAlbumDetails(id: String): Flow<AlbumDetail> {
+        return repository.getAlbumSongs(id)
     }
 }

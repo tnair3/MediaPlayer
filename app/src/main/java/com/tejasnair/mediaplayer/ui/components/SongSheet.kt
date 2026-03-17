@@ -15,13 +15,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.data.local.entities.SongWithArtists
 import com.tejasnair.mediaplayer.data.model.Song
 
 @Composable
 fun SongSheet(
-    song: Song,
+    songData: SongWithArtists,
     onDismiss: () -> Unit
 ) {
+    val song = songData.song
+    val artists = songData.artists
     Dialog(
         onDismissRequest = onDismiss
     ) {
@@ -39,7 +42,7 @@ fun SongSheet(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 AsyncImage(
-                    model = song.artModel,
+                    model = song.songArtUri ?: song.songArtRes ?: -1,
                     contentDescription = "Album Art",
                     modifier = Modifier
                         .padding(top = 12.dp, bottom = 12.dp)
@@ -56,7 +59,7 @@ fun SongSheet(
                     )
 
                     Text(
-                        text = song.artist.name,
+                        text = artists.joinToString(", ") { it.name }.ifEmpty { "Unknown Artist" },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center

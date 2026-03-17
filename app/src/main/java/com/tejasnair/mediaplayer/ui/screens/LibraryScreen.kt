@@ -15,13 +15,17 @@ import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.FilterRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.TopNavigation
-import java.util.Locale
 
 @Composable
 fun LibraryScreen(
     viewModel: LibraryViewModel,
     navController: NavController
 ) {
+
+    val songs by viewModel.allSongs.collectAsState()
+    val albums by viewModel.allAlbums.collectAsState()
+    val artists by viewModel.allArtists.collectAsState()
+
     var selectedSong by remember { mutableStateOf<Song?>(null) }
     var selectedFilter by remember { mutableIntStateOf(0) }
 
@@ -45,7 +49,7 @@ fun LibraryScreen(
                     onUploadClick = { navController.navigate("upload") },
                     onSettingsClick = { navController.navigate("settings") })
 
-                if (!viewModel.songs.values.isEmpty()) {
+                if (true) {
                     FilterRow(
                         options = listOf("Albums", "Songs", "Artists", "Playlists"),
                         selectedIndex = selectedFilter,
@@ -58,57 +62,17 @@ fun LibraryScreen(
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
-                selectedSong?.let { song ->
-                    SongSheet(
-                        song = song,
-                        onDismiss = { selectedSong = null }
-                    )
-                }
 
-                if (viewModel.songs.values.isEmpty()) {
+                if(songs.isEmpty()) {
                     EmptyLibrary(
-                        primaryText = "Library is empty",
+                        primaryText = "Library is Empty",
                         secondaryText = "Upload media to listen"
                     )
                 }
                 else {
-                    when (selectedFilter) {
-                        0 -> DisplayList(
-                            items = viewModel.albums.values.toList().sortedBy { it.title },
-                            title = { it.title },
-                            subtitle = { it.albumArtist.name },
-                            artModel = { it.artModel },
-                            trackNumber = { -1 },
-                            onClick = { album ->
-                                navController.navigate("album/${album.id}")
-                            }
-                        )
-                        1 -> DisplayList(
-                            items = viewModel.songs.values.toList().sortedWith(
-                                comparator = compareBy(
-                                    { it.album?.title }, { it.discNumber }, { it.trackNumber })
-                            ),
-                            title = { it.title },
-                            subtitle = {
-                                it.artist.name + " • " + String.format(
-                                    Locale.getDefault(),
-                                    format = "%02d:%02d",
-                                    it.duration / 60, it.duration % 60
-                                )
-                            },
-                            artModel = { it.artModel },
-                            trackNumber = { -1 },
-                            onClick = { song -> selectedSong = song }
-                        )
-                        2 -> DisplayList(
-                            items = viewModel.artists.values.toList().sortedBy { it.name },
-                            title = { it.name },
-                            subtitle = { "" },
-                            artModel = { -1 },
-                            trackNumber = { -1 },
-                            onClick = { }
-                        )
-                        else -> { }
+                    when(selectedFilter) {
+                        1 -> {  }
+                        else -> {  }
                     }
                 }
             }
