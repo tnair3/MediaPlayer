@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import com.tejasnair.mediaplayer.ui.components.SongSheet
@@ -40,8 +41,10 @@ fun AlbumScreen(
     album: Album,
     viewModel: LibraryViewModel
 ) {
-    val songs: List<String> = viewModel.albumsToSongs.value[album.id] ?: emptyList()
-    val songsList: List<Song> = songs.mapNotNull { id -> viewModel.songs[id] }
+    val albumData by viewModel.getSongsForAlbum(album.id).collectAsState(initial = null)
+    val songsList = albumData?.songs ?: emptyList()
+
+
     var selectedSong by remember { mutableStateOf<Song?>(null) }
 
     ThemedScreen {
@@ -111,27 +114,13 @@ fun AlbumScreen(
                         )
                 )
 
-                selectedSong?.let { song ->
-                    SongSheet(
-                        song = song,
-                        onDismiss = { selectedSong = null }
-                    )
-                }
-
                 DisplayList(
-                    items = songsList.sortedWith(
-                        comparator = compareBy(
-                            { it.discNumber }, { it.trackNumber })),
+                    items = songsList,
                     title = { it.title },
-                    subtitle = { it.artist.name + " • " + String.format(
-                        Locale.getDefault(),
-                        format = "%02d:%02d",
-                        it.duration / 60, it.duration % 60
-                    )
-                               },
-                    artModel = { it.artModel },
+                    subtitle = { "Track ${it.trackNumber}" },
+                    artModel = { it.songArtUri ?: it.songArtRes ?: -1 },
                     trackNumber = { it.trackNumber },
-                    onClick = { song -> selectedSong = song }
+                    onClick = { /* Play song */ }
                 )
             }
         }

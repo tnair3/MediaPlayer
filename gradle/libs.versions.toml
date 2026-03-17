@@ -13,7 +13,7 @@ navigation = "2.9.7"
 coil = "2.7.0"
 ossLicenses = "17.4.0"
 ossPlugin = "0.10.10"
-room = "2.7.0"
+room = "2.8.4"
 ksp = "2.0.21-1.0.25"
 
 [libraries]

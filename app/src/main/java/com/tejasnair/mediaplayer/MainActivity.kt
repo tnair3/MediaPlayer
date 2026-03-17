@@ -12,20 +12,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.compose.runtime.getValue
 import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
 import com.tejasnair.mediaplayer.data.model.Album
-import com.tejasnair.mediaplayer.ui.screens.AlbumScreen
-import com.tejasnair.mediaplayer.ui.screens.FavouritesScreen
-import com.tejasnair.mediaplayer.ui.screens.LibraryScreen
-import com.tejasnair.mediaplayer.ui.screens.SettingsScreen
-import com.tejasnair.mediaplayer.ui.screens.UploadScreen
-import com.tejasnair.mediaplayer.ui.screens.VinylsScreen
-import com.tejasnair.mediaplayer.ui.viewmodel.FavouritesViewModel
-import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
-import com.tejasnair.mediaplayer.ui.viewmodel.SettingsViewModel
+import com.tejasnair.mediaplayer.ui.screens.*
+import com.tejasnair.mediaplayer.ui.viewmodel.*
+import com.tejasnair.mediaplayer.data.local.MusicDatabase
+import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,11 +32,21 @@ class MainActivity : ComponentActivity() {
         setContent {
 
             // View Models
-            val libraryViewModel: LibraryViewModel = viewModel()
-            val settingsViewModel: SettingsViewModel = viewModel()
-            val favouritesViewModel: FavouritesViewModel = viewModel()
+            val appContext = LocalContext.current
+            val database by lazy { MusicDatabase.getDatabase(appContext) }
+            val repository by lazy { MusicRepository(database.musicDao()) }
 
-            TestAdd(libraryViewModel)
+            val libraryViewModel: LibraryViewModel = viewModel(
+                factory = object : ViewModelProvider.Factory {
+                    @Suppress("UNCHECKED_CAST")
+                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                        return LibraryViewModel(repository) as T
+                    }
+                }
+            )
+
+
+            val settingsViewModel: SettingsViewModel = viewModel()
 
             setContent {
                 // Collect the theme preference from the ViewModel
@@ -109,7 +117,6 @@ class MainActivity : ComponentActivity() {
                             route = "favourites"
                         ) {
                             FavouritesScreen(
-                                viewModel = favouritesViewModel,
                                 navController = navController
                             )
                         }
@@ -120,15 +127,6 @@ class MainActivity : ComponentActivity() {
                             VinylsScreen(
                                 navController = navController
                             )
-                        }
-                        composable(
-                            route = "album/{albumId}"
-                        ) { backStackEntry ->
-                            val albumId = backStackEntry.arguments?.getString("albumId")!!
-
-                            val album = libraryViewModel.albums[albumId] ?: Album.UnknownAlbum
-
-                            AlbumScreen(album = album, viewModel = libraryViewModel)
                         }
                     }
                 }
