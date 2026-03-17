@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.tejasnair.mediaplayer.data.model.Album
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.components.DisplayList
@@ -41,7 +40,6 @@ fun AlbumScreen(
     albumId: String,
     viewModel: LibraryViewModel
 ) {
-    val albumData = viewModel.getAlbumDetails(albumId)
 
     var selectedSong by remember { mutableStateOf<Song?>(null) }
 
@@ -58,7 +56,7 @@ fun AlbumScreen(
                     .padding(bottom = 56.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-
+                /**
                 AsyncImage(
                     model = album.artModel,
                     contentDescription = "Album Art",
@@ -68,21 +66,23 @@ fun AlbumScreen(
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
+                */
 
                 Text(
-                    text = album.title,
+                    text = "",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = album.albumArtist.name,
+                    text = "",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
+                /**
                 var tertiaryLabel = songsList.count().toString() + " songs"
 
                 if(album.year != null) {
@@ -95,6 +95,7 @@ fun AlbumScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
+                */
 
                 Box(
                     modifier = Modifier
@@ -110,15 +111,6 @@ fun AlbumScreen(
                                 )
                             )
                         )
-                )
-
-                DisplayList(
-                    items = songsList,
-                    title = { it.title },
-                    subtitle = { "Track ${it.trackNumber}" },
-                    artModel = { it.songArtUri ?: it.songArtRes ?: -1 },
-                    trackNumber = { it.trackNumber },
-                    onClick = { /* Play song */ }
                 )
             }
         }

@@ -1,57 +1,33 @@
 package com.tejasnair.mediaplayer.data.local.dao
 
 import androidx.room.Dao
-import androidx.room.Transaction
-import androidx.room.Query
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
-import com.tejasnair.mediaplayer.data.local.entities.*
 import com.tejasnair.mediaplayer.data.model.*
 
 @Dao
 interface MusicDao {
 
-    @Query("SELECT * FROM songs ORDER BY title ASC")
-    fun getAllSongs(): Flow<List<Song>>
-
-    @Query("SELECT * FROM albums ORDER BY title ASC")
-    fun getAllAlbums(): Flow<List<Album>>
-
-    @Query("SELECT * FROM artists ORDER BY name ASC")
-    fun getAllArtists(): Flow<List<Artist>>
-
-    @Transaction
-    @Query("SELECT * FROM artists WHERE id = :artistId")
-    fun getSongDetail(artistId: String): Flow<SongDetail>
-
-    @Transaction
-    @Query("SELECT * FROM artists WHERE id = :artistId")
-    fun getAlbumDetail(artistId: String): Flow<AlbumDetail>
-
-    @Transaction
-    @Query("SELECT * FROM artists WHERE id = :artistId")
-    fun getArtistDetail(artistId: String): Flow<ArtistDetail>
-
-    @Transaction
-    @Query("SELECT * FROM artists WHERE id = :artistId")
-    fun getArtistDiscography(artistId: String): Flow<ArtistDiscography>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(song: Song)
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertArtist(artist: Artist)
+    @Query("SELECT * FROM songs ORDER BY title ASC")
+    fun getAllSongs(): Flow<List<Song>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAlbum(album: Album)
+    @Query("SELECT DISTINCT album, albumArtists, songArtUri, backCoverUri FROM songs ORDER BY album ASC")
+    fun getUniqueAlbums(): Flow<List<AlbumSummary>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertArtistsForSong(crossRef: ArtistsForSong)
+    @Query("SELECT DISTINCT artists FROM songs ORDER BY artists ASC")
+    fun getUniqueArtists(): Flow<List<String>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertArtistsForAlbum(crossRef: ArtistsForAlbum)
+    @Query("SELECT * FROM songs WHERE album = :albumName AND albumArtists = :albumArtist ORDER BY trackNumber ASC")
+    fun getSongsByAlbum(albumName: String, albumArtist: String): Flow<List<Song>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSongsInAlbum(crossRef: SongsInAlbum)
+    @Query("SELECT * FROM songs WHERE artists LIKE '%' || :artistName || '%'")
+    fun getSongsByArtist(artistName: String): Flow<List<Song>>
+
+    @Query("DELETE FROM songs WHERE songId = :id")
+    suspend fun deleteSong(id: String)
 }

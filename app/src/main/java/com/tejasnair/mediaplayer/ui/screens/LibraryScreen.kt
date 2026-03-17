@@ -23,10 +23,9 @@ fun LibraryScreen(
 ) {
 
     val songs by viewModel.allSongs.collectAsState()
-    val albums by viewModel.allAlbums.collectAsState()
-    val artists by viewModel.allArtists.collectAsState()
+    val albums by viewModel.albums.collectAsState()
+    val artists by viewModel.artists.collectAsState()
 
-    var selectedSong by remember { mutableStateOf<Song?>(null) }
     var selectedFilter by remember { mutableIntStateOf(0) }
 
     ThemedScreen {
@@ -49,7 +48,7 @@ fun LibraryScreen(
                     onUploadClick = { navController.navigate("upload") },
                     onSettingsClick = { navController.navigate("settings") })
 
-                if (true) {
+                if (!songs.isEmpty()) {
                     FilterRow(
                         options = listOf("Albums", "Songs", "Artists", "Playlists"),
                         selectedIndex = selectedFilter,
@@ -70,9 +69,40 @@ fun LibraryScreen(
                     )
                 }
                 else {
-                    when(selectedFilter) {
-                        1 -> {  }
-                        else -> {  }
+                    when (selectedFilter) {
+                        0 -> { // ALBUMS
+                            DisplayList(
+                                items = albums,
+                                title = { it.album },
+                                subtitle = { it.albumArtists },
+                                // PRIORITY LOGIC: Use Back Cover if it exists, else Front
+                                artModel = { it.backCoverUri ?: it.songArtUri },
+                                trackNumber = { -1 }, // Don't show numbers in album list
+                                onClick = { /* Navigate to Album Detail */ }
+                            )
+                        }
+
+                        1 -> { // SONGS
+                            DisplayList(
+                                items = songs,
+                                title = { it.title },
+                                subtitle = { it.artists },
+                                artModel = { it.songArtUri },
+                                trackNumber = { it.trackNumber },
+                                onClick = { /* Play Song */ }
+                            )
+                        }
+
+                        2 -> { // ARTISTS
+                            DisplayList(
+                                items = artists,
+                                title = { it }, // 'it' is just the String name
+                                subtitle = { "Artist" },
+                                artModel = { -1 }, // No art for individual artists yet
+                                trackNumber = { -1 },
+                                onClick = { /* Navigate to Artist Detail */ }
+                            )
+                        }
                     }
                 }
             }

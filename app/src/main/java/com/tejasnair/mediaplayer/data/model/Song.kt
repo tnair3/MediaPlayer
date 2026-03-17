@@ -7,13 +7,19 @@ import java.util.UUID
 
 @Entity(tableName = "songs")
 data class Song(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    @PrimaryKey
+    val songId: String = UUID.randomUUID().toString(),
+    val filePath: String,
     val title: String,
-    val duration: Int,
+    val duration: Long, // milliseconds
+    val artists: String,
+    val album: String,
+    val albumArtists: String,
     val discNumber: Int = 1,
     val trackNumber: Int = 1,
     val isFavourite: Boolean = false,
+    val dateAdded: Long = System.currentTimeMillis(),
+
     val songArtUri: String? = null,
-    @param:DrawableRes val songArtRes: Int? = null,
-    val albumId: String? = null
+    val backCoverUri: String? = null
 )

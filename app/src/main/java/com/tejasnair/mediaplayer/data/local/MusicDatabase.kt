@@ -1,21 +1,14 @@
 package com.tejasnair.mediaplayer.data.local
 
-import androidx.room.Room
-import androidx.room.Database
-import androidx.room.RoomDatabase
 import android.content.Context
-import com.tejasnair.mediaplayer.data.model.*
-import com.tejasnair.mediaplayer.data.local.entities.*
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.data.local.dao.MusicDao
+
 @Database(
-    entities = [
-        Song::class,
-        Artist::class,
-        Album::class,
-        ArtistsForSong::class,
-        ArtistsForAlbum::class,
-        SongsInAlbum::class
-    ],
+    entities = [Song::class], // Our only physical table
     version = 1,
     exportSchema = false
 )
@@ -32,8 +25,10 @@ abstract class MusicDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     MusicDatabase::class.java,
-                    "music_player_database"
-                ).build()
+                    "music_database"
+                )
+                    .fallbackToDestructiveMigration(true)
+                    .build()
                 INSTANCE = instance
                 instance
             }
