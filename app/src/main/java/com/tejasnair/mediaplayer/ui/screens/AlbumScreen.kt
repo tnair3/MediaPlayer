@@ -37,13 +37,15 @@ import androidx.compose.ui.text.style.TextAlign
 import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.DiscHeader
 import com.tejasnair.mediaplayer.ui.components.SongRow
+import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 import java.util.Locale
 
 @Composable
 fun AlbumScreen(
     albumName: String,
     albumArtist: String,
-    viewModel: LibraryViewModel
+    viewModel: LibraryViewModel,
+    playbackViewModel: PlaybackViewModel
 ) {
 
     val albumSongs by viewModel.getSongsByAlbum(albumName, albumArtist).collectAsState(initial = emptyList())
@@ -131,9 +133,8 @@ fun AlbumScreen(
 
                         items(
                             items = discSongs,
-                            key = { it.filePath } // Unique key for stability
+                            key = { it.filePath }
                         ) { song ->
-                            // Use your "Row" component here, NOT the full list component
                             SongRow(
                                 song = song,
                                 onClick = { selectedSong = song }
@@ -141,23 +142,13 @@ fun AlbumScreen(
                         }
                     }
                 }
-
-                /**
-                DisplayList(
-                    items = albumSongs,
-                    title = { it.title },
-                    subtitle = { it.artists },
-                    artModel = { it.songArtUri },
-                    trackNumber = { it.trackNumber },
-                    onClick = { selectedSong = it }
-                )
-                */
             }
         }
 
         selectedSong?.let { song ->
             SongSheet(
                 song = song,
+                playbackViewModel = playbackViewModel,
                 onDelete = { viewModel.deleteSong(it) },
                 onDismiss = { selectedSong = null }
             )

@@ -20,10 +20,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
 @Composable
 fun SongSheet(
     song: Song,
+    playbackViewModel: PlaybackViewModel,
     onDelete: (Song) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -101,7 +103,10 @@ fun SongSheet(
                     }
 
                     IconButton(
-                        onClick = {  },
+                        onClick = {
+                            playbackViewModel.playSong(song)
+                            onDismiss()
+                        },
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(

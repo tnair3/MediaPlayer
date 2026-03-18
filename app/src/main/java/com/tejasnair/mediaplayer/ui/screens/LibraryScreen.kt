@@ -16,11 +16,13 @@ import com.tejasnair.mediaplayer.ui.components.FilterRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.TopNavigation
 import android.net.Uri
+import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
 @Composable
 fun LibraryScreen(
     viewModel: LibraryViewModel,
-    navController: NavController
+    navController: NavController,
+    playbackViewModel: PlaybackViewModel
 ) {
 
     val songs by viewModel.allSongs.collectAsState()
@@ -116,6 +118,7 @@ fun LibraryScreen(
         selectedSong?.let { song ->
             SongSheet(
                 song = song,
+                playbackViewModel = playbackViewModel,
                 onDelete = { viewModel.deleteSong(it) },
                 onDismiss = { selectedSong = null }
             )
