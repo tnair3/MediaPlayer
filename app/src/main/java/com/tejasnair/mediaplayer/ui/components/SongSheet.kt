@@ -16,12 +16,31 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 @Composable
 fun SongSheet(
     song: Song,
+    onDelete: (Song) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (showDialog) {
+        DeleteConfirmationDialog(
+            songTitle = song.title,
+            onConfirm = {
+                showDialog = false
+                onDelete(song)
+                onDismiss()
+            },
+            onDismiss = { showDialog = false }
+        )
+    }
+
     Dialog(
         onDismissRequest = onDismiss
     ) {
@@ -69,7 +88,7 @@ fun SongSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
-                        onClick = {  },
+                        onClick = { showDialog = true },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
@@ -143,4 +162,27 @@ fun SongSheet(
             }
         }
     }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    songTitle: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Song") },
+        text = { Text("Are you sure you want to remove '$songTitle' from your library?") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

@@ -12,14 +12,34 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.data.local.files.MediaScanner
 
 @Composable
 fun UploadScreen(
-    navController: NavController
+    navController: NavController,
+    mediaScanner: MediaScanner
 ) {
+
+    val scope = rememberCoroutineScope()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        scope.launch {
+            uris.forEach { uri ->
+                mediaScanner.scanAudioFile(uri)
+            }
+            navController.navigateUp()
+        }
+    }
+
     ThemedScreen {
         Box(
             modifier = Modifier
@@ -67,7 +87,9 @@ fun UploadScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
-                    onClick = {  },
+                    onClick = {
+                        launcher.launch("audio/*")
+                    },
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(

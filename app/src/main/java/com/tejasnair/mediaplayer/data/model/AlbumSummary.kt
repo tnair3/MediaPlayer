@@ -4,5 +4,6 @@ data class AlbumSummary(
     val album: String,
     val albumArtists: String,
     val songArtUri: String?,
-    val backCoverUri: String?
+    val backCoverUri: String?,
+    val year: String?
 )

@@ -6,6 +6,10 @@ import kotlinx.coroutines.flow.*
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 import com.tejasnair.mediaplayer.data.model.*
 import androidx.lifecycle.ViewModelProvider
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import java.io.File
+import android.util.Log
 
 class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
 
@@ -27,6 +31,22 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
     fun getSongsByArtist(artistName: String): Flow<List<Song>> {
         return allSongs.map { songs ->
             songs.filter { it.artists.contains(artistName, ignoreCase = true) }
+        }
+    }
+
+    fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> {
+        return allSongs.map { list ->
+            list.filter { it.album == name && it.albumArtists == artist }
+                .sortedWith(
+                    compareBy<Song> { it.discNumber }
+                        .thenBy { it.trackNumber }
+                )
+        }
+    }
+
+    fun deleteSong(song: Song) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.delete(song)
         }
     }
 }

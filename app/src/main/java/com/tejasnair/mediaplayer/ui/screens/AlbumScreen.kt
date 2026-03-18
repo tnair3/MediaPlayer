@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,15 +35,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import com.tejasnair.mediaplayer.ui.components.SongSheet
+import com.tejasnair.mediaplayer.ui.components.DiscHeader
+import com.tejasnair.mediaplayer.ui.components.SongRow
 import java.util.Locale
 
 @Composable
 fun AlbumScreen(
-    albumId: String,
+    albumName: String,
+    albumArtist: String,
     viewModel: LibraryViewModel
 ) {
 
+    val albumSongs by viewModel.getSongsByAlbum(albumName, albumArtist).collectAsState(initial = emptyList())
+    val groupedSongs = albumSongs.groupBy { it.discNumber }
+
+    val firstSong = albumSongs.firstOrNull()
     var selectedSong by remember { mutableStateOf<Song?>(null) }
+    val albumYear = firstSong?.year
 
     ThemedScreen {
         Box(
@@ -49,16 +59,15 @@ fun AlbumScreen(
                 .fillMaxSize()
                 .safeDrawingPadding()
         ) {
-            // Main content in a Column
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(bottom = 56.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                /**
+
                 AsyncImage(
-                    model = album.artModel,
+                    model = firstSong?.backCoverUri ?: firstSong?.songArtUri ?: -1,
                     contentDescription = "Album Art",
                     modifier = Modifier
                         .padding(22.dp)
@@ -66,42 +75,40 @@ fun AlbumScreen(
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
-                */
 
                 Text(
-                    text = "",
+                    text = albumName,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = "",
+                    text = albumArtist,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
-                /**
-                var tertiaryLabel = songsList.count().toString() + " songs"
-
-                if(album.year != null) {
-                    tertiaryLabel += " • " + album.year
+                var tertiaryText: String = albumSongs.size.toString() + " songs"
+                if(albumYear != null) {
+                    tertiaryText = "$tertiaryText • $albumYear"
                 }
 
-                Text(
-                    text = tertiaryLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-                */
+                if (albumSongs.isNotEmpty()) {
+                    Text(
+                        text = tertiaryText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 Box(
                     modifier = Modifier
                         .padding(12.dp)
                         .fillMaxWidth()
-                        .height(1.dp) // Your thickness
+                        .height(1.dp)
                         .background(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
@@ -112,7 +119,48 @@ fun AlbumScreen(
                             )
                         )
                 )
+
+                LazyColumn {
+                    groupedSongs.forEach { (discNumber, discSongs) ->
+
+                        item(key = "disc_header_$discNumber") {
+                            if (groupedSongs.size > 1) {
+                                DiscHeader(discNumber = discNumber)
+                            }
+                        }
+
+                        items(
+                            items = discSongs,
+                            key = { it.filePath } // Unique key for stability
+                        ) { song ->
+                            // Use your "Row" component here, NOT the full list component
+                            SongRow(
+                                song = song,
+                                onClick = { selectedSong = song }
+                            )
+                        }
+                    }
+                }
+
+                /**
+                DisplayList(
+                    items = albumSongs,
+                    title = { it.title },
+                    subtitle = { it.artists },
+                    artModel = { it.songArtUri },
+                    trackNumber = { it.trackNumber },
+                    onClick = { selectedSong = it }
+                )
+                */
             }
+        }
+
+        selectedSong?.let { song ->
+            SongSheet(
+                song = song,
+                onDelete = { viewModel.deleteSong(it) },
+                onDismiss = { selectedSong = null }
+            )
         }
     }
 }

@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.play.services.oss.licenses)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.mp3agic)
     ksp(libs.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

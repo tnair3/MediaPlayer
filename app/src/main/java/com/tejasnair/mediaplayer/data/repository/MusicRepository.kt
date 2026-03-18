@@ -14,6 +14,10 @@ class MusicRepository(private val musicDao: MusicDao) {
         musicDao.insertSong(song)
     }
 
+    suspend fun delete(song: Song) {
+        musicDao.deleteSong(song)
+    }
+
     fun getSongsByAlbum(name: String, artist: String) =
         musicDao.getSongsByAlbum(name, artist)
 }

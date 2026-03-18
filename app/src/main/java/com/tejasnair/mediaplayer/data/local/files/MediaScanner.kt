@@ -21,13 +21,14 @@ class MediaScanner(
             try {
                 retriever.setDataSource(context, fileUri)
 
-                // 1. Extract Metadata Strings
                 val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: "Unknown Title"
                 val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) ?: "Unknown Artist"
                 val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM) ?: "Unknown Album"
                 val albumArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: artist
                 val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLong() ?: 0
+                val discNum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)?.toIntOrNull() ?: 1
                 val trackNum = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)?.toInt() ?: 1
+                val year = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)
 
                 val artBytes = retriever.embeddedPicture
                 val savedArtPath = if (artBytes != null) {
@@ -41,7 +42,9 @@ class MediaScanner(
                     artists = artist,
                     album = album,
                     albumArtists = albumArtist,
+                    discNumber = discNum,
                     trackNumber = trackNum,
+                    year = year,
                     songArtUri = savedArtPath,
                     backCoverUri = null // In a later build use a library like TagLib to specifically identify the 'Back Cover' byte array.
                 )

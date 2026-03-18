@@ -18,6 +18,7 @@ data class Song(
     val discNumber: Int = 1,
     val trackNumber: Int = 1,
     val isFavourite: Boolean = false,
+    val year: String? = null,
     val dateAdded: Long = System.currentTimeMillis(),
 
     val songArtUri: String? = null,

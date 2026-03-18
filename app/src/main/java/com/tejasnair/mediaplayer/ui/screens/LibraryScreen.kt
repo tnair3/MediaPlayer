@@ -15,6 +15,7 @@ import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.FilterRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.TopNavigation
+import android.net.Uri
 
 @Composable
 fun LibraryScreen(
@@ -27,6 +28,7 @@ fun LibraryScreen(
     val artists by viewModel.artists.collectAsState()
 
     var selectedFilter by remember { mutableIntStateOf(0) }
+    var selectedSong by remember { mutableStateOf<Song?>(null) }
 
     ThemedScreen {
         Box(
@@ -75,10 +77,13 @@ fun LibraryScreen(
                                 items = albums,
                                 title = { it.album },
                                 subtitle = { it.albumArtists },
-                                // PRIORITY LOGIC: Use Back Cover if it exists, else Front
                                 artModel = { it.backCoverUri ?: it.songArtUri },
-                                trackNumber = { -1 }, // Don't show numbers in album list
-                                onClick = { /* Navigate to Album Detail */ }
+                                trackNumber = { -1 },
+                                onClick = { album ->
+                                    val encodedName = Uri.encode(album.album)
+                                    val encodedArtist = Uri.encode(album.albumArtists)
+                                    navController.navigate("album/$encodedName/$encodedArtist")
+                                }
                             )
                         }
 
@@ -88,24 +93,32 @@ fun LibraryScreen(
                                 title = { it.title },
                                 subtitle = { it.artists },
                                 artModel = { it.songArtUri },
-                                trackNumber = { it.trackNumber },
-                                onClick = { /* Play Song */ }
+                                trackNumber = { -1 },
+                                onClick = { selectedSong = it }
                             )
                         }
 
                         2 -> { // ARTISTS
                             DisplayList(
                                 items = artists,
-                                title = { it }, // 'it' is just the String name
+                                title = { it },
                                 subtitle = { "Artist" },
-                                artModel = { -1 }, // No art for individual artists yet
+                                artModel = { -1 },
                                 trackNumber = { -1 },
-                                onClick = { /* Navigate to Artist Detail */ }
+                                onClick = {  }
                             )
                         }
                     }
                 }
             }
+        }
+
+        selectedSong?.let { song ->
+            SongSheet(
+                song = song,
+                onDelete = { viewModel.deleteSong(it) },
+                onDismiss = { selectedSong = null }
+            )
         }
     }
 }

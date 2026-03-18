@@ -16,11 +16,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
 import com.tejasnair.mediaplayer.ui.screens.*
 import com.tejasnair.mediaplayer.ui.viewmodel.*
 import com.tejasnair.mediaplayer.data.local.MusicDatabase
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
+import com.tejasnair.mediaplayer.data.local.files.MediaScanner
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +32,7 @@ class MainActivity : ComponentActivity() {
 
         val database = MusicDatabase.getDatabase(applicationContext)
         val repository = MusicRepository(database.musicDao())
+        val mediaScanner = MediaScanner(applicationContext, repository)
 
         setContent {
 
@@ -97,7 +101,8 @@ class MainActivity : ComponentActivity() {
                         route = "upload"
                     ) {
                         UploadScreen(
-                            navController = navController
+                            navController = navController,
+                            mediaScanner = mediaScanner
                         )
                     }
 
@@ -114,6 +119,23 @@ class MainActivity : ComponentActivity() {
                     ) {
                         VinylsScreen(
                             navController = navController
+                        )
+                    }
+
+                    composable(
+                        route = "album/{albumName}/{albumArtist}",
+                        arguments = listOf(
+                            navArgument("albumName") { type = NavType.StringType },
+                            navArgument("albumArtist") { type = NavType.StringType }
+                        )
+                    ) { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("albumName") ?: ""
+                        val artist = backStackEntry.arguments?.getString("albumArtist") ?: ""
+
+                        AlbumScreen(
+                            albumName = name,
+                            albumArtist = artist,
+                            viewModel = libraryViewModel
                         )
                     }
                 }
