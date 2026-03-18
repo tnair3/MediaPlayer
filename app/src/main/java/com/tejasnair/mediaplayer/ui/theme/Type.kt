@@ -14,8 +14,8 @@ val Sora = FontFamily(
     Font(R.font.sora_semibold, FontWeight.SemiBold)
 )
 
-val Comfortaa = FontFamily(
-    Font(R.font.comfortaa_medium, FontWeight.Medium)
+val JetBrainsMono = FontFamily(
+    Font(R.font.jetbrainsmono_bold, FontWeight.Bold)
 )
 
 val Typography = Typography(
@@ -29,8 +29,13 @@ val Typography = Typography(
         fontWeight = FontWeight.Medium,
         fontSize = 22.sp
     ),
+    titleSmall = TextStyle(
+        fontFamily = Sora,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp
+    ),
     headlineLarge = TextStyle(
-        fontFamily = Comfortaa,
+        fontFamily = JetBrainsMono,
         fontWeight = FontWeight.Bold,
         fontSize = 36.sp
     ),

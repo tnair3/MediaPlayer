@@ -20,10 +20,12 @@ import kotlin.jvm.java
 import com.tejasnair.mediaplayer.data.local.files.PlaybackService
 import com.tejasnair.mediaplayer.data.model.Song
 import android.content.ComponentName
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.core.content.ContextCompat
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import androidx.core.net.toUri
+import androidx.media3.common.Timeline
 
 class PlaybackViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -34,6 +36,11 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     var isPlaying by mutableStateOf(false)
     var currentPosition by mutableLongStateOf(0L)
     var duration by mutableLongStateOf(0L)
+    var repeatMode by mutableIntStateOf(Player.REPEAT_MODE_OFF)
+        private set
+
+    var currentQueue by mutableStateOf<List<Song>>(emptyList())
+        private set
 
     private var timerJob: Job? = null
 
@@ -49,35 +56,68 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
 
     private fun setupPlayerListener() {
         browser?.addListener(object : Player.Listener {
+
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                currentPosition = 0L
+
+                mediaItem?.let { item ->
+                    val metadata = item.mediaMetadata
+                    currentSong = Song(
+                        filePath = item.mediaId, // This matches your file.absolutePath
+                        title = metadata.title?.toString() ?: "Unknown Title",
+                        artists = metadata.artist?.toString() ?: "Unknown Artist",
+                        album = metadata.albumTitle?.toString() ?: "",
+                        albumArtists = metadata.albumArtist?.toString() ?: "",
+                        songArtUri = metadata.artworkUri?.toString() ?: "",
+                        duration = browser?.duration?.coerceAtLeast(0L) ?: 0L
+                    )
+                }
+
+                updateQueue()
+            }
+
             override fun onIsPlayingChanged(isPlayingNow: Boolean) {
                 isPlaying = isPlayingNow
             }
+
             override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_ENDED) {
+                    currentPosition = duration
+                    isPlaying = false
+                }
                 if (state == Player.STATE_READY) {
                     duration = browser?.duration?.coerceAtLeast(0L) ?: 0L
                 }
             }
+
+            override fun onRepeatModeChanged(mode: Int) {
+                repeatMode = mode
+            }
+
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                updateQueue()
+            }
         })
     }
 
-    fun playSong(song: Song) {
-        currentSong = song
+    fun playSong(selectedSong: Song, playlist: List<Song>? = null) {
+        currentSong = selectedSong
 
-        val metadata = MediaMetadata.Builder()
-            .setTitle(song.title)
-            .setArtist(song.artists)
-            .setArtworkUri(song.songArtUri?.toUri())
-            .build()
+        browser?.let { player ->
+            if (!playlist.isNullOrEmpty()) {
+                // SCENARIO A: Album/Folder Menu (Load the whole list)
+                val mediaItems = playlist.map { it.toMediaItem() }
+                val startIndex = playlist.indexOf(selectedSong).coerceAtLeast(0)
 
-        val mediaItem = MediaItem.Builder()
-            .setMediaId(song.filePath)
-            .setUri(song.filePath.toUri())
-            .setMediaMetadata(metadata)
-            .build()
+                player.setMediaItems(mediaItems, startIndex, 0L)
+            } else {
+                // SCENARIO B: Library/Single Song (Replace queue with just this one)
+                player.setMediaItem(selectedSong.toMediaItem())
+            }
 
-        browser?.setMediaItem(mediaItem)
-        browser?.prepare()
-        browser?.play()
+            player.prepare()
+            player.play()
+        }
     }
 
     fun togglePlayPause() {
@@ -99,6 +139,38 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
         currentSong = null
     }
 
+    fun toggleRepeatMode() {
+        val nextMode = when (repeatMode) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
+        }
+
+        browser?.repeatMode = nextMode
+        repeatMode = nextMode
+    }
+
+    fun skipToNext() {
+        browser?.seekToNext()
+    }
+
+    fun skipToPrevious() {
+        browser?.seekToPrevious()
+    }
+
+    fun skipToPreviousForce() {
+        if (browser?.hasPreviousMediaItem() == true) {
+            browser?.seekToPreviousMediaItem()
+        } else {
+            browser?.seekTo(0L)
+        }
+    }
+
+    fun playFromQueue(index: Int) {
+        browser?.seekTo(index, 0L)
+        browser?.play()
+    }
+
     private fun startProgressUpdater() {
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
@@ -112,6 +184,43 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
                 delay(1000)
             }
         }
+    }
+
+    private fun Song.toMediaItem(): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(this.filePath)
+            .setUri(this.filePath.toUri())
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(this.title)
+                    .setArtist(this.artists)
+                    .setArtworkUri(this.songArtUri?.toUri())
+                    .build()
+            )
+            .build()
+    }
+
+    private fun updateQueue() {
+        val player = browser ?: return
+        val queue = mutableListOf<Song>()
+
+        // Loop through the player's current items and convert them back to Songs
+        for (i in 0 until player.mediaItemCount) {
+            val item = player.getMediaItemAt(i)
+            val metadata = item.mediaMetadata
+            queue.add(
+                Song(
+                    filePath = item.mediaId, // This matches your file.absolutePath
+                    title = metadata.title?.toString() ?: "Unknown Title",
+                    artists = metadata.artist?.toString() ?: "Unknown Artist",
+                    album = metadata.albumTitle?.toString() ?: "",
+                    albumArtists = metadata.albumArtist?.toString() ?: "",
+                    songArtUri = metadata.artworkUri?.toString() ?: "",
+                    duration = browser?.duration?.coerceAtLeast(0L) ?: 0L
+                )
+            )
+        }
+        currentQueue = queue
     }
 
     override fun onCleared() {

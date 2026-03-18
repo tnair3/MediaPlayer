@@ -130,7 +130,8 @@ class MainActivity : ComponentActivity() {
                                 isPlaying = playbackViewModel.isPlaying,
                                 onTogglePlay = { playbackViewModel.togglePlayPause() },
                                 onClick = { showNowPlaying = true },
-                                onDismiss = { playbackViewModel.stopPlayback() }
+                                onDismiss = { playbackViewModel.stopPlayback() },
+                                viewModel = playbackViewModel
                             )
                         }
                     }

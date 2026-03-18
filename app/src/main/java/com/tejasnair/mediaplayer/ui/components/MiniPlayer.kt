@@ -28,6 +28,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import com.tejasnair.mediaplayer.ui.components.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -36,8 +40,12 @@ fun MiniPlayer(
     isPlaying: Boolean,
     onTogglePlay: () -> Unit,
     onClick: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    viewModel: PlaybackViewModel
 ) {
+    val currentPosition = formatTime(viewModel.currentPosition)
+    val duration = formatTime(viewModel.duration)
+
     val dismissState = rememberSwipeToDismissBoxState(
         initialValue = SwipeToDismissBoxValue.Settled,
         confirmValueChange = { value: SwipeToDismissBoxValue ->
@@ -56,16 +64,15 @@ fun MiniPlayer(
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromEndToStart = false, // Only swipe to the right
+        enableDismissFromEndToStart = false,
         backgroundContent = {
-            // This is what shows behind the card as you swipe
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                // Optional: You could add a 'Close' icon here if you want
+                // Add a 'Close' icon here
             }
         },
         modifier = Modifier
@@ -75,7 +82,7 @@ fun MiniPlayer(
         Card(
             modifier = Modifier
                 .width(280.dp)
-                .height(96.dp)
+                .height(84.dp)
                 .clickable(onClick = onClick),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
@@ -93,7 +100,7 @@ fun MiniPlayer(
                     model = song.songArtUri,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(64.dp) // Slightly larger for the 96dp height
+                        .size(64.dp)
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
@@ -107,7 +114,6 @@ fun MiniPlayer(
                         text = song.title,
                         style = MaterialTheme.typography.labelLarge,
                         maxLines = 1,
-                        // Added Marquee: Title scrolls if too long
                         modifier = Modifier.basicMarquee(),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -118,12 +124,23 @@ fun MiniPlayer(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "$currentPosition : $duration",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 IconButton(onClick = onTogglePlay) {
                     Icon(
                         painter = painterResource(
-                            id = if (isPlaying) R.drawable.song_pause else R.drawable.song_play
+                            id = if (isPlaying) R.drawable.song_pause
+                            else if (currentPosition == duration) R.drawable.song_restart
+                            else R.drawable.song_play
                         ),
                         contentDescription = "Play/Pause",
                         modifier = Modifier.size(32.dp),

@@ -137,7 +137,8 @@ fun AlbumScreen(
                         ) { song ->
                             SongRow(
                                 song = song,
-                                onClick = { selectedSong = song }
+                                onClick = { selectedSong = song },
+                                showTrackNumbers = true
                             )
                         }
                     }
@@ -148,6 +149,7 @@ fun AlbumScreen(
         selectedSong?.let { song ->
             SongSheet(
                 song = song,
+                playlist = albumSongs,
                 playbackViewModel = playbackViewModel,
                 onDelete = { viewModel.deleteSong(it) },
                 onDismiss = { selectedSong = null }

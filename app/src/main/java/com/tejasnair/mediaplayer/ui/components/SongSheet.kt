@@ -25,6 +25,7 @@ import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 @Composable
 fun SongSheet(
     song: Song,
+    playlist: List<Song>? = null,
     playbackViewModel: PlaybackViewModel,
     onDelete: (Song) -> Unit,
     onDismiss: () -> Unit
@@ -104,7 +105,10 @@ fun SongSheet(
 
                     IconButton(
                         onClick = {
-                            playbackViewModel.playSong(song)
+                            playbackViewModel.playSong(
+                                selectedSong = song,
+                                playlist = playlist
+                            )
                             onDismiss()
                         },
                         modifier = Modifier.size(48.dp)
@@ -125,8 +129,8 @@ fun SongSheet(
                         Icon(
                             modifier = Modifier
                                 .fillMaxSize(),
-                            painter = painterResource(R.drawable.song_options_playnext),
-                            contentDescription = "Play Next",
+                            painter = painterResource(R.drawable.song_favourite),
+                            contentDescription = "Favourite",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -138,6 +142,19 @@ fun SongSheet(
                     horizontalArrangement = Arrangement.spacedBy(32.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    IconButton(
+                        onClick = {  },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            painter = painterResource(R.drawable.song_options_playnext),
+                            contentDescription = "Play Next",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     IconButton(
                         onClick = {  },
                         modifier = Modifier.size(32.dp)

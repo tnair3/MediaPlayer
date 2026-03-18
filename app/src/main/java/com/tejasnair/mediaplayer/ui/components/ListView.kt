@@ -121,7 +121,8 @@ fun <T> DisplayList(
 @Composable
 fun SongRow(
     song: Song,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    showTrackNumbers: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -130,12 +131,14 @@ fun SongRow(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = song.trackNumber.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.width(36.dp)
-        )
+        if(showTrackNumbers) {
+            Text(
+                text = song.trackNumber.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.width(36.dp)
+            )
+        }
         Column {
             Text(
                 text = song.title,
