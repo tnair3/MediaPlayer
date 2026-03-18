@@ -1,11 +1,11 @@
-package com.tejasnair.mediaplayer.data.local
+package com.tejasnair.mediaplayer.data.local.database
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.data.local.dao.MusicDao
+import com.tejasnair.mediaplayer.data.model.Song
 
 @Database(
     entities = [Song::class], // Our only physical table

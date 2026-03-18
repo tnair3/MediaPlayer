@@ -21,72 +21,115 @@ import androidx.compose.foundation.clickable
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.ExperimentalFoundationApi
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MiniPlayer(
     song: Song,
     isPlaying: Boolean,
     onTogglePlay: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    Card(
+    val dismissState = rememberSwipeToDismissBoxState(
+        initialValue = SwipeToDismissBoxValue.Settled,
+        confirmValueChange = { value: SwipeToDismissBoxValue ->
+            if (value == SwipeToDismissBoxValue.StartToEnd) {
+                onDismiss() // Stops the music and clears currentSong
+                true
+            } else {
+                false
+            }
+        }
+    )
+
+    LaunchedEffect(song) {
+        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromEndToStart = false, // Only swipe to the right
+        backgroundContent = {
+            // This is what shows behind the card as you swipe
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                // Optional: You could add a 'Close' icon here if you want
+            }
+        },
         modifier = Modifier
             .padding(16.dp)
-            .width(280.dp)
-            .height(96.dp)
             .navigationBarsPadding()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
-        Row(
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .width(280.dp)
+                .height(96.dp)
+                .clickable(onClick = onClick),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            AsyncImage(
-                model = song.songArtUri,
-                contentDescription = null,
+            Row(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
-            )
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp)
+                    .fillMaxSize()
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = song.artists,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            IconButton(onClick = onTogglePlay) {
-                Icon(
-                    painter = painterResource(
-                        id = if (isPlaying) R.drawable.song_pause else R.drawable.song_play
-                    ),
+                AsyncImage(
+                    model = song.songArtUri,
                     contentDescription = null,
-                    modifier = Modifier.size(28.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    modifier = Modifier
+                        .size(64.dp) // Slightly larger for the 96dp height
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
                 )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp)
+                ) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        // Added Marquee: Title scrolls if too long
+                        modifier = Modifier.basicMarquee(),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = song.artists,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                IconButton(onClick = onTogglePlay) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (isPlaying) R.drawable.song_pause else R.drawable.song_play
+                        ),
+                        contentDescription = "Play/Pause",
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

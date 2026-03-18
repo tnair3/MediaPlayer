@@ -10,96 +10,114 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import androidx.media3.session.MediaBrowser
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
+import kotlin.jvm.java
+import com.tejasnair.mediaplayer.data.local.files.PlaybackService
 import com.tejasnair.mediaplayer.data.model.Song
+import android.content.ComponentName
+import androidx.core.content.ContextCompat
+import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import androidx.core.net.toUri
 
 class PlaybackViewModel(application: Application) : AndroidViewModel(application) {
 
-    // 1. Initialize the Player
-    private val exoPlayer = ExoPlayer.Builder(application).build().apply {
-        // Listener to update 'isPlaying' state automatically
-        addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlayingNow: Boolean) {
-                this@PlaybackViewModel.isPlaying = isPlayingNow
-            }
-        })
-    }
+    private var browserFuture: ListenableFuture<MediaBrowser>? = null
+    private val browser: MediaBrowser? get() = if (browserFuture?.isDone == true) browserFuture?.get() else null
 
-    // 2. Observable States for the UI
     var currentSong by mutableStateOf<Song?>(null)
     var isPlaying by mutableStateOf(false)
     var currentPosition by mutableLongStateOf(0L)
     var duration by mutableLongStateOf(0L)
 
-    // 3. Position Tracker (updates the slider every 1 second)
     private var timerJob: Job? = null
 
     init {
-        startProgressUpdater()
+        val sessionToken = SessionToken(application, ComponentName(application, PlaybackService::class.java))
+        browserFuture = MediaBrowser.Builder(application, sessionToken).buildAsync()
+
+        browserFuture?.addListener({
+            setupPlayerListener()
+            startProgressUpdater()
+        }, ContextCompat.getMainExecutor(application))
+    }
+
+    private fun setupPlayerListener() {
+        browser?.addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlayingNow: Boolean) {
+                isPlaying = isPlayingNow
+            }
+            override fun onPlaybackStateChanged(state: Int) {
+                if (state == Player.STATE_READY) {
+                    duration = browser?.duration?.coerceAtLeast(0L) ?: 0L
+                }
+            }
+        })
     }
 
     fun playSong(song: Song) {
         currentSong = song
 
-        // Build Metadata for Lockscreen/System
         val metadata = MediaMetadata.Builder()
             .setTitle(song.title)
             .setArtist(song.artists)
             .setArtworkUri(song.songArtUri?.toUri())
             .build()
 
-        // Build the Media Item
         val mediaItem = MediaItem.Builder()
-            .setUri(song.filePath.toUri())
             .setMediaId(song.filePath)
+            .setUri(song.filePath.toUri())
             .setMediaMetadata(metadata)
             .build()
 
-        exoPlayer.setMediaItem(mediaItem)
-        exoPlayer.prepare()
-        exoPlayer.play()
-
-        // Duration is only available after the player is prepared
-        duration = exoPlayer.duration.coerceAtLeast(0L)
+        browser?.setMediaItem(mediaItem)
+        browser?.prepare()
+        browser?.play()
     }
 
     fun togglePlayPause() {
-        if (exoPlayer.isPlaying) {
-            exoPlayer.pause()
+        if (browser?.isPlaying == true) {
+            browser?.pause()
         } else {
-            exoPlayer.play()
+            browser?.play()
         }
     }
 
     fun seekTo(position: Long) {
-        exoPlayer.seekTo(position)
+        browser?.seekTo(position)
         currentPosition = position
+    }
+
+    fun stopPlayback() {
+        browser?.stop()
+        browser?.clearMediaItems()
+        currentSong = null
     }
 
     private fun startProgressUpdater() {
         timerJob?.cancel()
-        timerJob = CoroutineScope(Dispatchers.Main).launch {
+        timerJob = viewModelScope.launch {
             while (isActive) {
-                if (exoPlayer.isPlaying) {
-                    currentPosition = exoPlayer.currentPosition
-                    duration = exoPlayer.duration.coerceAtLeast(0L)
+                browser?.let {
+                    if (it.isPlaying) {
+                        currentPosition = it.currentPosition
+                        duration = it.duration.coerceAtLeast(0L)
+                    }
                 }
-                delay(1000) // Update every second
+                delay(1000)
             }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        timerJob?.cancel()
-        exoPlayer.release()
+        browserFuture?.let {
+            MediaBrowser.releaseFuture(it)
+        }
     }
 }

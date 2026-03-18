@@ -46,7 +46,7 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
 
     fun deleteSong(song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.delete(song)
+            repository.deleteSong(song)
         }
     }
 }

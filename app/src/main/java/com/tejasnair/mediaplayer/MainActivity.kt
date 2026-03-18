@@ -29,13 +29,17 @@ import androidx.compose.runtime.LaunchedEffect
 import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
 import com.tejasnair.mediaplayer.ui.screens.*
 import com.tejasnair.mediaplayer.ui.viewmodel.*
-import com.tejasnair.mediaplayer.data.local.MusicDatabase
+import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 import com.tejasnair.mediaplayer.data.local.files.MediaScanner
 import com.tejasnair.mediaplayer.ui.components.MiniPlayer
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +48,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val database = MusicDatabase.getDatabase(applicationContext)
-        val repository = MusicRepository(database.musicDao())
+        val repository = MusicRepository(database.musicDao(), applicationContext)
         val mediaScanner = MediaScanner(applicationContext, repository)
 
         setContent {
@@ -69,17 +73,30 @@ class MainActivity : ComponentActivity() {
             MediaPlayerTheme(themeSetting = uiState) {
                 val navController = rememberNavController()
 
-                // 1. Root container is a Box so items can stack on Z-axis
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    // 2. Bottom Layer: The Navigation / Screen Content
+                    if (BuildConfig.DEBUG) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                            contentColor = MaterialTheme.colorScheme.onError,
+                            shape = RoundedCornerShape(bottomEnd = 8.dp),
+                            modifier = Modifier.align(Alignment.TopStart)
+                        ) {
+                            Text(
+                                text = "DEBUG BUILD",
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
                     NavHost(
                         navController = navController,
                         startDestination = "library",
-                        modifier = Modifier.fillMaxSize(), // NavHost fills the whole screen
+                        modifier = Modifier.fillMaxSize(),
                         enterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) },
                         exitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(300)) },
                         popEnterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) },
@@ -103,8 +120,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // 3. Middle Layer: Floating MiniPlayer
-                    // We only show this if a song is loaded AND the full player is hidden
                     if (currentSong != null && !showNowPlaying) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -114,12 +129,12 @@ class MainActivity : ComponentActivity() {
                                 song = currentSong,
                                 isPlaying = playbackViewModel.isPlaying,
                                 onTogglePlay = { playbackViewModel.togglePlayPause() },
-                                onClick = { showNowPlaying = true }
+                                onClick = { showNowPlaying = true },
+                                onDismiss = { playbackViewModel.stopPlayback() }
                             )
                         }
                     }
 
-                    // 4. Top Layer: Full Screen Sheet
                     if (showNowPlaying && currentSong != null) {
                         ModalBottomSheet(
                             onDismissRequest = { showNowPlaying = false },
