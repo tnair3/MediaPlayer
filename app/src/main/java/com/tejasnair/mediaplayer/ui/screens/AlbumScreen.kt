@@ -18,8 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
-import com.tejasnair.mediaplayer.ui.components.DisplayList
-import com.tejasnair.mediaplayer.data.model.Song
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import coil.compose.AsyncImage
@@ -34,11 +32,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.DiscHeader
 import com.tejasnair.mediaplayer.ui.components.SongRow
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
-import java.util.Locale
 
 @Composable
 fun AlbumScreen(

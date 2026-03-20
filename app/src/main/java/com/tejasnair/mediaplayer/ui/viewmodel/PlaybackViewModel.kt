@@ -26,6 +26,7 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import androidx.core.net.toUri
 import androidx.media3.common.Timeline
+import java.util.Collections.emptyList
 
 class PlaybackViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -39,7 +40,7 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     var repeatMode by mutableIntStateOf(Player.REPEAT_MODE_OFF)
         private set
 
-    var currentQueue by mutableStateOf<List<Song>>(emptyList())
+    var currentQueue: List<Song> by mutableStateOf(emptyList())
         private set
 
     private var timerJob: Job? = null
@@ -105,19 +106,19 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
 
         browser?.let { player ->
             if (!playlist.isNullOrEmpty()) {
-                // SCENARIO A: Album/Folder Menu (Load the whole list)
                 val mediaItems = playlist.map { it.toMediaItem() }
                 val startIndex = playlist.indexOf(selectedSong).coerceAtLeast(0)
 
                 player.setMediaItems(mediaItems, startIndex, 0L)
             } else {
-                // SCENARIO B: Library/Single Song (Replace queue with just this one)
                 player.setMediaItem(selectedSong.toMediaItem())
             }
 
             player.prepare()
             player.play()
         }
+
+        repeatMode = Player.REPEAT_MODE_OFF
     }
 
     fun togglePlayPause() {
@@ -148,6 +149,28 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
 
         browser?.repeatMode = nextMode
         repeatMode = nextMode
+    }
+
+    fun addToQueue(songToAdd: Song) {
+
+        currentQueue = (currentQueue ?: emptyList()) + songToAdd
+
+        browser?.let { player ->
+            val newMediaItem = songToAdd.toMediaItem()
+
+            player.addMediaItem(newMediaItem)
+
+            if (player.playbackState == Player.STATE_IDLE) {
+                player.prepare()
+            }
+        }
+    }
+
+    fun addToNext(song: Song) {
+        browser?.let { player ->
+            val nextIndex = player.currentMediaItemIndex + 1
+            player.addMediaItem(nextIndex, song.toMediaItem())
+        }
     }
 
     fun skipToNext() {

@@ -143,7 +143,10 @@ fun SongSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
-                        onClick = {  },
+                        onClick = {
+                            playbackViewModel.addToNext(song = song)
+                            onDismiss()
+                        },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
@@ -156,7 +159,10 @@ fun SongSheet(
                     }
 
                     IconButton(
-                        onClick = {  },
+                        onClick = {
+                            playbackViewModel.addToQueue(songToAdd = song)
+                            onDismiss()
+                                  },
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(

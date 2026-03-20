@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -120,10 +121,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    if (currentSong != null && !showNowPlaying) {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+
+                    if (currentSong != null && !showNowPlaying && currentRoute != "upload" && currentRoute != "settings") {
                         Box(
                             modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.BottomEnd // Pinned to bottom right
+                            contentAlignment = Alignment.BottomEnd
                         ) {
                             MiniPlayer(
                                 song = currentSong,

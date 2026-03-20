@@ -81,7 +81,7 @@ fun MiniPlayer(
     ) {
         Card(
             modifier = Modifier
-                .width(280.dp)
+                .fillMaxWidth()
                 .height(84.dp)
                 .clickable(onClick = onClick),
             shape = RoundedCornerShape(16.dp),
