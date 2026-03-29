@@ -17,6 +17,9 @@ import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.TopNavigation
 import android.net.Uri
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.HorizontalPager
+import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
@@ -24,12 +27,15 @@ fun LibraryScreen(
     navController: NavController,
     playbackViewModel: PlaybackViewModel
 ) {
-
     val songs by viewModel.allSongs.collectAsState()
     val albums by viewModel.albums.collectAsState()
     val artists by viewModel.artists.collectAsState()
 
-    var selectedFilter by remember { mutableIntStateOf(0) }
+    val options = listOf("Songs", "Albums", "Artists", "Playlists")
+
+    val pagerState = rememberPagerState(pageCount = { options.size })
+    val coroutineScope = rememberCoroutineScope()
+
     var selectedSong by remember { mutableStateOf<Song?>(null) }
 
     ThemedScreen {
@@ -44,19 +50,24 @@ fun LibraryScreen(
                     .padding(bottom = 56.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-
                 TopNavigation(
                     title = "Library",
                     onVinylClick = { navController.navigate("vinyls") },
                     onFavouriteClick = { navController.navigate("favourites") },
+                    onRecordedClick = { navController.navigate("record") },
                     onUploadClick = { navController.navigate("upload") },
-                    onSettingsClick = { navController.navigate("settings") })
+                    onSettingsClick = { navController.navigate("settings") }
+                )
 
-                if (!songs.isEmpty()) {
+                if (songs.isNotEmpty()) {
                     FilterRow(
-                        options = listOf("Albums", "Songs", "Artists", "Playlists"),
-                        selectedIndex = selectedFilter,
-                        onOptionSelected = { selectedFilter = it }
+                        options = options,
+                        selectedIndex = pagerState.currentPage,
+                        onOptionSelected = { index ->
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        }
                     )
                 }
 
@@ -65,50 +76,62 @@ fun LibraryScreen(
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
-
-                if(songs.isEmpty()) {
+                if (songs.isEmpty()) {
                     EmptyLibrary(
                         primaryText = "Library is Empty",
                         secondaryText = "Upload media to listen"
                     )
-                }
-                else {
-                    when (selectedFilter) {
-                        0 -> { // ALBUMS
-                            DisplayList(
-                                items = albums,
-                                title = { it.album },
-                                subtitle = { it.albumArtists },
-                                artModel = { it.backCoverUri ?: it.songArtUri },
-                                trackNumber = { -1 },
-                                onClick = { album ->
-                                    val encodedName = Uri.encode(album.album)
-                                    val encodedArtist = Uri.encode(album.albumArtists)
-                                    navController.navigate("album/$encodedName/$encodedArtist")
-                                }
-                            )
-                        }
+                } else {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.Top,
+                        beyondViewportPageCount = 1
+                    ) { pageIndex ->
+                        when (pageIndex) {
+                            0 -> { // SONGS
+                                DisplayList(
+                                    items = songs,
+                                    title = { it.title },
+                                    subtitle = { it.artists },
+                                    artModel = { it.songArtUri },
+                                    trackNumber = { -1 },
+                                    onClick = { selectedSong = it }
+                                )
+                            }
 
-                        1 -> { // SONGS
-                            DisplayList(
-                                items = songs,
-                                title = { it.title },
-                                subtitle = { it.artists },
-                                artModel = { it.songArtUri },
-                                trackNumber = { -1 },
-                                onClick = { selectedSong = it }
-                            )
-                        }
+                            1 -> { // ALBUMS
+                                DisplayList(
+                                    items = albums,
+                                    title = { it.album },
+                                    subtitle = { it.albumArtists },
+                                    artModel = { it.backCoverUri ?: it.songArtUri },
+                                    trackNumber = { -1 },
+                                    onClick = { album ->
+                                        val encodedName = Uri.encode(album.album)
+                                        val encodedArtist = Uri.encode(album.albumArtists)
+                                        navController.navigate("album/$encodedName/$encodedArtist")
+                                    }
+                                )
+                            }
 
-                        2 -> { // ARTISTS
-                            DisplayList(
-                                items = artists,
-                                title = { it },
-                                subtitle = { "Artist" },
-                                artModel = { -1 },
-                                trackNumber = { -1 },
-                                onClick = {  }
-                            )
+                            2 -> { // ARTISTS
+                                DisplayList(
+                                    items = artists,
+                                    title = { it },
+                                    subtitle = { "Artist" },
+                                    artModel = { -1 },
+                                    trackNumber = { -1 },
+                                    onClick = {  }
+                                )
+                            }
+
+                            3 -> { // PLAYLISTS
+                                EmptyLibrary(
+                                    primaryText = "No Playlists",
+                                    secondaryText = "Create a playlist to see it here"
+                                )
+                            }
                         }
                     }
                 }

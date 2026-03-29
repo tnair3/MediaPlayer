@@ -74,7 +74,7 @@ fun UploadScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.nav_upload),
                     contentDescription = "Upload Icon",
-                    modifier = Modifier.size(120.dp), // Size of your icon
+                    modifier = Modifier.size(120.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
 

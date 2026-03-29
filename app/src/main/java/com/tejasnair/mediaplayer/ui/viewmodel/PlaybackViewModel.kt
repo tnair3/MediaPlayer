@@ -166,6 +166,32 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun addAlbumToQueue(albumToAdd: List<Song>) {
+        for(song in albumToAdd) {
+            currentQueue = (currentQueue ?: emptyList()) + song
+
+            browser?.let { player ->
+                val newMediaItem = song.toMediaItem()
+
+                player.addMediaItem(newMediaItem)
+
+                if (player.playbackState == Player.STATE_IDLE) {
+                    player.prepare()
+                }
+            }
+        }
+    }
+
+    fun removeFromQueue(index: Int) {
+        val updatedList = currentQueue.toMutableList()
+        if (index in updatedList.indices) {
+            updatedList.removeAt(index)
+            currentQueue = updatedList
+
+            browser?.removeMediaItem(index)
+        }
+    }
+
     fun addToNext(song: Song) {
         browser?.let { player ->
             val nextIndex = player.currentMediaItemIndex + 1
@@ -192,6 +218,17 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     fun playFromQueue(index: Int) {
         browser?.seekTo(index, 0L)
         browser?.play()
+    }
+
+    fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        browser?.let { player ->
+            player.moveMediaItem(fromIndex, toIndex)
+
+            val list = currentQueue.toMutableList()
+            val item = list.removeAt(fromIndex)
+            list.add(toIndex, item)
+            currentQueue = list
+        }
     }
 
     private fun startProgressUpdater() {

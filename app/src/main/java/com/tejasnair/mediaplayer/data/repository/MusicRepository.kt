@@ -36,6 +36,9 @@ class MusicRepository(
         }
     }
 
+    suspend fun findExistingSong(title: String, artist: String, album: String, albumArtist: String): Song? =
+        musicDao.findExistingSong(title, artist, album, albumArtist)
+
     fun getSongsByAlbum(name: String, artist: String) =
         musicDao.getSongsByAlbum(name, artist)
 }

@@ -32,6 +32,9 @@ interface MusicDao {
     @Query("DELETE FROM songs WHERE songId = :id")
     suspend fun deleteSong(id: String)
 
+    @Query("SELECT * FROM songs WHERE title = :title AND artists = :artist AND album = :album AND albumArtists = :albumArtist LIMIT 1")
+    suspend fun findExistingSong(title: String, artist: String, album: String, albumArtist: String): Song?
+
     @Delete
     suspend fun deleteSong(song: Song)
 }

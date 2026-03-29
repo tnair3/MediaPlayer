@@ -108,6 +108,7 @@ class MainActivity : ComponentActivity() {
                         composable("upload") { UploadScreen(navController, mediaScanner) }
                         composable("favourites") { FavouritesScreen(navController) }
                         composable("vinyls") { VinylsScreen(navController) }
+                        composable("record") { RecordScreen(navController) }
                         composable(
                             route = "album/{albumName}/{albumArtist}",
                             arguments = listOf(

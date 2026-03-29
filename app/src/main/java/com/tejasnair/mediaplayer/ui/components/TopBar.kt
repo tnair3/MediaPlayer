@@ -23,6 +23,7 @@ fun TopNavigation(
     title: String,
     onVinylClick: () -> Unit,
     onFavouriteClick: () -> Unit,
+    onRecordedClick: () -> Unit,
     onUploadClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
@@ -50,6 +51,14 @@ fun TopNavigation(
                 IconButton(onClick = onFavouriteClick) {
                     Icon(
                         painter = painterResource(R.drawable.navdisp_favourite),
+                        contentDescription = "Upload",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                IconButton(onClick = onRecordedClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.nav_recorded),
                         contentDescription = "Upload",
                         tint = MaterialTheme.colorScheme.primary
                     )
