@@ -17,6 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 
 // 2. Compose Runtime
 import androidx.compose.runtime.Composable
@@ -47,13 +48,15 @@ fun MiniPlayer(
     val currentPosition = playbackViewModel.currentPosition
     val duration = playbackViewModel.duration
 
+    val density = LocalDensity.current
+
+    val threshold = with(density) { 160.dp.toPx() }
+
     val dismissState = rememberSwipeToDismissBoxState(
         initialValue = SwipeToDismissBoxValue.Settled,
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.StartToEnd) {
-                onDismiss()
-                true
-            } else false
+        positionalThreshold = { threshold },
+        confirmValueChange = { targetValue ->
+            targetValue == SwipeToDismissBoxValue.StartToEnd
         }
     )
 
@@ -61,17 +64,29 @@ fun MiniPlayer(
         dismissState.snapTo(SwipeToDismissBoxValue.Settled)
     }
 
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd) {
+            onDismiss()
+        }
+    }
+
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromEndToStart = false,
+        gesturesEnabled = true,
         backgroundContent = {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 24.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(20.dp)
+                    ),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Icon(
+                    modifier = Modifier.padding(start = 12.dp),
                     painter = painterResource(R.drawable.close),
                     contentDescription = "Dismiss",
                     tint = Color.White.copy(alpha = 0.7f)
@@ -197,7 +212,10 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxWidth(
-                        if (duration > 0L) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                        if (duration > 0L) (currentPosition.toFloat() / duration.toFloat()).coerceIn(
+                            0f,
+                            1f
+                        )
                         else 0f
                     )
                     .height(3.dp)

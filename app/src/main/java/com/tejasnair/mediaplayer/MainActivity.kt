@@ -17,7 +17,10 @@ import androidx.compose.ui.unit.dp
 
 // 3. Compose Animation & Core
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.*
 
 // 4. Material3
