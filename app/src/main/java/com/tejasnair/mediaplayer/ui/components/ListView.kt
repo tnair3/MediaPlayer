@@ -1,30 +1,37 @@
 package com.tejasnair.mediaplayer.ui.components
 
-import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.painterResource
-import androidx.compose.material3.Icon
+// 1. Compose UI, Layout & Graphics
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.tejasnair.mediaplayer.R
-import com.tejasnair.mediaplayer.data.model.Song
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+
+// 2. Compose Runtime
+import androidx.compose.runtime.Composable
+
+// 3. Material3
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+
+// 4. External Libraries
 import coil.compose.AsyncImage
+
+// 5. Local Project Imports
+import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.data.model.Song
 
 @Composable
 fun EmptyLibrary(
+    imageId: Int,
     primaryText: String,
     secondaryText: String
 ) {
@@ -36,7 +43,7 @@ fun EmptyLibrary(
     ) {
         Icon(
             modifier = Modifier.size(64.dp),
-            painter = painterResource(R.drawable.disp_empty_library),
+            painter = painterResource(imageId),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             contentDescription = "Empty Library",
         )
@@ -62,7 +69,8 @@ fun <T> DisplayList(
     subtitle: (T) -> String,
     artModel: (T) -> Any?,
     trackNumber: (T) -> Int,
-    onClick: (T) -> Unit
+    onClick: (T) -> Unit,
+    isFavourite: ((T) -> Boolean)? = null
 ) {
     LazyColumn {
         items(items) { item ->
@@ -103,7 +111,7 @@ fun <T> DisplayList(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = title(item),
                         style = MaterialTheme.typography.bodyLarge,
@@ -115,6 +123,16 @@ fun <T> DisplayList(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (isFavourite != null && isFavourite(item)) {
+                    Icon(
+                        painter = painterResource(R.drawable.song_favourite_true),
+                        contentDescription = "Favourite Song",
+                        tint = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -124,7 +142,8 @@ fun <T> DisplayList(
 fun SongRow(
     song: Song,
     onClick: () -> Unit,
-    showTrackNumbers: Boolean
+    showTrackNumbers: Boolean,
+    isFavourite: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -141,7 +160,7 @@ fun SongRow(
                 modifier = Modifier.width(36.dp)
             )
         }
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
                 style = MaterialTheme.typography.bodyLarge,
@@ -153,6 +172,16 @@ fun SongRow(
                 text = song.artists,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (isFavourite) {
+            Icon(
+                painter = painterResource(R.drawable.song_favourite_true),
+                contentDescription = "Favourite Song",
+                tint = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(18.dp)
             )
         }
     }

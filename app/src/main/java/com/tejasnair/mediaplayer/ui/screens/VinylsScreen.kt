@@ -1,13 +1,21 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+// 1. Compose UI, Layout & Graphics
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+// 2. Compose Runtime
+import androidx.compose.runtime.Composable
+
+// 3. Material3
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.unit.dp
+
+// 4. Navigation
 import androidx.navigation.NavController
+
+// 5. Local Project Imports
 import com.tejasnair.mediaplayer.ui.components.StandardUIBar
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 

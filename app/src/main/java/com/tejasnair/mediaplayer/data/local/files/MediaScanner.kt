@@ -1,5 +1,6 @@
 package com.tejasnair.mediaplayer.data.local.files
 
+// 1. Android & Core
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -8,13 +9,23 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.graphics.scale
-import com.mpatric.mp3agic.Mp3File
-import com.tejasnair.mediaplayer.data.model.Song
-import com.tejasnair.mediaplayer.data.repository.MusicRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+
+// 2. Java & IO
 import java.io.File
 import java.io.FileOutputStream
+
+// 3. Coroutines
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+// 4. External Libraries (JAudioTagger)
+import com.shabinder.jaudiotagger.audio.AudioFileIO
+import com.shabinder.jaudiotagger.tag.FieldKey
+import com.shabinder.jaudiotagger.tag.images.Artwork
+
+// 5. Local Project Imports
+import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
 class MediaScanner(
     private val context: Context,
@@ -86,89 +97,45 @@ class MediaScanner(
 
     private fun extractMetadata(file: File): Song {
         return try {
-            extractWithMp3agic(file)
+            val audioFile = AudioFileIO.read(file)
+            val tag = audioFile.tag
+            val header = audioFile.audioHeader
+
+            fun getField(key: FieldKey): String? = tag?.getFirst(key)?.takeIf { it.isNotBlank() }
+
+            val title = getField(FieldKey.TITLE) ?: file.nameWithoutExtension
+            val artist = getField(FieldKey.ARTIST) ?: "Unknown Artist"
+            val album = getField(FieldKey.ALBUM) ?: "Unknown Album"
+
+            // Artwork extraction
+            val artwork: Artwork? = tag?.firstArtwork
+            val savedArtPath = if (artwork != null) {
+                try {
+                    val artBytes = artwork.binaryData
+                    val scaled = downscaleArtIfNeeded(artBytes, maxDimension = 600)
+                    saveArtToInternalStorage(scaled, file.nameWithoutExtension)
+                } catch (e: Exception) {
+                    Log.w("MediaScanner", "Art extraction failed: ${e.message}")
+                    null
+                }
+            } else null
+
+            Song(
+                filePath     = file.absolutePath,
+                title        = title,
+                artists      = artist,
+                album        = album,
+                albumArtists = getField(FieldKey.ALBUM_ARTIST) ?: artist,
+                duration     = (header.trackLength * 1000).toLong(), // Convert seconds to ms
+                discNumber   = getField(FieldKey.DISC_NO)?.toIntOrNull() ?: 1,
+                trackNumber  = getField(FieldKey.TRACK)?.toIntOrNull() ?: 1,
+                year         = getField(FieldKey.YEAR),
+                songArtUri   = savedArtPath
+            )
         } catch (e: Exception) {
-            Log.w("MediaScanner", "mp3agic failed for ${file.name}, falling back to MediaMetadataRetriever", e)
+            Log.e("MediaScanner", "JAudioTagger failed for ${file.name}, falling back", e)
             extractWithRetriever(file)
         }
-    }
-
-    private fun extractWithMp3agic(file: File): Song {
-        val mp3 = Mp3File(file)
-
-        val title: String
-        val artist: String
-        val album: String
-        val albumArtist: String
-        val year: String?
-        val track: Int
-        val disc: Int
-        val artBytes: ByteArray?
-
-        when {
-            mp3.hasId3v2Tag() -> {
-                val tag = mp3.id3v2Tag
-                title       = tag.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension
-                artist      = tag.artist?.takeIf { it.isNotBlank() } ?: "Unknown Artist"
-                album       = tag.album?.takeIf { it.isNotBlank() } ?: "Unknown Album"
-                albumArtist = tag.albumArtist?.takeIf { it.isNotBlank() } ?: artist
-                year        = tag.year?.takeIf { it.isNotBlank() }
-                track       = tag.track?.parseTrackComponent() ?: 1
-                disc        = tag.partOfSet?.parseTrackComponent() ?: 1
-                artBytes    = tag.albumImage
-            }
-            mp3.hasId3v1Tag() -> {
-                val tag = mp3.id3v1Tag
-                title       = tag.title?.takeIf { it.isNotBlank() } ?: file.nameWithoutExtension
-                artist      = tag.artist?.takeIf { it.isNotBlank() } ?: "Unknown Artist"
-                album       = tag.album?.takeIf { it.isNotBlank() } ?: "Unknown Album"
-                albumArtist = artist
-                year        = tag.year?.takeIf { it.isNotBlank() }
-                track       = tag.track?.parseTrackComponent() ?: 1
-                disc        = 1
-                artBytes    = null
-            }
-            else -> {
-                title       = file.nameWithoutExtension
-                artist      = "Unknown Artist"
-                album       = "Unknown Album"
-                albumArtist = "Unknown Artist"
-                year        = null
-                track       = 1
-                disc        = 1
-                artBytes    = null
-            }
-        }
-
-        Log.d("MediaScanner", "--- Metadata dump for: ${file.name} ---")
-        Log.d("MediaScanner", "Title:  $title")
-        Log.d("MediaScanner", "Artist: $artist")
-        Log.d("MediaScanner", "Album:  $album")
-        Log.d("MediaScanner", "Disc:  $disc")
-        Log.d("MediaScanner", "Track:  $track")
-
-        val savedArtPath = if (artBytes != null) {
-            try {
-                val scaled = downscaleArtIfNeeded(artBytes, maxDimension = 600)
-                saveArtToInternalStorage(scaled, file.nameWithoutExtension)
-            } catch (e: Exception) {
-                Log.w("MediaScanner", "Art extraction failed for ${file.name}: ${e.message}")
-                null
-            }
-        } else null
-
-        return Song(
-            filePath     = file.absolutePath,
-            title        = title,
-            artists      = artist,
-            album        = album,
-            albumArtists = albumArtist,
-            duration     = mp3.lengthInMilliseconds,
-            discNumber   = disc,
-            trackNumber  = track,
-            year         = year,
-            songArtUri   = savedArtPath
-        )
     }
 
     private fun extractWithRetriever(file: File): Song {

@@ -1,8 +1,10 @@
 package com.tejasnair.mediaplayer.ui.components
 
+// 1. Android & Core
+import android.util.Log
+
+// 2. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,29 +15,41 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import coil.compose.AsyncImage
-import com.tejasnair.mediaplayer.R
-import com.tejasnair.mediaplayer.data.model.Song
+
+// 3. Compose Runtime
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+
+// 4. Material3 & Window
+import androidx.compose.material3.*
+import androidx.compose.ui.window.Dialog
+
+// 5. External Libraries
+import coil.compose.AsyncImage
+
+// 6. Local Project Imports
+import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 
 @Composable
 fun SongSheet(
     song: Song,
     playlist: List<Song>? = null,
     playbackViewModel: PlaybackViewModel,
+    libraryViewModel: LibraryViewModel,
     onDelete: (Song) -> Unit,
     onDismiss: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
+
+    Log.d("Song data", "Favourite: ${song.isFavourite}")
 
     if (showDialog) {
         DeleteConfirmationDialog(
@@ -49,14 +63,15 @@ fun SongSheet(
         )
     }
 
-    Dialog(
-        onDismissRequest = onDismiss
-    ) {
+    Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = MaterialTheme.shapes.extraLarge,
+            shape = RoundedCornerShape(28.dp),
             elevation = CardDefaults.cardElevation(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp)
+            ),
             modifier = Modifier
-                .width(320.dp)
+                .width(300.dp)
                 .widthIn(max = 400.dp)
         ) {
             Column(
@@ -65,71 +80,130 @@ fun SongSheet(
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+
+                // Album Art
                 AsyncImage(
                     model = song.songArtUri ?: -1,
                     contentDescription = "Album Art",
                     modifier = Modifier
-                        .padding(top = 8.dp)
-                        .size(256.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .padding(top = 4.dp)
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(20.dp)),
                     contentScale = ContentScale.Crop
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-
-                Text(
-                    text = song.artists.ifEmpty { "Unknown Artist" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
                 )
 
                 Spacer(Modifier.height(16.dp))
 
-                // Play/Delete/Fav Row
+                // Title + Artist
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = song.artists.ifEmpty { "Unknown Artist" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                // Play / Delete / Fav Row
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = { showDialog = true }, modifier = Modifier.size(32.dp)) {
-                        Icon(painterResource(
-                            id = R.drawable.options_delete),
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-
-                    IconButton(
-                        onClick = {
-                            playbackViewModel.playSong(song, playlist)
-                            onDismiss()
-                        },
-                        modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.primary, CircleShape)
+                    // Delete
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(painterResource(
-                            id = R.drawable.song_play),
-                            contentDescription = "Play",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp))
+                        IconButton(
+                            onClick = { showDialog = true },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.options_delete),
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
 
-                    IconButton(onClick = { /* Fav */ }, modifier = Modifier.size(32.dp)) {
-                        Icon(painterResource(
-                            id = R.drawable.song_favourite),
-                            contentDescription = "Favourite",
-                            tint = MaterialTheme.colorScheme.primary)
+                    // Play
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(
+                            onClick = {
+                                playbackViewModel.playSong(song, playlist)
+                                onDismiss()
+                            },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.song_play),
+                                contentDescription = "Play",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                    }
+
+                    // Favourite
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                                RoundedCornerShape(12.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(
+                            onClick = { libraryViewModel.toggleFavourite(song.songId) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painterResource(id =
+                                    if(song.isFavourite) R.drawable.song_favourite_true
+                                    else R.drawable.song_favourite),
+                                contentDescription = "Favourite",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // The List Options
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                // List Options
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OptionItem(R.drawable.song_options_playnext, "Play next") {
                         playbackViewModel.addToNext(song)
@@ -152,16 +226,36 @@ fun SongSheet(
 fun OptionItem(iconRes: Int, label: String, onClick: () -> Unit) {
     TextButton(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
-            Icon(painterResource(iconRes), null, Modifier.size(20.dp))
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                        RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
             Spacer(Modifier.width(12.dp))
-            Text(label, style = MaterialTheme.typography.labelLarge)
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

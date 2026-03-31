@@ -1,15 +1,23 @@
 package com.tejasnair.mediaplayer.ui.viewmodel
 
+// 1. Compose Runtime
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
+
+// 2. Lifecycle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.*
-import com.tejasnair.mediaplayer.data.repository.MusicRepository
-import com.tejasnair.mediaplayer.data.model.*
 import androidx.lifecycle.ViewModelProvider
-import kotlinx.coroutines.launch
+import androidx.lifecycle.viewModelScope
+
+// 3. Coroutines & Flow
 import kotlinx.coroutines.Dispatchers
-import java.io.File
-import android.util.Log
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+
+// 4. Local Project Imports
+import com.tejasnair.mediaplayer.data.model.*
+import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
 class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
 
@@ -28,6 +36,29 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val favouriteSongs: StateFlow<List<Song>> = repository.favouriteSongs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    var librarySize by mutableLongStateOf(0L)
+        private set
+
+    fun loadLibrarySize() {
+        viewModelScope.launch(Dispatchers.IO) {
+            librarySize = repository.getLibrarySizeBytes()
+        }
+    }
+
+    fun clearLibrary() {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.clearLibrary()
+            librarySize = 0L
+        }
+    }
+
+    fun getSong(songId: String): Flow<Song?> {
+        return repository.getSongById(songId)
+    }
+
     fun getSongsByArtist(artistName: String): Flow<List<Song>> {
         return allSongs.map { songs ->
             songs.filter { it.artists.contains(artistName, ignoreCase = true) }
@@ -41,6 +72,12 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
                     compareBy<Song> { it.discNumber }
                         .thenBy { it.trackNumber }
                 )
+        }
+    }
+
+    fun toggleFavourite(songId: String) {
+        viewModelScope.launch {
+            repository.toggleFavourite(songId)
         }
     }
 

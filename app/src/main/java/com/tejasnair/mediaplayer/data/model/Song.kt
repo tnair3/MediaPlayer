@@ -1,8 +1,10 @@
 package com.tejasnair.mediaplayer.data.model
 
-import androidx.annotation.DrawableRes
+// 1. Room Persistence
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+
+// 2. Java Standard Library
 import java.util.UUID
 
 @Entity(tableName = "songs")
@@ -17,7 +19,7 @@ data class Song(
     val albumArtists: String,
     val discNumber: Int = 1,
     val trackNumber: Int = 1,
-    val isFavourite: Boolean = false,
+    var isFavourite: Boolean = false,
     val year: String? = null,
     val dateAdded: Long = System.currentTimeMillis(),
 

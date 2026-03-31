@@ -1,46 +1,47 @@
 package com.tejasnair.mediaplayer
 
+// 1. Android & Core
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+
+// 2. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.animation.core.tween
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.remember
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.runtime.getValue
-import androidx.navigation.navArgument
-import androidx.compose.runtime.setValue
-import androidx.navigation.NavType
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.LaunchedEffect
-import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
-import com.tejasnair.mediaplayer.ui.screens.*
-import com.tejasnair.mediaplayer.ui.viewmodel.*
-import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
-import com.tejasnair.mediaplayer.data.repository.MusicRepository
-import com.tejasnair.mediaplayer.data.local.files.MediaScanner
-import com.tejasnair.mediaplayer.ui.components.MiniPlayer
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.currentBackStackEntryAsState
+
+// 3. Compose Animation & Core
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.*
+import androidx.compose.runtime.*
+
+// 4. Material3
+import androidx.compose.material3.*
+
+// 5. Navigation
+import androidx.navigation.NavType
+import androidx.navigation.compose.*
+import androidx.navigation.navArgument
+
+// 6. Lifecycle & State Management
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+
+// 7. Local Project Imports
+import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
+import com.tejasnair.mediaplayer.data.local.files.MediaScanner
+import com.tejasnair.mediaplayer.data.repository.MusicRepository
+import com.tejasnair.mediaplayer.ui.components.MiniPlayer
+import com.tejasnair.mediaplayer.ui.screens.*
+import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
+import com.tejasnair.mediaplayer.ui.viewmodel.*
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -59,17 +60,19 @@ class MainActivity : ComponentActivity() {
             )
             val playbackViewModel: PlaybackViewModel = viewModel()
 
-            val currentSong = playbackViewModel.currentSong
+            val currentSongId = playbackViewModel.currentSongId
+
+            val currentSong by remember(currentSongId) {
+                currentSongId?.let { id ->
+                    libraryViewModel.getSong(id)
+                } ?: flowOf(null)
+            }.collectAsState(initial = null)
+
             val uiState by settingsViewModel.themeSetting.collectAsStateWithLifecycle()
 
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            val scope = rememberCoroutineScope()
             var showNowPlaying by remember { mutableStateOf(false) }
-
-            LaunchedEffect(currentSong) {
-                if (currentSong != null) {
-                    showNowPlaying = true
-                }
-            }
 
             MediaPlayerTheme(themeSetting = uiState) {
                 val navController = rememberNavController()
@@ -103,10 +106,10 @@ class MainActivity : ComponentActivity() {
                         popEnterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) },
                         popExitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) }
                     ) {
-                        composable("library") { LibraryScreen(libraryViewModel, navController, playbackViewModel) }
-                        composable("settings") { SettingsScreen(settingsViewModel, navController, uiState) { settingsViewModel.updateTheme(it) } }
+                        composable("library") { LibraryScreen(libraryViewModel, playbackViewModel, navController) }
+                        composable("settings") { SettingsScreen(settingsViewModel, libraryViewModel, navController, uiState) { settingsViewModel.updateTheme(it) } }
                         composable("upload") { UploadScreen(navController, mediaScanner) }
-                        composable("favourites") { FavouritesScreen(navController) }
+                        composable("favourites") { FavouritesScreen(libraryViewModel, playbackViewModel, navController) }
                         composable("vinyls") { VinylsScreen(navController) }
                         composable("record") { RecordScreen(navController) }
                         composable(
@@ -125,33 +128,62 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = navBackStackEntry?.destination?.route
 
-                    if (currentSong != null && !showNowPlaying && currentRoute != "upload" && currentRoute != "settings") {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.BottomEnd
+                    currentSong?.let { song ->
+                        if (!showNowPlaying &&
+                            currentRoute != "upload" &&
+                            currentRoute != "settings"
                         ) {
-                            MiniPlayer(
-                                song = currentSong,
-                                isPlaying = playbackViewModel.isPlaying,
-                                onTogglePlay = { playbackViewModel.togglePlayPause() },
-                                onClick = { showNowPlaying = true },
-                                onDismiss = { playbackViewModel.stopPlayback() },
-                                viewModel = playbackViewModel
-                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.BottomEnd
+                            ) {
+                                MiniPlayer(
+                                    song = song,
+                                    isPlaying = playbackViewModel.isPlaying,
+                                    onTogglePlay = { playbackViewModel.togglePlayPause() },
+                                    onClick = { showNowPlaying = true },
+                                    onDismiss = { playbackViewModel.stopPlayback() },
+                                    playbackViewModel = playbackViewModel
+                                )
+                            }
                         }
                     }
 
-                    if (showNowPlaying && currentSong != null) {
+                    val targetCornerSize by remember(sheetState) {
+                        derivedStateOf {
+                            val offset = kotlin.runCatching { sheetState.requireOffset() }.getOrDefault(0f)
+
+                            val progress = (offset / 300f).coerceIn(0f, 1f)
+                            (progress * 28).dp
+                        }
+                    }
+
+                    val animatedCornerRadius by animateDpAsState(
+                        targetValue = targetCornerSize,
+                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                        label = "CornerAnimation"
+                    )
+
+                    if (showNowPlaying && currentSongId != null) {
                         ModalBottomSheet(
                             onDismissRequest = { showNowPlaying = false },
                             sheetState = sheetState,
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            dragHandle = { BottomSheetDefaults.DragHandle() }
+                            dragHandle = null,
+                            shape = RoundedCornerShape(topStart = animatedCornerRadius, topEnd = animatedCornerRadius),
+                            scrimColor = Color.Black.copy(alpha = 0.5f),
+                            contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
                         ) {
-                            NowPlayingScreen(
-                                viewModel = playbackViewModel,
-                                onBackClick = { showNowPlaying = false }
-                            )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                NowPlayingScreen(
+                                    libraryViewModel = libraryViewModel,
+                                    playbackViewModel = playbackViewModel,
+                                    onBackClick = {
+                                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                            if (!sheetState.isVisible) showNowPlaying = false
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }

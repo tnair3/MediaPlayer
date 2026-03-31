@@ -1,52 +1,71 @@
 package com.tejasnair.mediaplayer.ui.viewmodel
 
+// 1. Android & Core
 import android.app.Application
-import android.net.Uri
+import android.content.ComponentName
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
+
+// 2. Compose Runtime
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+
+// 3. Lifecycle
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+
+// 4. Media3
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.session.MediaBrowser
-import androidx.lifecycle.viewModelScope
+import androidx.media3.session.SessionToken
+
+// 5. Guava / Futures
+import com.google.common.util.concurrent.ListenableFuture
+
+// 6. Coroutines
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.jvm.java
+
+// 7. Local Project Imports
 import com.tejasnair.mediaplayer.data.local.files.PlaybackService
 import com.tejasnair.mediaplayer.data.model.Song
-import android.content.ComponentName
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.core.content.ContextCompat
-import androidx.media3.session.SessionToken
-import com.google.common.util.concurrent.ListenableFuture
-import androidx.core.net.toUri
-import androidx.media3.common.Timeline
-import java.util.Collections.emptyList
 
 class PlaybackViewModel(application: Application) : AndroidViewModel(application) {
 
     private var browserFuture: ListenableFuture<MediaBrowser>? = null
-    private val browser: MediaBrowser? get() = if (browserFuture?.isDone == true) browserFuture?.get() else null
+    private val browser: MediaBrowser?
+        get() = if (browserFuture?.isDone == true) browserFuture?.get() else null
 
-    var currentSong by mutableStateOf<Song?>(null)
+    // ✅ SINGLE SOURCE OF TRUTH (IDs only)
+    var currentSongId by mutableStateOf<String?>(null)
+        private set
+
+    var currentQueue by mutableStateOf<List<String>>(emptyList())
+        private set
+
     var isPlaying by mutableStateOf(false)
     var currentPosition by mutableLongStateOf(0L)
     var duration by mutableLongStateOf(0L)
-    var repeatMode by mutableIntStateOf(Player.REPEAT_MODE_OFF)
-        private set
 
-    var currentQueue: List<Song> by mutableStateOf(emptyList())
+    var repeatMode by mutableIntStateOf(Player.REPEAT_MODE_OFF)
         private set
 
     private var timerJob: Job? = null
 
     init {
-        val sessionToken = SessionToken(application, ComponentName(application, PlaybackService::class.java))
+        val sessionToken = SessionToken(
+            application,
+            ComponentName(application, PlaybackService::class.java)
+        )
+
         browserFuture = MediaBrowser.Builder(application, sessionToken).buildAsync()
 
         browserFuture?.addListener({
@@ -60,20 +79,7 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 currentPosition = 0L
-
-                mediaItem?.let { item ->
-                    val metadata = item.mediaMetadata
-                    currentSong = Song(
-                        filePath = item.mediaId, // This matches your file.absolutePath
-                        title = metadata.title?.toString() ?: "Unknown Title",
-                        artists = metadata.artist?.toString() ?: "Unknown Artist",
-                        album = metadata.albumTitle?.toString() ?: "",
-                        albumArtists = metadata.albumArtist?.toString() ?: "",
-                        songArtUri = metadata.artworkUri?.toString() ?: "",
-                        duration = browser?.duration?.coerceAtLeast(0L) ?: 0L
-                    )
-                }
-
+                currentSongId = mediaItem?.mediaId
                 updateQueue()
             }
 
@@ -86,6 +92,7 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
                     currentPosition = duration
                     isPlaying = false
                 }
+
                 if (state == Player.STATE_READY) {
                     duration = browser?.duration?.coerceAtLeast(0L) ?: 0L
                 }
@@ -102,13 +109,12 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun playSong(selectedSong: Song, playlist: List<Song>? = null) {
-        currentSong = selectedSong
+        currentSongId = selectedSong.songId
 
         browser?.let { player ->
             if (!playlist.isNullOrEmpty()) {
                 val mediaItems = playlist.map { it.toMediaItem() }
                 val startIndex = playlist.indexOf(selectedSong).coerceAtLeast(0)
-
                 player.setMediaItems(mediaItems, startIndex, 0L)
             } else {
                 player.setMediaItem(selectedSong.toMediaItem())
@@ -137,7 +143,8 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     fun stopPlayback() {
         browser?.stop()
         browser?.clearMediaItems()
-        currentSong = null
+        currentSongId = null
+        currentQueue = emptyList()
     }
 
     fun toggleRepeatMode() {
@@ -152,42 +159,22 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun addToQueue(songToAdd: Song) {
-
-        currentQueue = (currentQueue ?: emptyList()) + songToAdd
-
-        browser?.let { player ->
-            val newMediaItem = songToAdd.toMediaItem()
-
-            player.addMediaItem(newMediaItem)
-
-            if (player.playbackState == Player.STATE_IDLE) {
-                player.prepare()
-            }
-        }
+        currentQueue = currentQueue + songToAdd.songId
+        browser?.addMediaItem(songToAdd.toMediaItem())
     }
 
     fun addAlbumToQueue(albumToAdd: List<Song>) {
-        for(song in albumToAdd) {
-            currentQueue = (currentQueue ?: emptyList()) + song
-
-            browser?.let { player ->
-                val newMediaItem = song.toMediaItem()
-
-                player.addMediaItem(newMediaItem)
-
-                if (player.playbackState == Player.STATE_IDLE) {
-                    player.prepare()
-                }
-            }
+        albumToAdd.forEach { song ->
+            currentQueue = currentQueue + song.songId
+            browser?.addMediaItem(song.toMediaItem())
         }
     }
 
     fun removeFromQueue(index: Int) {
-        val updatedList = currentQueue.toMutableList()
-        if (index in updatedList.indices) {
-            updatedList.removeAt(index)
-            currentQueue = updatedList
-
+        if (index in currentQueue.indices) {
+            val list = currentQueue.toMutableList()
+            list.removeAt(index)
+            currentQueue = list
             browser?.removeMediaItem(index)
         }
     }
@@ -196,6 +183,10 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
         browser?.let { player ->
             val nextIndex = player.currentMediaItemIndex + 1
             player.addMediaItem(nextIndex, song.toMediaItem())
+
+            val list = currentQueue.toMutableList()
+            list.add(nextIndex, song.songId)
+            currentQueue = list
         }
     }
 
@@ -221,14 +212,12 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun moveQueueItem(fromIndex: Int, toIndex: Int) {
-        browser?.let { player ->
-            player.moveMediaItem(fromIndex, toIndex)
+        browser?.moveMediaItem(fromIndex, toIndex)
 
-            val list = currentQueue.toMutableList()
-            val item = list.removeAt(fromIndex)
-            list.add(toIndex, item)
-            currentQueue = list
-        }
+        val list = currentQueue.toMutableList()
+        val item = list.removeAt(fromIndex)
+        list.add(toIndex, item)
+        currentQueue = list
     }
 
     private fun startProgressUpdater() {
@@ -248,7 +237,7 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
 
     private fun Song.toMediaItem(): MediaItem {
         return MediaItem.Builder()
-            .setMediaId(this.filePath)
+            .setMediaId(this.songId) // IMPORTANT: use songId
             .setUri(this.filePath.toUri())
             .setMediaMetadata(
                 MediaMetadata.Builder()
@@ -262,24 +251,12 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
 
     private fun updateQueue() {
         val player = browser ?: return
-        val queue = mutableListOf<Song>()
 
-        // Loop through the player's current items and convert them back to Songs
+        val queue = mutableListOf<String>()
         for (i in 0 until player.mediaItemCount) {
-            val item = player.getMediaItemAt(i)
-            val metadata = item.mediaMetadata
-            queue.add(
-                Song(
-                    filePath = item.mediaId, // This matches your file.absolutePath
-                    title = metadata.title?.toString() ?: "Unknown Title",
-                    artists = metadata.artist?.toString() ?: "Unknown Artist",
-                    album = metadata.albumTitle?.toString() ?: "",
-                    albumArtists = metadata.albumArtist?.toString() ?: "",
-                    songArtUri = metadata.artworkUri?.toString() ?: "",
-                    duration = browser?.duration?.coerceAtLeast(0L) ?: 0L
-                )
-            )
+            queue.add(player.getMediaItemAt(i).mediaId)
         }
+
         currentQueue = queue
     }
 

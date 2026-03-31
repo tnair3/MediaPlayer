@@ -1,21 +1,34 @@
 package com.tejasnair.mediaplayer.ui.components
 
+// 1. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import com.tejasnair.mediaplayer.R
-import androidx.compose.ui.res.painterResource
-import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+
+// 2. Compose Runtime
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+
+// 3. Material3
+import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+
+// 4. Navigation
 import androidx.navigation.NavController
+
+// 5. Local Project Imports
+import com.tejasnair.mediaplayer.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,6 +163,16 @@ fun StandardUIBar(
     navController: NavController,
     title: String
 ) {
+    var showHelp by remember { mutableStateOf(false) }
+
+    if (showHelp) {
+        ShowHelpMessage(
+            title = title,
+            onDismiss = { showHelp = false }
+        )
+    }
+
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -173,5 +196,47 @@ fun StandardUIBar(
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center)
         )
+
+        if(title == "Recordings" || title == "Vinyls") {
+            IconButton(
+                onClick = { showHelp = true },
+                modifier = Modifier.align(Alignment.CenterEnd)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.help),
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
+}
+
+@Composable
+fun ShowHelpMessage(
+    title: String,
+    onDismiss: () -> Unit
+) {
+    val bodyText = when (title) {
+        "Recordings" -> "This is where your recordings will appear. You can record audio directly in the app and it will be saved here for playback. Placeholder text — replace with your own description."
+        "Vinyls" -> "Vinyls lets you visualise your music as a vinyl record. Placeholder text — replace with your own description."
+        else -> "Help is not available for this screen."
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Text(
+                text = bodyText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Got it")
+            }
+        }
+    )
 }

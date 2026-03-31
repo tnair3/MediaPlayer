@@ -1,12 +1,18 @@
 package com.tejasnair.mediaplayer.data.repository
 
+// 1. Android & Core
 import android.content.Context
-import androidx.compose.ui.platform.LocalContext
+import android.util.Log
+
+// 2. Java IO
+import java.io.File
+
+// 3. Coroutines & Flow
 import kotlinx.coroutines.flow.Flow
+
+// 4. Local Project Imports
 import com.tejasnair.mediaplayer.data.local.dao.MusicDao
 import com.tejasnair.mediaplayer.data.model.*
-import java.io.File
-import android.util.Log
 
 class MusicRepository(
     private val musicDao: MusicDao,
@@ -17,8 +23,18 @@ class MusicRepository(
     val albums: Flow<List<AlbumSummary>> = musicDao.getUniqueAlbums()
     val artists: Flow<List<String>> = musicDao.getUniqueArtists()
 
+    val favouriteSongs: Flow<List<Song>> = musicDao.getFavouriteSongs()
+
+    fun getSongById(songId: String): Flow<Song?> {
+        return musicDao.getSongById(songId)
+    }
+
     suspend fun insert(song: Song) {
         musicDao.insertSong(song)
+    }
+
+    suspend fun toggleFavourite(songId: String) {
+        musicDao.toggleFavourite(songId)
     }
 
     suspend fun deleteSong(song: Song) {
@@ -33,6 +49,17 @@ class MusicRepository(
         catch (e: Exception) {
             Log.e("Repository", "Error deleting files: ${e.message}")
             musicDao.deleteSong(song)
+        }
+    }
+
+    suspend fun clearLibrary() {
+        musicDao.clearLibrary()
+    }
+
+    suspend fun getLibrarySizeBytes(): Long {
+        return musicDao.getAllSongsOnce().sumOf { song ->
+            val file = File(song.filePath)
+            if (file.exists()) file.length() else 0L
         }
     }
 

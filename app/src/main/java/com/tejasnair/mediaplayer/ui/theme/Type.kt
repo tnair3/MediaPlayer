@@ -1,11 +1,16 @@
 package com.tejasnair.mediaplayer.ui.theme
 
-import androidx.compose.material3.Typography
+// 1. Compose UI & Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.Font
+
+// 2. Material3
+import androidx.compose.material3.Typography
+
+// 3. Local Project Imports
 import com.tejasnair.mediaplayer.R
 
 val Sora = FontFamily(

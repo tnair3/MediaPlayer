@@ -1,14 +1,21 @@
 package com.tejasnair.mediaplayer.ui.theme
 
+// 1. Compose UI, Layout & Graphics
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+
+// 2. Compose Runtime
+import androidx.compose.runtime.Composable
+
+// 3. Material3
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.background
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+
+// 4. Local Project Imports
 import com.tejasnair.mediaplayer.ui.components.ThemeMode
 
 val DarkColorScheme = darkColorScheme(

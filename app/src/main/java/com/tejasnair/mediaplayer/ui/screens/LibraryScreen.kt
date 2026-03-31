@@ -1,48 +1,99 @@
 package com.tejasnair.mediaplayer.ui.screens
 
+// 1. Android & Core
+import android.net.Uri
+
+// 2. Compose UI, Layout & Graphics
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.tejasnair.mediaplayer.ui.theme.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
+
+// 3. Compose Runtime
+import androidx.compose.runtime.*
+
+// 4. Material3
+import androidx.compose.material3.*
+
+// 5. Navigation
 import androidx.navigation.NavController
-import com.tejasnair.mediaplayer.data.model.Song
+
+// 6. Coroutines
+import kotlinx.coroutines.launch
+
+// 7. Local Project Imports
+import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.DisplayList
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.FilterRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.TopNavigation
-import android.net.Uri
+import com.tejasnair.mediaplayer.ui.theme.*
+import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.pager.HorizontalPager
-import kotlinx.coroutines.launch
 
 @Composable
 fun LibraryScreen(
-    viewModel: LibraryViewModel,
+    libraryViewModel: LibraryViewModel,
+    playbackViewModel: PlaybackViewModel,
     navController: NavController,
-    playbackViewModel: PlaybackViewModel
 ) {
-    val songs by viewModel.allSongs.collectAsState()
-    val albums by viewModel.albums.collectAsState()
-    val artists by viewModel.artists.collectAsState()
+    val songs by libraryViewModel.allSongs.collectAsState()
+    val albums by libraryViewModel.albums.collectAsState()
+    val artists by libraryViewModel.artists.collectAsState()
 
     val options = listOf("Songs", "Albums", "Artists", "Playlists")
+
+    val focusManager = LocalFocusManager.current
 
     val pagerState = rememberPagerState(pageCount = { options.size })
     val coroutineScope = rememberCoroutineScope()
 
-    var selectedSong by remember { mutableStateOf<Song?>(null) }
+    var selectedSongId by remember { mutableStateOf<String?>(null) }
+    val selectedSong = songs.find { it.songId == selectedSongId }
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Filtered lists — recomputed whenever searchQuery or the source list changes
+    val filteredSongs = remember(searchQuery, songs) {
+        if (searchQuery.isBlank()) songs
+        else songs.filter { song ->
+            song.title.contains(searchQuery, ignoreCase = true) ||
+                    song.artists.contains(searchQuery, ignoreCase = true) ||
+                    song.album.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    val filteredAlbums = remember(searchQuery, albums) {
+        if (searchQuery.isBlank()) albums
+        else albums.filter { album ->
+            album.album.contains(searchQuery, ignoreCase = true) ||
+                    album.albumArtists.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    val filteredArtists = remember(searchQuery, artists) {
+        if (searchQuery.isBlank()) artists
+        else artists.filter { artist ->
+            artist.contains(searchQuery, ignoreCase = true)
+        }
+    }
 
     ThemedScreen {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .safeDrawingPadding()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { focusManager.clearFocus() })
+                }
+
         ) {
             Column(
                 modifier = Modifier
@@ -71,13 +122,55 @@ fun LibraryScreen(
                     )
                 }
 
+                // Search bar — only shown when there is content to search
+                if (songs.isNotEmpty()) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                        ),
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.search),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.close),
+                                        contentDescription = "Clear search",
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        shape = MaterialTheme.shapes.large,
+                    )
+                }
+
                 HorizontalDivider(
+                    modifier = Modifier.padding(top = 4.dp),
                     thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
 
                 if (songs.isEmpty()) {
                     EmptyLibrary(
+                        imageId = R.drawable.disp_empty_library,
                         primaryText = "Library is Empty",
                         secondaryText = "Upload media to listen"
                     )
@@ -90,44 +183,72 @@ fun LibraryScreen(
                     ) { pageIndex ->
                         when (pageIndex) {
                             0 -> { // SONGS
-                                DisplayList(
-                                    items = songs,
-                                    title = { it.title },
-                                    subtitle = { it.artists },
-                                    artModel = { it.songArtUri },
-                                    trackNumber = { -1 },
-                                    onClick = { selectedSong = it }
-                                )
+                                if (filteredSongs.isEmpty()) {
+                                    EmptyLibrary(
+                                        imageId = R.drawable.disp_empty_library,
+                                        primaryText = "No Results",
+                                        secondaryText = "No songs match \"$searchQuery\""
+                                    )
+                                } else {
+                                    DisplayList(
+                                        items = filteredSongs,
+                                        title = { it.title },
+                                        subtitle = { it.artists },
+                                        artModel = { it.songArtUri },
+                                        trackNumber = { -1 },
+                                        onClick = { selectedSongId = it.songId },
+                                        isFavourite = { it.isFavourite }
+                                    )
+                                }
                             }
 
                             1 -> { // ALBUMS
-                                DisplayList(
-                                    items = albums,
-                                    title = { it.album },
-                                    subtitle = { it.albumArtists },
-                                    artModel = { it.backCoverUri ?: it.songArtUri },
-                                    trackNumber = { -1 },
-                                    onClick = { album ->
-                                        val encodedName = Uri.encode(album.album)
-                                        val encodedArtist = Uri.encode(album.albumArtists)
-                                        navController.navigate("album/$encodedName/$encodedArtist")
-                                    }
-                                )
+                                if (filteredAlbums.isEmpty()) {
+                                    EmptyLibrary(
+                                        imageId = R.drawable.disp_empty_library,
+                                        primaryText = "No Results",
+                                        secondaryText = "No albums match \"$searchQuery\""
+                                    )
+                                } else {
+                                    DisplayList(
+                                        items = filteredAlbums,
+                                        title = { it.album },
+                                        subtitle = { it.albumArtists },
+                                        artModel = { it.backCoverUri ?: it.songArtUri },
+                                        trackNumber = { -1 },
+                                        onClick = { album ->
+                                            val encodedName = Uri.encode(album.album)
+                                            val encodedArtist = Uri.encode(album.albumArtists)
+                                            navController.navigate("album/$encodedName/$encodedArtist")
+                                        },
+                                        isFavourite = { false }
+                                    )
+                                }
                             }
 
                             2 -> { // ARTISTS
-                                DisplayList(
-                                    items = artists,
-                                    title = { it },
-                                    subtitle = { "Artist" },
-                                    artModel = { -1 },
-                                    trackNumber = { -1 },
-                                    onClick = {  }
-                                )
+                                if (filteredArtists.isEmpty()) {
+                                    EmptyLibrary(
+                                        imageId = R.drawable.disp_empty_library,
+                                        primaryText = "No Results",
+                                        secondaryText = "No artists match \"$searchQuery\""
+                                    )
+                                } else {
+                                    DisplayList(
+                                        items = filteredArtists,
+                                        title = { it },
+                                        subtitle = { "Artist" },
+                                        artModel = { -1 },
+                                        trackNumber = { -1 },
+                                        onClick = { },
+                                        isFavourite = { false }
+                                    )
+                                }
                             }
 
                             3 -> { // PLAYLISTS
                                 EmptyLibrary(
+                                    imageId = R.drawable.disp_empty_library,
                                     primaryText = "No Playlists",
                                     secondaryText = "Create a playlist to see it here"
                                 )
@@ -142,8 +263,9 @@ fun LibraryScreen(
             SongSheet(
                 song = song,
                 playbackViewModel = playbackViewModel,
-                onDelete = { viewModel.deleteSong(it) },
-                onDismiss = { selectedSong = null }
+                libraryViewModel = libraryViewModel,
+                onDelete = { libraryViewModel.deleteSong(it) },
+                onDismiss = { selectedSongId = null }
             )
         }
     }

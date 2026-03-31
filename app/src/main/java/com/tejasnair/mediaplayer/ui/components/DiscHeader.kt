@@ -1,14 +1,19 @@
 package com.tejasnair.mediaplayer.ui.components
 
-import androidx.compose.runtime.Composable
+// 1. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Text
 import androidx.compose.ui.*
-import androidx.compose.ui.unit.dp
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+
+// 2. Compose Runtime
+import androidx.compose.runtime.Composable
+
+// 3. Material3
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 
 
 @Composable

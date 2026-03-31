@@ -1,37 +1,38 @@
 package com.tejasnair.mediaplayer.ui.components
 
-import androidx.compose.runtime.Composable
+// 1. Compose UI, Layout & Graphics
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.clickable
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+
+// 2. Compose Runtime
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+
+// 3. Material3 (including Experimental APIs)
+import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+
+// 4. External Libraries
 import coil.compose.AsyncImage
+
+// 5. Local Project Imports
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
-import com.tejasnair.mediaplayer.ui.components.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -41,20 +42,18 @@ fun MiniPlayer(
     onTogglePlay: () -> Unit,
     onClick: () -> Unit,
     onDismiss: () -> Unit,
-    viewModel: PlaybackViewModel
+    playbackViewModel: PlaybackViewModel
 ) {
-    val currentPosition = formatTime(viewModel.currentPosition)
-    val duration = formatTime(viewModel.duration)
+    val currentPosition = playbackViewModel.currentPosition
+    val duration = playbackViewModel.duration
 
     val dismissState = rememberSwipeToDismissBoxState(
         initialValue = SwipeToDismissBoxValue.Settled,
-        confirmValueChange = { value: SwipeToDismissBoxValue ->
+        confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.StartToEnd) {
-                onDismiss() // Stops the music and clears currentSong
+                onDismiss()
                 true
-            } else {
-                false
-            }
+            } else false
         }
     )
 
@@ -69,85 +68,142 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                // Add a 'Close' icon here
+                Icon(
+                    painter = painterResource(R.drawable.close),
+                    contentDescription = "Dismiss",
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
             }
         },
         modifier = Modifier
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .navigationBarsPadding()
     ) {
-        Card(
+        Box(
             modifier = Modifier
-                .width(260.dp)
-                .height(84.dp)
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(4.dp)
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                .width(280.dp)
+                .height(88.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .clickable(onClick = onClick)
         ) {
+            // Blurred art background
+            AsyncImage(
+                model = song.songArtUri,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(20.dp),
+                contentScale = ContentScale.Crop
+            )
+
+            // Dark overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.55f))
+            )
+
+            // Content
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(8.dp),
+                    .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Crisp art thumbnail
                 AsyncImage(
                     model = song.songArtUri,
                     contentDescription = null,
                     modifier = Modifier
                         .size(64.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(10.dp)),
                     contentScale = ContentScale.Crop
                 )
 
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 12.dp)
+                        .padding(horizontal = 10.dp)
                 ) {
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.labelLarge,
                         maxLines = 1,
                         modifier = Modifier.basicMarquee(),
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color.White
                     )
                     Text(
                         text = song.artists,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color.White.copy(alpha = 0.65f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "$currentPosition : $duration",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                IconButton(onClick = onTogglePlay) {
-                    Icon(
-                        painter = painterResource(
-                            id = if (isPlaying) R.drawable.song_pause
-                            else if (currentPosition == duration) R.drawable.song_restart
-                            else R.drawable.song_play
-                        ),
-                        contentDescription = "Play/Pause",
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                    Text(
+                        text = "${formatTime(currentPosition)} · ${formatTime(duration)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.45f)
                     )
                 }
+
+                // Circular glow play button
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                            .blur(6.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color.White, CircleShape)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(
+                            onClick = onTogglePlay,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    if (isPlaying) R.drawable.song_pause
+                                    else if (duration in 1..currentPosition) R.drawable.song_restart
+                                    else R.drawable.song_play
+                                ),
+                                contentDescription = "Play/Pause",
+                                tint = Color.Black,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
             }
+
+            // Thin progress bar at the bottom
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .align(Alignment.BottomStart)
+                    .background(Color.White.copy(alpha = 0.15f))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(
+                        if (duration > 0L) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+                        else 0f
+                    )
+                    .height(3.dp)
+                    .align(Alignment.BottomStart)
+                    .background(Color.White.copy(alpha = 0.8f))
+            )
         }
     }
 }
