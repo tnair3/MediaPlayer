@@ -3,11 +3,10 @@ package com.tejasnair.mediaplayer.ui.screens
 // 1. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.TopEnd
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -17,12 +16,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.navigation.NavController
 
 // 2. Compose Runtime
 import androidx.compose.runtime.*
 
 // 3. Material3
 import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 
 // 4. External Libraries
 import coil.compose.AsyncImage
@@ -45,6 +46,7 @@ fun AlbumScreen(
     albumArtist: String,
     libraryViewModel: LibraryViewModel,
     playbackViewModel: PlaybackViewModel,
+    navController: NavController,
     showNowPlaying: MutableState<Boolean>
 ) {
     val albumSongs by libraryViewModel.getSongsByAlbum(albumName, albumArtist).collectAsState(initial = emptyList())
@@ -354,119 +356,142 @@ fun AlbumScreen(
                 }
             }
 
-            // Options icon button + dropdown anchored to TopEnd
-            Box(modifier = Modifier.align(TopEnd)) {
+            // Back/Options Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 IconButton(
-                    onClick = { showOptionsMenu = true },
+                    onClick = { navController.navigateUp() },
                     modifier = Modifier
                         .safeDrawingPadding()
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.options),
-                        contentDescription = "Album Options",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        painter = painterResource(R.drawable.nav_back_arrow),
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
 
-                DropdownMenu(
-                    expanded = showOptionsMenu,
-                    onDismissRequest = { showOptionsMenu = false },
-                    offset = DpOffset(x = (-10).dp, y = (-10).dp),
-                    shape = RoundedCornerShape(20.dp),
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
-                    modifier = Modifier.width(220.dp)
+                Box(
+                    modifier = Modifier.safeDrawingPadding()
                 ) {
-                    // Header
-                    Column(
+                    IconButton(
+                        onClick = { showOptionsMenu = true },
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .safeDrawingPadding()
+                            .padding(bottom = 4.dp)
                     ) {
-                        Text(
-                            text = albumName,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = albumArtist,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        Icon(
+                            painter = painterResource(R.drawable.options),
+                            contentDescription = "Album Options",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
+                    DropdownMenu(
+                        expanded = showOptionsMenu,
+                        onDismissRequest = { showOptionsMenu = false },
+                        offset = DpOffset(x = (-10).dp, y = (-10).dp),
+                        shape = RoundedCornerShape(20.dp),
+                        containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
+                        modifier = Modifier
+                            .width(220.dp)
+                    ) {
+                        // Header
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Text(
+                                text = albumName,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = albumArtist,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
 
-                    Spacer(Modifier.height(4.dp))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
 
-                    // Playback options
-                    StyledDropdownItem(
-                        icon = R.drawable.song_play,
-                        label = "Play Album",
-                        onClick = {
-                            showOptionsMenu = false
-                            playbackViewModel.playSong(albumSongs.first(), albumSongs)
-                        }
-                    )
-                    StyledDropdownItem(
-                        icon = R.drawable.song_shuffle,
-                        label = "Shuffle Album",
-                        onClick = {
-                            showOptionsMenu = false
-                            val shuffled = albumSongs.shuffled()
-                            playbackViewModel.playSong(shuffled.first(), shuffled)
-                        }
-                    )
-                    StyledDropdownItem(
-                        icon = R.drawable.song_options_addtoqueue,
-                        label = "Add to Queue",
-                        onClick = {
-                            showOptionsMenu = false
-                            playbackViewModel.addAlbumToQueue(albumSongs)
-                        }
-                    )
-                    StyledDropdownItem(
-                        icon = R.drawable.song_options_playlist,
-                        label = "Save to Playlist",
-                        onClick = {
-                            showOptionsMenu = false
-                        }
-                    )
+                        Spacer(Modifier.height(4.dp))
 
-                    Spacer(Modifier.height(4.dp))
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                    Spacer(Modifier.height(4.dp))
+                        // Playback options
+                        StyledDropdownItem(
+                            icon = R.drawable.song_play,
+                            label = "Play Album",
+                            onClick = {
+                                showOptionsMenu = false
+                                playbackViewModel.playSong(albumSongs.first(), albumSongs)
+                            }
+                        )
+                        StyledDropdownItem(
+                            icon = R.drawable.song_shuffle,
+                            label = "Shuffle Album",
+                            onClick = {
+                                showOptionsMenu = false
+                                val shuffled = albumSongs.shuffled()
+                                playbackViewModel.playSong(shuffled.first(), shuffled)
+                            }
+                        )
+                        StyledDropdownItem(
+                            icon = R.drawable.song_options_addtoqueue,
+                            label = "Add to Queue",
+                            onClick = {
+                                showOptionsMenu = false
+                                playbackViewModel.addAlbumToQueue(albumSongs)
+                            }
+                        )
+                        StyledDropdownItem(
+                            icon = R.drawable.song_options_playlist,
+                            label = "Save to Playlist",
+                            onClick = {
+                                showOptionsMenu = false
+                            }
+                        )
 
-                    // Destructive options
-                    StyledDropdownItem(
-                        icon = R.drawable.options_edit,
-                        label = "Edit Album",
-                        onClick = {
-                            showOptionsMenu = false
-                            songsSelectedForDeletion.clear()
-                            showEditAlbumDialog = true
-                        }
-                    )
-                    StyledDropdownItem(
-                        icon = R.drawable.options_delete,
-                        label = "Delete Album",
-                        tint = MaterialTheme.colorScheme.error,
-                        onClick = {
-                            showOptionsMenu = false
-                            showDeleteAlbumDialog = true
-                        }
-                    )
+                        Spacer(Modifier.height(4.dp))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(Modifier.height(4.dp))
 
-                    Spacer(Modifier.height(4.dp))
+                        // Destructive options
+                        StyledDropdownItem(
+                            icon = R.drawable.options_edit,
+                            label = "Edit Album",
+                            onClick = {
+                                showOptionsMenu = false
+                                songsSelectedForDeletion.clear()
+                                showEditAlbumDialog = true
+                            }
+                        )
+                        StyledDropdownItem(
+                            icon = R.drawable.options_delete,
+                            label = "Delete Album",
+                            tint = MaterialTheme.colorScheme.error,
+                            onClick = {
+                                showOptionsMenu = false
+                                showDeleteAlbumDialog = true
+                            }
+                        )
+
+                        Spacer(Modifier.height(4.dp))
+                    }
+
+
                 }
             }
         }

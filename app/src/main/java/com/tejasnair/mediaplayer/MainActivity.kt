@@ -122,7 +122,7 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val name = backStackEntry.arguments?.getString("albumName") ?: ""
                             val artist = backStackEntry.arguments?.getString("albumArtist") ?: ""
-                            AlbumScreen(name, artist, libraryViewModel, playbackViewModel, showNowPlaying)
+                            AlbumScreen(name, artist, libraryViewModel, playbackViewModel, navController, showNowPlaying)
                         }
                     }
 
