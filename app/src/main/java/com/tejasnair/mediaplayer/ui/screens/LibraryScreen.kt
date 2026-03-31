@@ -4,10 +4,13 @@ package com.tejasnair.mediaplayer.ui.screens
 import android.net.Uri
 
 // 2. Compose UI, Layout & Graphics
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +47,7 @@ fun LibraryScreen(
     libraryViewModel: LibraryViewModel,
     playbackViewModel: PlaybackViewModel,
     navController: NavController,
+    showNowPlaying: MutableState<Boolean>
 ) {
     val songs by libraryViewModel.allSongs.collectAsState()
     val albums by libraryViewModel.albums.collectAsState()
@@ -58,6 +62,8 @@ fun LibraryScreen(
 
     var selectedSongId by remember { mutableStateOf<String?>(null) }
     val selectedSong = songs.find { it.songId == selectedSongId }
+
+    var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
     // Filtered lists — recomputed whenever searchQuery or the source list changes
@@ -122,44 +128,118 @@ fun LibraryScreen(
                     )
                 }
 
-                // Search bar — only shown when there is content to search
                 if (songs.isNotEmpty()) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search") },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                        ),
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.search),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
+
+                    Column {
+
+                        // Play / Shuffle / Search row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+
+                            // PLAY (primary)
+                            Button(
+                                onClick = {
+                                    playbackViewModel.playSong(songs.first(), songs)
+                                    showNowPlaying.value = true
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.song_play),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("Play")
+                            }
+
+                            // SHUFFLE
+                            OutlinedButton(
+                                onClick = {
+                                    val shuffled = songs.shuffled()
+                                    playbackViewModel.playSong(shuffled.first(), shuffled)
+                                    showNowPlaying.value = true
+                                },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(
+                                    painterResource(R.drawable.song_shuffle),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("Shuffle")
+                            }
+
+                            // SEARCH ICON BUTTON
+                            IconButton(
+                                onClick = {
+                                    showSearch = !showSearch
+                                    if (!showSearch) searchQuery = ""
+                                },
+                                modifier = Modifier.size(48.dp)
+                            ) {
+                                Crossfade(targetState = showSearch) { isOpen ->
                                     Icon(
-                                        painter = painterResource(R.drawable.close),
-                                        contentDescription = "Clear search",
-                                        modifier = Modifier.size(20.dp)
+                                        painter = painterResource(
+                                            if (isOpen) R.drawable.close else R.drawable.search
+                                        ),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = MaterialTheme.shapes.large,
-                    )
+                        }
+
+                        // Animated Search Bar
+                        AnimatedVisibility(visible = showSearch) {
+
+                            OutlinedTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                placeholder = { Text("Search") },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                                ),
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.search),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (searchQuery.isNotEmpty()) {
+                                        IconButton(onClick = { searchQuery = "" }) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.close),
+                                                contentDescription = "Clear search",
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                shape = MaterialTheme.shapes.large,
+                            )
+                        }
+                    }
                 }
 
                 HorizontalDivider(
@@ -197,7 +277,7 @@ fun LibraryScreen(
                                         artModel = { it.songArtUri },
                                         trackNumber = { -1 },
                                         onClick = { selectedSongId = it.songId },
-                                        isFavourite = { it.isFavourite }
+                                        isFavourite = { it.isFavourite },
                                     )
                                 }
                             }
@@ -221,7 +301,7 @@ fun LibraryScreen(
                                             val encodedArtist = Uri.encode(album.albumArtists)
                                             navController.navigate("album/$encodedName/$encodedArtist")
                                         },
-                                        isFavourite = { false }
+                                        isFavourite = { false },
                                     )
                                 }
                             }
@@ -241,7 +321,7 @@ fun LibraryScreen(
                                         artModel = { -1 },
                                         trackNumber = { -1 },
                                         onClick = { },
-                                        isFavourite = { false }
+                                        isFavourite = { false },
                                     )
                                 }
                             }
@@ -265,7 +345,8 @@ fun LibraryScreen(
                 playbackViewModel = playbackViewModel,
                 libraryViewModel = libraryViewModel,
                 onDelete = { libraryViewModel.deleteSong(it) },
-                onDismiss = { selectedSongId = null }
+                onDismiss = { selectedSongId = null },
+                showNowPlaying = showNowPlaying
             )
         }
     }

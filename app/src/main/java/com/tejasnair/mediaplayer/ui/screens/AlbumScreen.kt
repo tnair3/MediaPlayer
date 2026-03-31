@@ -44,7 +44,8 @@ fun AlbumScreen(
     albumName: String,
     albumArtist: String,
     libraryViewModel: LibraryViewModel,
-    playbackViewModel: PlaybackViewModel
+    playbackViewModel: PlaybackViewModel,
+    showNowPlaying: MutableState<Boolean>
 ) {
     val albumSongs by libraryViewModel.getSongsByAlbum(albumName, albumArtist).collectAsState(initial = emptyList())
     val groupedSongs = albumSongs.groupBy { it.discNumber }
@@ -297,6 +298,7 @@ fun AlbumScreen(
                         onClick = {
                             if (albumSongs.isNotEmpty())
                                 playbackViewModel.playSong(albumSongs.first(), albumSongs)
+                            showNowPlaying.value = true
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
@@ -315,6 +317,7 @@ fun AlbumScreen(
                                 val shuffled = albumSongs.shuffled()
                                 playbackViewModel.playSong(shuffled.first(), shuffled)
                             }
+                            showNowPlaying.value = true
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
@@ -475,7 +478,8 @@ fun AlbumScreen(
                 playbackViewModel = playbackViewModel,
                 libraryViewModel = libraryViewModel,
                 onDelete = { libraryViewModel.deleteSong(it) },
-                onDismiss = { selectedSongId = null }
+                onDismiss = { selectedSongId = null },
+                showNowPlaying = showNowPlaying
             )
         }
     }

@@ -72,7 +72,8 @@ class MainActivity : ComponentActivity() {
 
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             val scope = rememberCoroutineScope()
-            var showNowPlaying by remember { mutableStateOf(false) }
+
+            var showNowPlaying = remember { mutableStateOf(false) }
 
             MediaPlayerTheme(themeSetting = uiState) {
                 val navController = rememberNavController()
@@ -106,10 +107,10 @@ class MainActivity : ComponentActivity() {
                         popEnterTransition = { slideIntoContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) },
                         popExitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) }
                     ) {
-                        composable("library") { LibraryScreen(libraryViewModel, playbackViewModel, navController) }
+                        composable("library") { LibraryScreen(libraryViewModel, playbackViewModel, navController, showNowPlaying) }
                         composable("settings") { SettingsScreen(settingsViewModel, libraryViewModel, navController, uiState) { settingsViewModel.updateTheme(it) } }
                         composable("upload") { UploadScreen(navController, mediaScanner) }
-                        composable("favourites") { FavouritesScreen(libraryViewModel, playbackViewModel, navController) }
+                        composable("favourites") { FavouritesScreen(libraryViewModel, playbackViewModel, navController, showNowPlaying) }
                         composable("vinyls") { VinylsScreen(navController) }
                         composable("record") { RecordScreen(navController) }
                         composable(
@@ -121,7 +122,7 @@ class MainActivity : ComponentActivity() {
                         ) { backStackEntry ->
                             val name = backStackEntry.arguments?.getString("albumName") ?: ""
                             val artist = backStackEntry.arguments?.getString("albumArtist") ?: ""
-                            AlbumScreen(name, artist, libraryViewModel, playbackViewModel)
+                            AlbumScreen(name, artist, libraryViewModel, playbackViewModel, showNowPlaying)
                         }
                     }
 
@@ -129,7 +130,7 @@ class MainActivity : ComponentActivity() {
                     val currentRoute = navBackStackEntry?.destination?.route
 
                     currentSong?.let { song ->
-                        if (!showNowPlaying &&
+                        if (!showNowPlaying.value &&
                             currentRoute != "upload" &&
                             currentRoute != "settings"
                         ) {
@@ -141,7 +142,7 @@ class MainActivity : ComponentActivity() {
                                     song = song,
                                     isPlaying = playbackViewModel.isPlaying,
                                     onTogglePlay = { playbackViewModel.togglePlayPause() },
-                                    onClick = { showNowPlaying = true },
+                                    onClick = { showNowPlaying.value = true },
                                     onDismiss = { playbackViewModel.stopPlayback() },
                                     playbackViewModel = playbackViewModel
                                 )
@@ -164,9 +165,9 @@ class MainActivity : ComponentActivity() {
                         label = "CornerAnimation"
                     )
 
-                    if (showNowPlaying && currentSongId != null) {
+                    if (showNowPlaying.value && currentSongId != null) {
                         ModalBottomSheet(
-                            onDismissRequest = { showNowPlaying = false },
+                            onDismissRequest = { showNowPlaying.value = false },
                             sheetState = sheetState,
                             dragHandle = null,
                             shape = RoundedCornerShape(topStart = animatedCornerRadius, topEnd = animatedCornerRadius),
@@ -179,7 +180,7 @@ class MainActivity : ComponentActivity() {
                                     playbackViewModel = playbackViewModel,
                                     onBackClick = {
                                         scope.launch { sheetState.hide() }.invokeOnCompletion {
-                                            if (!sheetState.isVisible) showNowPlaying = false
+                                            if (!sheetState.isVisible) showNowPlaying.value = false
                                         }
                                     }
                                 )

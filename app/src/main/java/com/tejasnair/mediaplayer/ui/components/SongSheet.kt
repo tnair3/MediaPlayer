@@ -21,12 +21,15 @@ import androidx.compose.ui.unit.dp
 // 3. Compose Runtime
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 // 4. Material3 & Window
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Dialog
 
 // 5. External Libraries
@@ -45,7 +48,8 @@ fun SongSheet(
     playbackViewModel: PlaybackViewModel,
     libraryViewModel: LibraryViewModel,
     onDelete: (Song) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    showNowPlaying: MutableState<Boolean>
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
@@ -144,27 +148,42 @@ fun SongSheet(
                         }
                     }
 
-                    // Play
+                    // Play Button
                     Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape)
-                            .clip(CircleShape),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(72.dp)
                     ) {
-                        IconButton(
-                            onClick = {
-                                playbackViewModel.playSong(song, playlist)
-                                onDismiss()
-                            },
-                            modifier = Modifier.size(56.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(68.dp)
+                                .background(
+                                    Color.White.copy(alpha = 0.15f),
+                                    CircleShape
+                                )
+                                .blur(8.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(Color.White, CircleShape)
+                                .clip(CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                painterResource(R.drawable.song_play),
-                                contentDescription = "Play",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(26.dp)
-                            )
+                            IconButton(
+                                onClick = {
+                                    playbackViewModel.playSong(song, playlist)
+                                    onDismiss()
+                                    showNowPlaying.value = true
+                                          },
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.song_play),
+                                    contentDescription = "Play/Pause",
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
                         }
                     }
 
