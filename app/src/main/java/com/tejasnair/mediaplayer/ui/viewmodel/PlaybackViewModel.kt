@@ -8,6 +8,7 @@ import androidx.core.net.toUri
 
 // 2. Compose Runtime
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,7 +45,6 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     private val browser: MediaBrowser?
         get() = if (browserFuture?.isDone == true) browserFuture?.get() else null
 
-    // ✅ SINGLE SOURCE OF TRUTH (IDs only)
     var currentSongId by mutableStateOf<String?>(null)
         private set
 
@@ -56,6 +56,9 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     var duration by mutableLongStateOf(0L)
 
     var repeatMode by mutableIntStateOf(Player.REPEAT_MODE_OFF)
+        private set
+
+    var isShuffleOn by mutableStateOf(false)
         private set
 
     private var timerJob: Job? = null
@@ -218,6 +221,16 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
         val item = list.removeAt(fromIndex)
         list.add(toIndex, item)
         currentQueue = list
+    }
+
+    private fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+        isShuffleOn = shuffleModeEnabled
+    }
+
+    fun toggleShuffle() {
+        val currentMode = browser?.shuffleModeEnabled ?: false
+        browser?.shuffleModeEnabled = !currentMode
+        isShuffleOn = !currentMode
     }
 
     private fun startProgressUpdater() {

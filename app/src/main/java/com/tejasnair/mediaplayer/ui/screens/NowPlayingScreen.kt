@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -36,6 +35,7 @@ import androidx.compose.runtime.*
 
 // 4. Material3
 import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 
 // 5. Media3
 import androidx.media3.common.Player
@@ -386,15 +386,26 @@ fun NowPlayingScreen(
                                 }
                             }
                         }
-                        IconButton(onClick = { isFullScreen = !isFullScreen }) {
-                            Icon(
-                                painter = painterResource(
-                                    if (isFullScreen) R.drawable.chevron_down
-                                    else R.drawable.chevron_up
-                                ),
-                                contentDescription = "Toggle",
-                                tint = Color.White.copy(alpha = 0.7f)
-                            )
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = {  }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.song_shuffle),
+                                    contentDescription = "Shuffle",
+                                    tint = Color.White.copy(alpha = 0.4f)
+                                )
+                            }
+
+                            IconButton(onClick = { isFullScreen = !isFullScreen }) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (isFullScreen) R.drawable.chevron_down
+                                        else R.drawable.chevron_up
+                                    ),
+                                    contentDescription = "Toggle",
+                                    tint = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
                         }
                     }
                 }

@@ -1,55 +1,34 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-// 1. Compose UI, Layout & Graphics
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-
-// 2. Compose Runtime
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-
-// 3. Material3
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-
-// 4. Navigation
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-
-// 5. Kotlin Standard Library
-import kotlin.collections.emptyList
-
-// 6. Local Project Imports
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.ui.components.DisplayList
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.SongSheet
-import com.tejasnair.mediaplayer.ui.components.StandardUIBar
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import kotlin.collections.emptyList
 
 @Composable
 fun FavouritesScreen(
@@ -78,13 +57,74 @@ fun FavouritesScreen(
                     .fillMaxSize()
                     .padding(bottom = 56.dp)
             ) {
+                // Decorative header card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                    MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                                )
+                            )
+                        )
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        IconButton(
+                            onClick = { navController.navigateUp() }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.nav_back_arrow),
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
 
-                // Top Bar
-                StandardUIBar(
-                    navController = navController,
-                    title = "Favourites"
-                )
+                        Column {
+                            Text(
+                                text = "Liked Songs",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = if (songs.isEmpty()) "No songs yet"
+                                else "${songs.size} song${if (songs.size == 1) "" else "s"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
 
+                        // Large decorative heart
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.song_favourite_true),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Gradient divider
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -100,42 +140,9 @@ fun FavouritesScreen(
                         )
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Section header with count
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Your liked songs",
-                        style = MaterialTheme.typography.titleSmall, // smaller
-                        color = MaterialTheme.colorScheme.onSurfaceVariant // softer
-                    )
-
-                    if (songs.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                    CircleShape
-                                )
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "${songs.size}",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+                Spacer(modifier = Modifier.height(4.dp))
 
                 if (songs.isEmpty()) {
-
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -146,9 +153,7 @@ fun FavouritesScreen(
                             secondaryText = "Tap the heart icon on any song"
                         )
                     }
-
                 } else {
-
                     DisplayList(
                         items = songs,
                         title = { it.title },
@@ -161,19 +166,11 @@ fun FavouritesScreen(
                 }
             }
 
-            // Play/Shuffle
+            // Floating play/shuffle buttons with backdrop
             if (songs.isNotEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.6f)
-                                )
-                            )
-                        )
                         .padding(end = 16.dp),
                     contentAlignment = Alignment.CenterEnd
                 ) {
@@ -181,91 +178,101 @@ fun FavouritesScreen(
                         visible = songs.isNotEmpty(),
                         enter = fadeIn() + scaleIn(initialScale = 0.9f)
                     ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-
-                            // PLAY (Primary)
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(76.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(76.dp)
-                                        .background(
-                                            Color.White.copy(alpha = 0.15f),
-                                            CircleShape
-                                        )
-                                        .blur(8.dp)
+                        // Subtle frosted backdrop behind the buttons
+                        Box(
+                            modifier = Modifier
+                                .width(80.dp)
+                                .clip(RoundedCornerShape(40.dp))
+                                .background(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
                                 )
-
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // Play button
                                 Box(
-                                    modifier = Modifier
-                                        .size(64.dp)
-                                        .background(Color.White, CircleShape)
-                                        .clip(CircleShape),
-                                    contentAlignment = Alignment.Center
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(76.dp)
                                 ) {
-                                    IconButton(
-                                        onClick = {
-                                            playbackViewModel.playSong(songs.first(), songs)
-                                            showNowPlaying.value = true
-                                        },
-                                        modifier = Modifier.fillMaxSize()
+                                    Box(
+                                        modifier = Modifier
+                                            .size(72.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                                CircleShape
+                                            )
+                                            .blur(8.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(58.dp)
+                                            .shadow(8.dp, CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                            .clip(CircleShape),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.song_play),
-                                            contentDescription = "Play",
-                                            tint = Color.Black,
-                                            modifier = Modifier.size(28.dp)
-                                        )
+                                        IconButton(
+                                            onClick = {
+                                                playbackViewModel.playSong(songs.first(), songs)
+                                                showNowPlaying.value = true
+                                            },
+                                            modifier = Modifier.fillMaxSize()
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.song_play),
+                                                contentDescription = "Play",
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(26.dp)
+                                            )
+                                        }
                                     }
                                 }
-                            }
 
-                            // SHUFFLE (Secondary / greyed)
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(60.dp)
-                            ) {
+                                // Shuffle button
                                 Box(
-                                    modifier = Modifier
-                                        .size(60.dp)
-                                        .clip(CircleShape) // clip BEFORE blur
-                                        .background(
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                                            CircleShape
-                                        )
-                                        .blur(6.dp)
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .shadow(6.dp, CircleShape) // optional subtle lift
-                                        .background(
-                                            MaterialTheme.colorScheme.surfaceVariant,
-                                            CircleShape
-                                        )
-                                        .clip(CircleShape),
-                                    contentAlignment = Alignment.Center
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(56.dp)
                                 ) {
-                                    IconButton(
-                                        onClick = {
-                                            val shuffled = songs.shuffled()
-                                            playbackViewModel.playSong(shuffled.first(), shuffled)
-                                            showNowPlaying.value = true
-                                        },
-                                        modifier = Modifier.fillMaxSize()
+                                    Box(
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
+                                                CircleShape
+                                            )
+                                            .blur(6.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .shadow(4.dp, CircleShape)
+                                            .background(
+                                                MaterialTheme.colorScheme.secondaryContainer,
+                                                CircleShape
+                                            )
+                                            .clip(CircleShape),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.song_shuffle),
-                                            contentDescription = "Shuffle",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                        IconButton(
+                                            onClick = {
+                                                val shuffled = songs.shuffled()
+                                                playbackViewModel.playSong(shuffled.first(), shuffled)
+                                                showNowPlaying.value = true
+                                            },
+                                            modifier = Modifier.fillMaxSize()
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.song_shuffle),
+                                                contentDescription = "Shuffle",
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }

@@ -12,20 +12,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalDensity
 
 // 2. Compose Runtime
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 
 // 3. Material3 (including Experimental APIs)
 import androidx.compose.material3.*
-import androidx.compose.material3.ExperimentalMaterial3Api
 
 // 4. External Libraries
 import coil.compose.AsyncImage
@@ -35,7 +37,16 @@ import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+import kotlinx.coroutines.launch
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.remember
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MiniPlayer(
     song: Song,
@@ -48,51 +59,19 @@ fun MiniPlayer(
     val currentPosition = playbackViewModel.currentPosition
     val duration = playbackViewModel.duration
 
-    val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
+    val offsetX = remember { androidx.compose.animation.core.Animatable(0f) }
+    val dismissThreshold = 300f
+    var isDismissing by remember { mutableStateOf(false) }
 
-    val threshold = with(density) { 160.dp.toPx() }
-
-    val dismissState = rememberSwipeToDismissBoxState(
-        initialValue = SwipeToDismissBoxValue.Settled,
-        positionalThreshold = { threshold },
-        confirmValueChange = { targetValue ->
-            targetValue == SwipeToDismissBoxValue.StartToEnd
-        }
-    )
-
-    LaunchedEffect(song) {
-        dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+    val alpha = (1f - (offsetX.value / (dismissThreshold * 1.5f))).coerceIn(0f, 1f)
+    val backgroundAlpha = when {
+        isDismissing -> (1f - (offsetX.value - dismissThreshold) / 700f).coerceIn(0f, 1f)
+        offsetX.value > 0f -> 1f
+        else -> 0f
     }
 
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.StartToEnd) {
-            onDismiss()
-        }
-    }
-
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromEndToStart = false,
-        gesturesEnabled = true,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(20.dp)
-                    ),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Icon(
-                    modifier = Modifier.padding(start = 12.dp),
-                    painter = painterResource(R.drawable.close),
-                    contentDescription = "Dismiss",
-                    tint = Color.White.copy(alpha = 0.7f)
-                )
-            }
-        },
+    Box(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .navigationBarsPadding()
@@ -101,7 +80,81 @@ fun MiniPlayer(
             modifier = Modifier
                 .width(280.dp)
                 .height(88.dp)
+                .graphicsLayer { this.alpha = backgroundAlpha }
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF490505),
+                            Color(0xFF2F0604),
+                            Color(0xFF150101).copy(alpha = 0.6f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                ),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Icon(
+                modifier = Modifier.padding(start = 12.dp),
+                painter = painterResource(R.drawable.close),
+                contentDescription = "Dismiss",
+                tint = Color.White.copy(
+                    alpha = (offsetX.value / dismissThreshold).coerceIn(0f, 1f)
+                )
+            )
+        }
+
+        // The player card
+        Box(
+            modifier = Modifier
+                .offset { androidx.compose.ui.unit.IntOffset(offsetX.value.toInt(), 0) }
+                .graphicsLayer { this.alpha = alpha }
+                .width(280.dp)
+                .height(88.dp)
                 .clip(RoundedCornerShape(20.dp))
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            scope.launch {
+                                if (offsetX.value > dismissThreshold) {
+                                    // Animate off-screen then dismiss
+                                    isDismissing = true
+                                    offsetX.animateTo(
+                                        targetValue = 1000f,
+                                        animationSpec = tween(200)
+                                    )
+                                    onDismiss()
+                                } else {
+                                    // Snap back
+                                    isDismissing = false
+                                    offsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    )
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            scope.launch {
+                                offsetX.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMedium
+                                    )
+                                )
+                            }
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            // Only allow dragging right, not left
+                            val newOffset = (offsetX.value + dragAmount).coerceAtLeast(0f)
+                            scope.launch { offsetX.snapTo(newOffset) }
+                        }
+                    )
+                }
                 .clickable(onClick = onClick)
         ) {
             // Blurred art background
@@ -128,7 +181,6 @@ fun MiniPlayer(
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Crisp art thumbnail
                 AsyncImage(
                     model = song.songArtUri,
                     contentDescription = null,
@@ -189,7 +241,7 @@ fun MiniPlayer(
                             Icon(
                                 painter = painterResource(
                                     if (isPlaying) R.drawable.song_pause
-                                    else if (duration in 1..currentPosition) R.drawable.song_restart
+                                    else if (currentPosition >= duration && duration > 0L) R.drawable.song_restart
                                     else R.drawable.song_play
                                 ),
                                 contentDescription = "Play/Pause",
@@ -201,7 +253,7 @@ fun MiniPlayer(
                 }
             }
 
-            // Thin progress bar at the bottom
+            // Progress bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -212,10 +264,7 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxWidth(
-                        if (duration > 0L) (currentPosition.toFloat() / duration.toFloat()).coerceIn(
-                            0f,
-                            1f
-                        )
+                        if (duration > 0L) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
                         else 0f
                     )
                     .height(3.dp)

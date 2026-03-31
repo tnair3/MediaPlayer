@@ -53,6 +53,15 @@ class MusicRepository(
     }
 
     suspend fun clearLibrary() {
+        val allSongs = musicDao.getAllSongsOnce()
+
+        allSongs.forEach { song ->
+            val file = File(song.filePath)
+            if (file.exists()) {
+                file.delete()
+            }
+        }
+
         musicDao.clearLibrary()
     }
 

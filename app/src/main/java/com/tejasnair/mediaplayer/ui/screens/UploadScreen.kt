@@ -131,7 +131,7 @@ fun UploadScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Processing Library...",
+                            text = "Processing Uploads...",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
