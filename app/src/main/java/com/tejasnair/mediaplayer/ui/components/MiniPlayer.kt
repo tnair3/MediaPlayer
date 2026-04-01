@@ -241,7 +241,7 @@ fun MiniPlayer(
                             Icon(
                                 painter = painterResource(
                                     if (isPlaying) R.drawable.song_pause
-                                    else if (currentPosition >= duration && duration > 0L) R.drawable.song_restart
+                                    else if (duration in 1..currentPosition) R.drawable.song_restart
                                     else R.drawable.song_play
                                 ),
                                 contentDescription = "Play/Pause",

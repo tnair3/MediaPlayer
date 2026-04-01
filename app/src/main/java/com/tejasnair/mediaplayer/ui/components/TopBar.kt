@@ -1,33 +1,24 @@
 package com.tejasnair.mediaplayer.ui.components
 
-// 1. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-// 2. Compose Runtime
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
-// 3. Material3
 import androidx.compose.material3.*
 import androidx.compose.material3.Icon
-
-// 4. Navigation
 import androidx.navigation.NavController
-
-// 5. Local Project Imports
 import com.tejasnair.mediaplayer.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,73 +31,59 @@ fun TopNavigation(
     onUploadClick: () -> Unit,
     onSettingsClick: () -> Unit
 ) {
-    Column {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 8.dp, vertical = 8.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        // Left icons
+        Row(
+            modifier = Modifier.align(Alignment.CenterStart),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-
-            Row(
-                modifier = Modifier.align(Alignment.CenterStart),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                IconButton(onClick = onVinylClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.nav_vinyl),
-                        contentDescription = "Upload",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(onClick = onFavouriteClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.navdisp_favourite),
-                        contentDescription = "Upload",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(onClick = onRecordedClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.nav_recorded),
-                        contentDescription = "Upload",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.align(Alignment.Center)
-            )
-
-            Row(
-                modifier = Modifier.align(Alignment.CenterEnd),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
-                IconButton(onClick = onUploadClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.nav_upload),
-                        contentDescription = "Upload",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        painter = painterResource(R.drawable.nav_settings),
-                        contentDescription = "Upload",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            TopNavIcon(iconRes = R.drawable.nav_vinyl, onClick = onVinylClick)
+            TopNavIcon(iconRes = R.drawable.navdisp_favourite, onClick = onFavouriteClick)
+            TopNavIcon(iconRes = R.drawable.nav_recorded, onClick = onRecordedClick)
         }
+
+        // Title
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.align(Alignment.Center)
+        )
+
+        // Right icons
+        Row(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            TopNavIcon(iconRes = R.drawable.nav_upload, onClick = onUploadClick)
+            TopNavIcon(iconRes = R.drawable.nav_settings, onClick = onSettingsClick)
+        }
+    }
+}
+
+@Composable
+private fun TopNavIcon(iconRes: Int, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 
@@ -123,24 +100,15 @@ fun FilterRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         options.forEachIndexed { index, label ->
-
             val isSelected = index == selectedIndex
-
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outline,
-                        shape = RoundedCornerShape(10.dp)
-                    )
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
-                        if (isSelected)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            Color.Transparent
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     )
                     .clickable { onOptionSelected(index) }
                     .padding(vertical = 10.dp)
@@ -148,10 +116,9 @@ fun FilterRow(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected)
-                        MaterialTheme.colorScheme.onPrimary
-                    else
-                        MaterialTheme.colorScheme.onSurface
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -172,40 +139,51 @@ fun StandardUIBar(
         )
     }
 
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-
-        IconButton(
-            onClick = { navController.navigateUp() },
-            modifier = Modifier.align(Alignment.CenterStart)
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                .clickable { navController.navigateUp() },
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 painter = painterResource(R.drawable.nav_back_arrow),
                 contentDescription = "Back",
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
             )
         }
 
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center)
         )
 
-        if(title == "Recordings" || title == "Vinyls") {
-            IconButton(
-                onClick = { showHelp = true },
-                modifier = Modifier.align(Alignment.CenterEnd)
+        if (title == "Recordings" || title == "Vinyls") {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                    .clickable { showHelp = true },
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(R.drawable.help),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.primary
+                    contentDescription = "Help",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

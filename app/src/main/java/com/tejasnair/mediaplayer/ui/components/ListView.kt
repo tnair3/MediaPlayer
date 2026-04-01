@@ -1,6 +1,6 @@
 package com.tejasnair.mediaplayer.ui.components
 
-// 1. Compose UI, Layout & Graphics
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,22 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-
-// 2. Compose Runtime
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-
-// 3. Material3
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-
-// 4. External Libraries
 import coil.compose.AsyncImage
-
-// 5. Local Project Imports
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
 
@@ -37,26 +29,39 @@ fun EmptyLibrary(
     secondaryText: String
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            modifier = Modifier.size(64.dp),
-            painter = painterResource(imageId),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            contentDescription = "Empty Library",
-        )
+        // Icon in a soft tinted box
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                modifier = Modifier.size(40.dp),
+                painter = painterResource(imageId),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                contentDescription = null,
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
             text = primaryText
         )
 
+        Spacer(modifier = Modifier.height(4.dp))
+
         Text(
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             text = secondaryText
         )
@@ -79,60 +84,74 @@ fun <T> DisplayList(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
                     .clickable { onClick(item) }
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
+                // Outer card-like row container
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    if (trackNumber(item) != -1) {
+                        Box(
+                            modifier = Modifier
+                                .width(32.dp)
+                                .padding(end = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = trackNumber(item).toString(),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
-                if(trackNumber(item) != -1) {
-                    Box(
-                        modifier = Modifier
-                            .width(32.dp)
-                            .padding(end = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = trackNumber(item).toString(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onBackground
+                    if (artModel(item) != -1) {
+                        AsyncImage(
+                            model = artModel(item),
+                            contentDescription = "Album Art",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
                         )
                     }
-                }
 
-                if(artModel(item) != -1) {
-                    AsyncImage(
-                        model = artModel(item),
-                        contentDescription = "Album Art",
-                        modifier = Modifier
-                            .padding(top = 4.dp, bottom = 4.dp)
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(6.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                }
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = title(item),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = subtitle(item),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title(item),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = subtitle(item),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (isFavourite != null && isFavourite(item)) {
-                    Icon(
-                        painter = painterResource(R.drawable.song_favourite_true),
-                        contentDescription = "Favourite Song",
-                        tint = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .size(18.dp)
-                    )
+                    if (isFavourite != null && isFavourite(item)) {
+                        Icon(
+                            painter = painterResource(R.drawable.song_favourite_true),
+                            contentDescription = "Favourite",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .size(16.dp)
+                        )
+                    }
                 }
             }
         }
@@ -150,40 +169,50 @@ fun SongRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if(showTrackNumbers) {
-            Text(
-                text = song.trackNumber.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.width(36.dp)
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = song.artists,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        if (isFavourite) {
-            Icon(
-                painter = painterResource(R.drawable.song_favourite_true),
-                contentDescription = "Favourite Song",
-                tint = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier
-                    .padding(start = 8.dp)
-                    .size(18.dp)
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (showTrackNumbers) {
+                Text(
+                    text = song.trackNumber.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(36.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.artists,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (isFavourite) {
+                Icon(
+                    painter = painterResource(R.drawable.song_favourite_true),
+                    contentDescription = "Favourite",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(16.dp)
+                )
+            }
         }
     }
 }
