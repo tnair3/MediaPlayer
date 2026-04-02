@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
@@ -51,7 +53,6 @@ fun AlbumScreen(
 ) {
     val albumSongs by libraryViewModel.getSongsByAlbum(albumName, albumArtist).collectAsState(initial = emptyList())
     val groupedSongs = albumSongs.groupBy { it.discNumber }
-
     val favouriteSongs by libraryViewModel.favouriteSongs.collectAsState(initial = emptyList())
 
     val firstSong = albumSongs.firstOrNull()
@@ -59,17 +60,28 @@ fun AlbumScreen(
     val selectedSong = albumSongs.find { it.songId == selectedSongId }
     val albumYear = firstSong?.year
 
-    // Dropdown state
+    // Dropdown
     var showOptionsMenu by remember { mutableStateOf(false) }
 
     // Dialog states
     var showDeleteAlbumDialog by remember { mutableStateOf(false) }
-    var showEditAlbumDialog by remember { mutableStateOf(false) }
+    var showDeleteSongsDialog by remember { mutableStateOf(false) }
     var showConfirmEditDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDetailsDialog by remember { mutableStateOf(false) }
+
+    // Edit details fields
+    var editAlbumName by remember { mutableStateOf(albumName) }
+    var editAlbumArtist by remember { mutableStateOf(albumArtist) }
+    var editAlbumYear by remember { mutableStateOf(albumYear ?: "") }
 
     val songsSelectedForDeletion = remember { mutableStateSetOf<String>() }
 
-    // --- Dialogs ---
+    LaunchedEffect(albumSongs) {
+        if (albumSongs.isEmpty()) navController.navigateUp()
+    }
+
+    // Dialogs
+
     if (showDeleteAlbumDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteAlbumDialog = false },
@@ -91,17 +103,16 @@ fun AlbumScreen(
         )
     }
 
-    if (showEditAlbumDialog) {
+    if (showDeleteSongsDialog) {
         AlertDialog(
             modifier = Modifier.padding(vertical = 28.dp),
             onDismissRequest = {
-                showEditAlbumDialog = false
+                showDeleteSongsDialog = false
                 songsSelectedForDeletion.clear()
             },
             title = { Text("Select Songs to Delete") },
             text = {
                 Column {
-                    // Select all toggle row
                     val allSelected = songsSelectedForDeletion.size == albumSongs.size
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -123,8 +134,6 @@ fun AlbumScreen(
                         )
                     }
                     HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
-
-                    // Scrollable song list
                     LazyColumn {
                         items(albumSongs) { song ->
                             Row(
@@ -171,7 +180,7 @@ fun AlbumScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    showEditAlbumDialog = false
+                    showDeleteSongsDialog = false
                     songsSelectedForDeletion.clear()
                 }) {
                     Text("Cancel")
@@ -192,7 +201,7 @@ fun AlbumScreen(
                         .forEach { libraryViewModel.deleteSong(it) }
                     songsSelectedForDeletion.clear()
                     showConfirmEditDeleteDialog = false
-                    showEditAlbumDialog = false
+                    showDeleteSongsDialog = false
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
@@ -205,13 +214,74 @@ fun AlbumScreen(
         )
     }
 
-    // --- Main UI ---
+    if (showEditDetailsDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDetailsDialog = false },
+            title = { Text("Edit Album Details") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = editAlbumName,
+                        onValueChange = { editAlbumName = it },
+                        label = { Text("Album Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    OutlinedTextField(
+                        value = editAlbumArtist,
+                        onValueChange = { editAlbumArtist = it },
+                        label = { Text("Album Artist") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    OutlinedTextField(
+                        value = editAlbumYear,
+                        onValueChange = { editAlbumYear = it },
+                        label = { Text("Year") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = editAlbumName.isNotBlank() && editAlbumArtist.isNotBlank(),
+                    onClick = {
+                        libraryViewModel.updateAlbumDetails(
+                            oldAlbum = albumName,
+                            oldArtist = albumArtist,
+                            newAlbum = editAlbumName.trim(),
+                            newArtist = editAlbumArtist.trim(),
+                            newYear = editAlbumYear.trim().takeIf { it.isNotBlank() }
+                        )
+                        showEditDetailsDialog = false
+                        navController.navigateUp()
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    editAlbumName = albumName
+                    editAlbumArtist = albumArtist
+                    editAlbumYear = albumYear ?: ""
+                    showEditDetailsDialog = false
+                }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Main UI
 
     ThemedScreen {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -224,17 +294,14 @@ fun AlbumScreen(
                         .fillMaxWidth()
                         .height(360.dp)
                 ) {
-                    // Full bleed art
                     AsyncImage(
                         model = firstSong?.backCoverUri ?: firstSong?.songArtUri,
                         contentDescription = "Album Art",
-                        modifier = Modifier
-                            .fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         alignment = Alignment.TopCenter
                     )
 
-                    // Gradient fade to background at bottom
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -249,41 +316,44 @@ fun AlbumScreen(
                             )
                     )
 
-                    // Text pinned to bottom of the box
-                    Column(
+                    Box(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(horizontal = 20.dp, vertical = 16.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.55f),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
                             .fillMaxWidth()
                     ) {
-                        Text(
-                            text = albumName,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = albumArtist,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-
-                        var tertiaryText = albumSongs.size.toString() + " songs"
-                        if (albumYear != null) tertiaryText = "$tertiaryText • $albumYear"
-
-                        if (albumSongs.isNotEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .wrapContentSize()
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.55f),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
                             Text(
-                                text = tertiaryText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.6f)
+                                text = albumName,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
+                            Text(
+                                text = albumArtist,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                            var tertiaryText = albumSongs.size.toString() + " songs"
+                            if (albumYear != null) tertiaryText = "$tertiaryText • $albumYear"
+                            if (albumSongs.isNotEmpty()) {
+                                Text(
+                                    text = tertiaryText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                            }
                         }
                     }
                 }
@@ -305,11 +375,7 @@ fun AlbumScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Icon(
-                            painterResource(R.drawable.song_play),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Icon(painterResource(R.drawable.song_play), null, Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Play")
                     }
@@ -324,11 +390,7 @@ fun AlbumScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Icon(
-                            painterResource(R.drawable.song_shuffle),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Icon(painterResource(R.drawable.song_shuffle), null, Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Shuffle")
                     }
@@ -356,15 +418,14 @@ fun AlbumScreen(
                 }
             }
 
-            // Back/Options Buttons
+            // Back / Options buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 IconButton(
                     onClick = { navController.navigateUp() },
-                    modifier = Modifier
-                        .safeDrawingPadding()
+                    modifier = Modifier.safeDrawingPadding()
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.nav_back_arrow),
@@ -373,14 +434,10 @@ fun AlbumScreen(
                     )
                 }
 
-                Box(
-                    modifier = Modifier.safeDrawingPadding()
-                ) {
+                Box(modifier = Modifier.safeDrawingPadding()) {
                     IconButton(
                         onClick = { showOptionsMenu = true },
-                        modifier = Modifier
-                            .safeDrawingPadding()
-                            .padding(bottom = 4.dp)
+                        modifier = Modifier.padding(bottom = 4.dp)
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.options),
@@ -395,8 +452,7 @@ fun AlbumScreen(
                         offset = DpOffset(x = (-10).dp, y = (-10).dp),
                         shape = RoundedCornerShape(20.dp),
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
-                        modifier = Modifier
-                            .width(220.dp)
+                        modifier = Modifier.width(220.dp)
                     ) {
                         // Header
                         Column(
@@ -456,9 +512,7 @@ fun AlbumScreen(
                         StyledDropdownItem(
                             icon = R.drawable.song_options_playlist,
                             label = "Save to Playlist",
-                            onClick = {
-                                showOptionsMenu = false
-                            }
+                            onClick = { showOptionsMenu = false }
                         )
 
                         Spacer(Modifier.height(4.dp))
@@ -468,14 +522,25 @@ fun AlbumScreen(
                         )
                         Spacer(Modifier.height(4.dp))
 
-                        // Destructive options
+                        // Edit / Delete options
                         StyledDropdownItem(
                             icon = R.drawable.options_edit,
-                            label = "Edit Album",
+                            label = "Edit Album Details",
+                            onClick = {
+                                showOptionsMenu = false
+                                editAlbumName = albumName
+                                editAlbumArtist = albumArtist
+                                editAlbumYear = albumYear ?: ""
+                                showEditDetailsDialog = true
+                            }
+                        )
+                        StyledDropdownItem(
+                            icon = R.drawable.options_deletesome,
+                            label = "Delete Songs",
                             onClick = {
                                 showOptionsMenu = false
                                 songsSelectedForDeletion.clear()
-                                showEditAlbumDialog = true
+                                showDeleteSongsDialog = true
                             }
                         )
                         StyledDropdownItem(
@@ -490,8 +555,6 @@ fun AlbumScreen(
 
                         Spacer(Modifier.height(4.dp))
                     }
-
-
                 }
             }
         }
@@ -529,10 +592,7 @@ fun StyledDropdownItem(
             Box(
                 modifier = Modifier
                     .size(32.dp)
-                    .background(
-                        tint.copy(alpha = 0.1f),
-                        RoundedCornerShape(8.dp)
-                    ),
+                    .background(tint.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

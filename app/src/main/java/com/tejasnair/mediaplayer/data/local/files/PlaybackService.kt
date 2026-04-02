@@ -8,6 +8,7 @@ import android.os.PowerManager
 // 2. Media3
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -65,5 +66,17 @@ class PlaybackService : MediaSessionService() {
         super.onStartCommand(intent, flags, startId)
 
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val player = mediaSession?.player
+
+        if (player?.playWhenReady == false || player?.playbackState == Player.STATE_IDLE) {
+            stopSelf()
+        } else {
+            player?.pause()
+            stopSelf()
+        }
+        super.onTaskRemoved(rootIntent)
     }
 }

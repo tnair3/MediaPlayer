@@ -146,7 +146,7 @@ fun <T> DisplayList(
                         Icon(
                             painter = painterResource(R.drawable.song_favourite_true),
                             contentDescription = "Favourite",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier
                                 .padding(start = 8.dp)
                                 .size(16.dp)
@@ -207,7 +207,7 @@ fun SongRow(
                 Icon(
                     painter = painterResource(R.drawable.song_favourite_true),
                     contentDescription = "Favourite",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .padding(start = 8.dp)
                         .size(16.dp)

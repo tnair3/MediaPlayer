@@ -72,6 +72,10 @@ class MusicRepository(
         }
     }
 
+    suspend fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) {
+        musicDao.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)
+    }
+
     suspend fun findExistingSong(title: String, artist: String, album: String, albumArtist: String): Song? =
         musicDao.findExistingSong(title, artist, album, albumArtist)
 

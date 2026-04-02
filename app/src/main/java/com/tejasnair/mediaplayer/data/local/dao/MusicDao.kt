@@ -60,6 +60,9 @@ interface MusicDao {
     @Query("SELECT * FROM songs")
     suspend fun getAllSongsOnce(): List<Song>
 
+    @Query("UPDATE songs SET album = :newAlbum, albumArtists = :newArtist, year = :newYear WHERE album = :oldAlbum AND albumArtists = :oldArtist")
+    suspend fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?)
+
     @Update
     suspend fun updateSong(song: Song)
 

@@ -258,9 +258,7 @@ fun NowPlayingScreen(
                                     else R.drawable.song_favourite
                                 ),
                                 contentDescription = "Favourite",
-                                tint = if (currentSong?.isFavourite == true)
-                                    MaterialTheme.colorScheme.primary
-                                else Color.White.copy(alpha = 0.8f),
+                                tint = Color.White,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
@@ -331,7 +329,9 @@ fun NowPlayingScreen(
                             Icon(
                                 painterResource(iconRes),
                                 contentDescription = "Repeat",
-                                tint = Color.White.copy(alpha = 0.8f),
+                                tint =
+                                    if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(alpha = 0.8f)
+                                    else Color.White,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
@@ -388,11 +388,14 @@ fun NowPlayingScreen(
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = {  }) {
+                            IconButton(onClick = { playbackViewModel.toggleShuffle() }) {
                                 Icon(
                                     painter = painterResource(R.drawable.song_shuffle),
                                     contentDescription = "Shuffle",
-                                    tint = Color.White.copy(alpha = 0.4f)
+                                    tint =
+                                        if (playbackViewModel.isShuffleOn) Color.White
+                                        else Color.White.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 

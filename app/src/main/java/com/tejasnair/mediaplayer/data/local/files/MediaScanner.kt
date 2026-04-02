@@ -1,74 +1,44 @@
 package com.tejasnair.mediaplayer.data.local.files
 
-// 1. Android & Core
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.core.graphics.scale
-
-// 2. Java & IO
-import java.io.File
-import java.io.FileOutputStream
-
-// 3. Coroutines
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-
-// 4. External Libraries (JAudioTagger)
 import com.shabinder.jaudiotagger.audio.AudioFileIO
 import com.shabinder.jaudiotagger.tag.FieldKey
 import com.shabinder.jaudiotagger.tag.images.Artwork
-
-// 5. Local Project Imports
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 class MediaScanner(
     private val context: Context,
     private val repository: MusicRepository
 ) {
-    private fun showToast(message: String) {
-        Handler(Looper.getMainLooper()).post {
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-        }
-    }
+
+    // Public Entry Point
 
     suspend fun scanAudioFile(fileUri: Uri) {
         withContext(Dispatchers.IO) {
             try {
-                val musicFolder = File(context.filesDir, "music_library")
-                if (!musicFolder.exists()) musicFolder.mkdirs()
-
-                val originalName = fileUri.lastPathSegment ?: ""
-                val extension = originalName.substringAfterLast('.', "mp3")
-                val fileName = "track_${System.currentTimeMillis()}.$extension"
-                val destinationFile = File(musicFolder, fileName)
-
-                context.contentResolver.openInputStream(fileUri)?.use { inputStream ->
-                    FileOutputStream(destinationFile).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                        outputStream.flush()
-                        outputStream.fd.sync()
+                val destinationFile = copyToInternalStorage(fileUri)
+                    ?: run {
+                        showToast("Failed to import file — could not read input")
+                        return@withContext
                     }
-                } ?: run {
-                    showToast("Failed to read file — could not open input stream")
-                    return@withContext
-                }
-
-                Log.d("MediaScanner", "File exists: ${destinationFile.exists()}")
-                Log.d("MediaScanner", "File size: ${destinationFile.length()} bytes")
-                Log.d("MediaScanner", "File readable: ${destinationFile.canRead()}")
 
                 val song = try {
                     extractMetadata(destinationFile)
                 } catch (e: Exception) {
-                    Log.e("MediaScanner", "Metadata extraction failed for ${destinationFile.name}", e)
+                    Log.w("MediaScanner", "Metadata extraction failed for ${destinationFile.name}", e)
                     destinationFile.delete()
-                    showToast("Failed to import $originalName — could not read metadata")
+                    showToast("Failed to import file — could not read metadata")
                     return@withContext
                 }
 
@@ -78,105 +48,148 @@ class MediaScanner(
                     song.album,
                     song.albumArtists
                 ) != null
+
                 if (isDuplicate) {
-                    Log.d("MediaScanner", "Duplicate detected, skipping: ${song.title} by ${song.artists}")
+                    Log.d("MediaScanner", "Duplicate: ${song.title}")
                     destinationFile.delete()
                     showToast("${song.title} is already in your library")
                     return@withContext
                 }
 
                 repository.insert(song)
-                Log.d("MediaScanner", "Saved to internal storage: ${destinationFile.absolutePath}")
+                Log.d("MediaScanner", "Imported: ${song.title} — ${destinationFile.absolutePath}")
 
             } catch (e: Exception) {
-                Log.e("MediaScanner", "Failed to import file: $fileUri", e)
-                showToast("Failed to import file — an unexpected error occurred")
+                Log.e("MediaScanner", "Unexpected import error: $fileUri", e)
+                showToast("Failed to import file")
             }
         }
     }
 
+    // File Copying
+
+    private fun copyToInternalStorage(fileUri: Uri): File? {
+        val extension = resolveExtension(fileUri)
+        val musicFolder = File(context.filesDir, "music_library").apply { mkdirs() }
+        val destination = File(musicFolder, "track_${java.util.UUID.randomUUID()}.$extension")
+
+        return try {
+            context.contentResolver.openInputStream(fileUri)?.use { input ->
+                FileOutputStream(destination).use { output ->
+                    input.copyTo(output)
+                    output.flush()
+                    output.fd.sync()
+                }
+            } ?: return null
+            destination
+        } catch (e: Exception) {
+            Log.e("MediaScanner", "Failed to copy file", e)
+            destination.delete()
+            null
+        }
+    }
+
+    private fun resolveExtension(fileUri: Uri): String {
+        val mime = context.contentResolver.getType(fileUri) ?: return "mp3"
+        return when {
+            mime.contains("flac") -> "flac"
+            mime.contains("wav")  -> "wav"
+            mime.contains("m4a") || mime.contains("mp4") -> "m4a"
+            else -> "mp3"
+        }
+    }
+
+    // Metadata Extraction
+
     private fun extractMetadata(file: File): Song {
         return try {
-            val audioFile = AudioFileIO.read(file)
-            val tag = audioFile.tag
-            val header = audioFile.audioHeader
-
-            fun getField(key: FieldKey): String? = tag?.getFirst(key)?.takeIf { it.isNotBlank() }
-
-            val title = getField(FieldKey.TITLE) ?: file.nameWithoutExtension
-            val artist = getField(FieldKey.ARTIST) ?: "Unknown Artist"
-            val album = getField(FieldKey.ALBUM) ?: "Unknown Album"
-
-            // Artwork extraction
-            val artwork: Artwork? = tag?.firstArtwork
-            val savedArtPath = if (artwork != null) {
-                try {
-                    val artBytes = artwork.binaryData
-                    val scaled = downscaleArtIfNeeded(artBytes, maxDimension = 600)
-                    saveArtToInternalStorage(scaled, file.nameWithoutExtension)
-                } catch (e: Exception) {
-                    Log.w("MediaScanner", "Art extraction failed: ${e.message}")
-                    null
-                }
-            } else null
-
-            Song(
-                filePath     = file.absolutePath,
-                title        = title,
-                artists      = artist,
-                album        = album,
-                albumArtists = getField(FieldKey.ALBUM_ARTIST) ?: artist,
-                duration     = (header.trackLength * 1000).toLong(), // Convert seconds to ms
-                discNumber   = getField(FieldKey.DISC_NO)?.toIntOrNull() ?: 1,
-                trackNumber  = getField(FieldKey.TRACK)?.toIntOrNull() ?: 1,
-                year         = getField(FieldKey.YEAR),
-                songArtUri   = savedArtPath
-            )
+            extractWithJAudioTagger(file)
         } catch (e: Exception) {
-            Log.e("MediaScanner", "JAudioTagger failed for ${file.name}, falling back", e)
+            Log.w("MediaScanner", "JAudioTagger failed for ${file.name}, falling back", e)
             extractWithRetriever(file)
         }
     }
 
+    private fun extractWithJAudioTagger(file: File): Song {
+        val audioFile = AudioFileIO.read(file)
+        val tag = audioFile.tag
+        val header = audioFile.audioHeader
+
+        fun field(key: FieldKey) = tag?.getFirst(key)?.takeIf { it.isNotBlank() }
+
+        val title       = field(FieldKey.TITLE)       ?: file.nameWithoutExtension
+        val artist      = field(FieldKey.ARTIST)      ?: "Unknown Artist"
+        val album       = field(FieldKey.ALBUM)       ?: "Unknown Album"
+        val albumArtist = field(FieldKey.ALBUM_ARTIST) ?: artist
+        val year        = field(FieldKey.YEAR)
+        val track       = field(FieldKey.TRACK)?.parseTrackComponent()  ?: 1
+        val disc        = field(FieldKey.DISC_NO)?.parseTrackComponent() ?: 1
+        val duration    = (header.trackLength * 1000).toLong()
+
+        val savedArtPath = extractArt(tag?.firstArtwork, file.nameWithoutExtension)
+
+        Log.d("MediaScanner", "JAudioTagger — title=$title artist=$artist album=$album")
+
+        return Song(
+            filePath     = file.absolutePath,
+            title        = title,
+            artists      = artist,
+            album        = album,
+            albumArtists = albumArtist,
+            duration     = duration,
+            discNumber   = disc,
+            trackNumber  = track,
+            year         = year,
+            songArtUri   = savedArtPath
+        )
+    }
+
     private fun extractWithRetriever(file: File): Song {
-        val retriever = MediaMetadataRetriever()
+        val retriever = android.media.MediaMetadataRetriever()
         try {
             retriever.setDataSource(file.absolutePath)
-            val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+
+            fun meta(key: Int) = retriever.extractMetadata(key)
+
+            val artist = meta(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)
                 ?: "Unknown Artist"
-            val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+            val album  = meta(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM)
                 ?: "Unknown Album"
 
-            val savedArtPath = try {
-                val artBytes = retriever.embeddedPicture
-                if (artBytes != null) {
-                    val scaled = downscaleArtIfNeeded(artBytes, maxDimension = 600)
-                    saveArtToInternalStorage(scaled, file.nameWithoutExtension)
-                } else null
-            } catch (e: Exception) {
-                Log.w("MediaScanner", "Fallback art extraction failed for ${file.name}: ${e.message}")
-                null
-            }
+            val artPath = try {
+                retriever.embeddedPicture?.let {
+                    saveArtToInternalStorage(downscaleArtIfNeeded(it, 600), file.nameWithoutExtension)
+                }
+            } catch (e: Exception) { null }
 
             return Song(
                 filePath     = file.absolutePath,
-                title        = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                title        = meta(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)
                     ?: file.nameWithoutExtension,
                 artists      = artist,
                 album        = album,
-                albumArtists = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
-                    ?: artist,
-                duration     = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    ?.toLongOrNull() ?: 0L,
-                discNumber   = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)
-                    ?.parseTrackComponent() ?: 1,
-                trackNumber  = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
-                    ?.parseTrackComponent() ?: 1,
-                year         = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR),
-                songArtUri   = savedArtPath
+                albumArtists = meta(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST) ?: artist,
+                duration     = meta(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L,
+                discNumber   = meta(android.media.MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)?.parseTrackComponent() ?: 1,
+                trackNumber  = meta(android.media.MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)?.parseTrackComponent() ?: 1,
+                year         = meta(android.media.MediaMetadataRetriever.METADATA_KEY_YEAR),
+                songArtUri   = artPath
             )
         } finally {
             retriever.release()
+        }
+    }
+
+    // Art Handling
+
+    private fun extractArt(artwork: Artwork?, uniqueKey: String): String? {
+        artwork ?: return null
+        return try {
+            val scaled = downscaleArtIfNeeded(artwork.binaryData, maxDimension = 600)
+            saveArtToInternalStorage(scaled, uniqueKey)
+        } catch (e: Exception) {
+            Log.w("MediaScanner", "Art extraction failed: ${e.message}")
+            null
         }
     }
 
@@ -190,7 +203,6 @@ class MediaScanner(
                 1.0f
             )
             if (scale >= 1.0f) return bytes
-
             val scaled = bitmap.scale(
                 (bitmap.width * scale).toInt(),
                 (bitmap.height * scale).toInt()
@@ -201,28 +213,26 @@ class MediaScanner(
             scaled.recycle()
             out.toByteArray()
         } catch (e: Exception) {
-            Log.w("MediaScanner", "Art downscale failed, using original", e)
+            Log.w("MediaScanner", "Art downscale failed", e)
             bytes
         }
     }
 
-    private fun String.parseTrackComponent(): Int? =
-        this.trim()
-            .substringBefore('/')
-            .trimStart('0')
-            .toIntOrNull()
-
     private fun saveArtToInternalStorage(bytes: ByteArray, uniqueKey: String): String {
-        val directory = File(context.filesDir, "album_art")
-        if (!directory.exists()) directory.mkdirs()
-
-        val fileName = "art_${uniqueKey.hashCode()}.jpg"
-        val file = File(directory, fileName)
-
-        FileOutputStream(file).use { fos ->
-            fos.write(bytes)
-        }
-
+        val dir = File(context.filesDir, "album_art").apply { mkdirs() }
+        val file = File(dir, "art_${uniqueKey.hashCode()}.jpg")
+        FileOutputStream(file).use { it.write(bytes) }
         return file.absolutePath
+    }
+
+    // Helpers
+
+    private fun String.parseTrackComponent(): Int? =
+        trim().substringBefore('/').trimStart('0').toIntOrNull()
+
+    private fun showToast(message: String) {
+        Handler(Looper.getMainLooper()).post {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
     }
 }

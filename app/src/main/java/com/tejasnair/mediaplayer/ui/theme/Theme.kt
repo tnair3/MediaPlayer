@@ -15,9 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 
-// 4. Local Project Imports
-import com.tejasnair.mediaplayer.ui.components.ThemeMode
-
 val DarkColorScheme = darkColorScheme(
     primary = Color.White,
     onPrimary = Color.Black,
@@ -33,21 +30,6 @@ val DarkColorScheme = darkColorScheme(
     onError = Color.Black
 )
 
-val LightColorScheme = lightColorScheme(
-    primary = Color.Black,
-    onPrimary = Color.White,
-    secondary = Color(0xFF03DAC6),
-    onSecondary = Color.Black,
-    background = Color(0xFFFFFFFF),
-    onBackground = Color(0xFF1C1C1C),
-    surface = Color(0xFFF5F5F5),
-    onSurface = Color(0xFF1C1C1C),
-    onSurfaceVariant = Color(0xFF9A9A9A),
-    outline = Color.Black,
-    error = Color(0xFFB00020),
-    onError = Color.White
-)
-
 @Composable
 fun ThemedScreen(content: @Composable () -> Unit) {
     Box(
@@ -61,16 +43,10 @@ fun ThemedScreen(content: @Composable () -> Unit) {
 
 @Composable
 fun MediaPlayerTheme(
-    themeSetting: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    val darkTheme = when (themeSetting) {
-        ThemeMode.LIGHT -> false
-        ThemeMode.DARK -> true
-        ThemeMode.SYSTEM -> isSystemInDarkTheme()
-    }
 
-    val colorScheme = if(darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = DarkColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

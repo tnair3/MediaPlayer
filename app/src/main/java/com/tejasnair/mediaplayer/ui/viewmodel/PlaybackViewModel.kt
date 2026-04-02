@@ -3,6 +3,7 @@ package com.tejasnair.mediaplayer.ui.viewmodel
 // 1. Android & Core
 import android.app.Application
 import android.content.ComponentName
+import androidx.compose.animation.core.RepeatMode
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 
@@ -48,6 +49,7 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     var currentSongId by mutableStateOf<String?>(null)
         private set
 
+    private var originalQueue: List<String> = emptyList()
     var currentQueue by mutableStateOf<List<String>>(emptyList())
         private set
 
@@ -112,6 +114,10 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun playSong(selectedSong: Song, playlist: List<Song>? = null) {
+        isShuffleOn = false
+        originalQueue = emptyList()
+        browser?.shuffleModeEnabled = false
+
         currentSongId = selectedSong.songId
 
         browser?.let { player ->
@@ -123,11 +129,11 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
                 player.setMediaItem(selectedSong.toMediaItem())
             }
 
+            repeatMode = Player.REPEAT_MODE_OFF
+            player.repeatMode = repeatMode
             player.prepare()
             player.play()
         }
-
-        repeatMode = Player.REPEAT_MODE_OFF
     }
 
     fun togglePlayPause() {
@@ -228,9 +234,53 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun toggleShuffle() {
-        val currentMode = browser?.shuffleModeEnabled ?: false
-        browser?.shuffleModeEnabled = !currentMode
-        isShuffleOn = !currentMode
+        val player = browser ?: return
+        val newMode = !isShuffleOn
+
+        player.shuffleModeEnabled = newMode
+        isShuffleOn = newMode
+
+        if (newMode) {
+            originalQueue = currentQueue.toList()
+
+            val currentIndex = player.currentMediaItemIndex
+            val currentId = currentQueue.getOrNull(currentIndex)
+
+            val rest = currentQueue.toMutableList()
+            if (currentId != null) rest.remove(currentId)
+            rest.shuffle()
+            val newQueue = if (currentId != null) listOf(currentId) + rest else rest
+
+            reorderQueueWithMoves(newQueue, player)
+            currentQueue = newQueue
+
+        } else {
+            if (originalQueue.isNotEmpty()) {
+                val currentId = currentQueue.getOrNull(player.currentMediaItemIndex)
+                val restoreIndex = if (currentId != null)
+                    originalQueue.indexOf(currentId).coerceAtLeast(0) else 0
+
+                reorderQueueWithMoves(originalQueue, player)
+                currentQueue = originalQueue.toList()
+                originalQueue = emptyList()
+            }
+        }
+    }
+
+    private fun reorderQueueWithMoves(targetOrder: List<String>, player: MediaBrowser) {
+        val currentOrder = (0 until player.mediaItemCount)
+            .map { player.getMediaItemAt(it).mediaId }
+            .toMutableList()
+
+        for (targetIndex in targetOrder.indices) {
+            val id = targetOrder[targetIndex]
+            val currentIndex = currentOrder.indexOf(id)
+            if (currentIndex == targetIndex) continue
+
+            player.moveMediaItem(currentIndex, targetIndex)
+            currentOrder.removeAt(currentIndex)
+            currentOrder.add(targetIndex, id)
+        }
     }
 
     private fun startProgressUpdater() {

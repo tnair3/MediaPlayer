@@ -71,14 +71,13 @@ class MainActivity : ComponentActivity() {
                 } ?: flowOf(null)
             }.collectAsState(initial = null)
 
-            val uiState by settingsViewModel.themeSetting.collectAsStateWithLifecycle()
 
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             val scope = rememberCoroutineScope()
 
             var showNowPlaying = remember { mutableStateOf(false) }
 
-            MediaPlayerTheme(themeSetting = uiState) {
+            MediaPlayerTheme() {
                 val navController = rememberNavController()
 
                 Box(
@@ -111,7 +110,7 @@ class MainActivity : ComponentActivity() {
                         popExitTransition = { slideOutOfContainer(towards = AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(300)) }
                     ) {
                         composable("library") { LibraryScreen(libraryViewModel, playbackViewModel, navController, showNowPlaying) }
-                        composable("settings") { SettingsScreen(settingsViewModel, libraryViewModel, navController, uiState) { settingsViewModel.updateTheme(it) } }
+                        composable("settings") { SettingsScreen(settingsViewModel, libraryViewModel, navController) }
                         composable("upload") { UploadScreen(navController, mediaScanner) }
                         composable("favourites") { FavouritesScreen(libraryViewModel, playbackViewModel, navController, showNowPlaying) }
                         composable("vinyls") { VinylsScreen(navController) }

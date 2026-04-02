@@ -243,7 +243,7 @@ fun LibraryScreen(
                 }
 
                 HorizontalDivider(
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
                     thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                 )

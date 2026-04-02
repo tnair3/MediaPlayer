@@ -1,50 +1,84 @@
 package com.tejasnair.mediaplayer.ui.components
 
-// 1. Compose UI, Layout & Graphics
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-
-// 2. Compose Runtime
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
-
-// 3. Material3 (including Experimental APIs)
-import androidx.compose.material3.*
-
-// 4. External Libraries
+import androidx.palette.graphics.Palette
+import coil.ImageLoader
 import coil.compose.AsyncImage
-
-// 5. Local Project Imports
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
-
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.Spring
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.runtime.remember
+import kotlinx.coroutines.withContext
+import android.graphics.drawable.BitmapDrawable
+import android.util.Log
+
+@Composable
+fun rememberDominantColor(artUri: String?): Color {
+    val context = LocalContext.current
+    val defaultColor = Color(0xFF1D1D1D)
+    var dominantColor by remember(artUri) { mutableStateOf(defaultColor) }
+
+    LaunchedEffect(artUri) {
+        Log.d("DominantColor", "Loading art from: $artUri")
+        if (artUri == null) {
+            dominantColor = defaultColor
+            return@LaunchedEffect
+        }
+        withContext(Dispatchers.IO) {
+            try {
+                val loader = ImageLoader(context)
+                val request = ImageRequest.Builder(context)
+                    .data(artUri)
+                    .bitmapConfig(android.graphics.Bitmap.Config.ARGB_8888)
+                    .build()
+                val result = loader.execute(request)
+                val bitmap = ((result as? SuccessResult)?.drawable as? BitmapDrawable)?.bitmap
+                    ?: return@withContext
+                val palette = Palette.from(bitmap).generate()
+                val swatch = palette.darkVibrantSwatch
+                    ?: palette.vibrantSwatch
+                    ?: palette.darkMutedSwatch
+                    ?: palette.dominantSwatch
+                Log.d("DominantColor", "Swatch: $swatch")
+                swatch?.let { dominantColor = Color(it.rgb) }
+            } catch (e: Exception) {
+                Log.e("DominantColor", "Failed", e)
+                dominantColor = defaultColor
+            }
+        }
+    }
+
+    return dominantColor
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -60,7 +94,7 @@ fun MiniPlayer(
     val duration = playbackViewModel.duration
 
     val scope = rememberCoroutineScope()
-    val offsetX = remember { androidx.compose.animation.core.Animatable(0f) }
+    val offsetX = remember { Animatable(0f) }
     val dismissThreshold = 300f
     var isDismissing by remember { mutableStateOf(false) }
 
@@ -71,11 +105,19 @@ fun MiniPlayer(
         else -> 0f
     }
 
+    val dominantColor = rememberDominantColor(song.songArtUri)
+    val darkVariant = dominantColor.copy(
+        red = (dominantColor.red * 0.5f).coerceIn(0f, 1f),
+        green = (dominantColor.green * 0.5f).coerceIn(0f, 1f),
+        blue = (dominantColor.blue * 0.5f).coerceIn(0f, 1f)
+    )
+
     Box(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .navigationBarsPadding()
     ) {
+        // Dismiss background
         Box(
             modifier = Modifier
                 .width(280.dp)
@@ -84,9 +126,9 @@ fun MiniPlayer(
                 .background(
                     brush = Brush.horizontalGradient(
                         colors = listOf(
-                            Color(0xFF490505),
-                            Color(0xFF2F0604),
-                            Color(0xFF150101).copy(alpha = 0.6f)
+                            dominantColor.copy(alpha = 0.9f),
+                            darkVariant.copy(alpha = 0.8f),
+                            Color.Black.copy(alpha = 0.6f)
                         )
                     ),
                     shape = RoundedCornerShape(20.dp)
@@ -103,7 +145,7 @@ fun MiniPlayer(
             )
         }
 
-        // The player card
+        // Player card
         Box(
             modifier = Modifier
                 .offset { androidx.compose.ui.unit.IntOffset(offsetX.value.toInt(), 0) }
@@ -116,7 +158,6 @@ fun MiniPlayer(
                         onDragEnd = {
                             scope.launch {
                                 if (offsetX.value > dismissThreshold) {
-                                    // Animate off-screen then dismiss
                                     isDismissing = true
                                     offsetX.animateTo(
                                         targetValue = 1000f,
@@ -124,7 +165,6 @@ fun MiniPlayer(
                                     )
                                     onDismiss()
                                 } else {
-                                    // Snap back
                                     isDismissing = false
                                     offsetX.animateTo(
                                         targetValue = 0f,
@@ -149,7 +189,6 @@ fun MiniPlayer(
                         },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            // Only allow dragging right, not left
                             val newOffset = (offsetX.value + dragAmount).coerceAtLeast(0f)
                             scope.launch { offsetX.snapTo(newOffset) }
                         }

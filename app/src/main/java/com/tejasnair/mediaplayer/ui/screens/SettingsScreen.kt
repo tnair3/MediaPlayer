@@ -28,7 +28,6 @@ import androidx.navigation.NavController
 // 6. Local Project Imports
 import com.tejasnair.mediaplayer.BuildConfig
 import com.tejasnair.mediaplayer.ui.components.StandardUIBar
-import com.tejasnair.mediaplayer.ui.components.ThemeMode
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.SettingsViewModel
@@ -38,8 +37,6 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     libraryViewModel: LibraryViewModel,
     navController: NavController,
-    currentSetting: ThemeMode,
-    onSettingChanged: (ThemeMode) -> Unit,
 ) {
 
     val context = LocalContext.current
@@ -129,32 +126,6 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
-
-                ThemeMode.entries.forEach { setting ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .selectable(
-                                selected = (setting == currentSetting),
-                                onClick = { onSettingChanged(setting) }
-                            )
-                            .padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = (setting == currentSetting),
-                            onClick = null
-                        )
-                        Text(
-                            text = setting.name.lowercase().replaceFirstChar{
-                                if (it.isLowerCase()) it.titlecase() else it.toString() },
-                            modifier = Modifier.padding(start = 16.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                }
 
                 // Library Subsection
                 Text(

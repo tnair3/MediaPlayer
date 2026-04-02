@@ -86,6 +86,12 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
             repository.deleteSong(song)
         }
     }
+
+    fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)
+        }
+    }
 }
 
 class LibraryViewModelFactory(private val repository: MusicRepository) : ViewModelProvider.Factory {
