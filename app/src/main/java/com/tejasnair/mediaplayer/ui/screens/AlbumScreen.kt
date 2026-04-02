@@ -259,7 +259,6 @@ fun AlbumScreen(
                             newYear = editAlbumYear.trim().takeIf { it.isNotBlank() }
                         )
                         showEditDetailsDialog = false
-                        navController.navigateUp()
                     }
                 ) {
                     Text("Save")
