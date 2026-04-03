@@ -174,6 +174,10 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
         currentPosition = newPosition
     }
     fun addToQueue(songToAdd: Song) {
+        if(currentQueue.isEmpty()) {
+            repeatMode = Player.REPEAT_MODE_OFF
+            browser?.repeatMode = repeatMode
+        }
         currentQueue = currentQueue + songToAdd.songId
         browser?.addMediaItem(songToAdd.toMediaItem())
     }
@@ -195,6 +199,11 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun addToNext(song: Song) {
+        if(currentQueue.isEmpty()) {
+            repeatMode = Player.REPEAT_MODE_OFF
+            browser?.repeatMode = repeatMode
+        }
+
         browser?.let { player ->
             val nextIndex = player.currentMediaItemIndex + 1
             player.addMediaItem(nextIndex, song.toMediaItem())
