@@ -23,12 +23,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectTapGestures
 
 // 2. Compose Animation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
 
 // 3. Compose Runtime
 import androidx.compose.runtime.*
@@ -81,6 +84,9 @@ fun NowPlayingScreen(
 
     var isFullScreen by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    var showSkipLeft by remember { mutableStateOf(false) }
+    var showSkipRight by remember { mutableStateOf(false) }
 
     val queueListState = rememberLazyListState()
 
@@ -168,18 +174,44 @@ fun NowPlayingScreen(
                         },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Crisp art card floating over blurred background
-                    Box(contentAlignment = Alignment.Center) {
-                        // Soft glow behind the art
+                    LaunchedEffect(showSkipLeft) {
+                        if (showSkipLeft) {
+                            delay(600)
+                            showSkipLeft = false
+                        }
+                    }
+
+                    LaunchedEffect(showSkipRight) {
+                        if (showSkipRight) {
+                            delay(600)
+                            showSkipRight = false
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onDoubleTap = { offset ->
+                                        if (offset.x < size.width / 2) {
+                                            playbackViewModel.incrementSong(-5000)
+                                            showSkipLeft = true
+                                        } else {
+                                            playbackViewModel.incrementSong(5000)
+                                            showSkipRight = true
+                                        }
+                                    }
+                                )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(280.dp)
-                                .background(
-                                    Color.White.copy(alpha = 0.08f),
-                                    RoundedCornerShape(28.dp)
-                                )
+                                .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(28.dp))
                                 .blur(20.dp)
                         )
+
                         AsyncImage(
                             modifier = Modifier
                                 .size(260.dp)
@@ -188,6 +220,23 @@ fun NowPlayingScreen(
                             contentDescription = "Album Art",
                             contentScale = ContentScale.Crop
                         )
+
+                        Box(
+                            modifier = Modifier
+                                .size(260.dp)
+                                .clip(RoundedCornerShape(24.dp))
+                        ) {
+                            SkipIndicator(
+                                visible = showSkipLeft,
+                                text = "-5s",
+                                alignment = Alignment.CenterStart
+                            )
+                            SkipIndicator(
+                                visible = showSkipRight,
+                                text = "+5s",
+                                alignment = Alignment.CenterEnd
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -572,6 +621,37 @@ fun NowPlayingScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SkipIndicator(
+    visible: Boolean,
+    text: String,
+    alignment: Alignment,
+) {
+    Box(
+        modifier = Modifier
+            .size(260.dp)
+            .clip(RoundedCornerShape(24.dp)),
+        contentAlignment = alignment
+    ) {
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(tween(80)) + scaleIn(tween(80), initialScale = 0.7f),
+            exit = fadeOut(tween(300))
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
         }
     }
 }

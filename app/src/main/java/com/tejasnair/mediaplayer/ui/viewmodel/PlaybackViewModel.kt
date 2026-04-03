@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 // 7. Local Project Imports
 import com.tejasnair.mediaplayer.data.local.files.PlaybackService
 import com.tejasnair.mediaplayer.data.model.Song
+import kotlinx.coroutines.newFixedThreadPoolContext
 
 class PlaybackViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -167,6 +168,11 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
         repeatMode = nextMode
     }
 
+    fun incrementSong(incrementVal: Int) {
+        val newPosition = currentPosition + incrementVal
+        browser?.seekTo(newPosition)
+        currentPosition = newPosition
+    }
     fun addToQueue(songToAdd: Song) {
         currentQueue = currentQueue + songToAdd.songId
         browser?.addMediaItem(songToAdd.toMediaItem())
