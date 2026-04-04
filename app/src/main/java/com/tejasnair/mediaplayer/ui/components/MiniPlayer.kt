@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -20,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -95,14 +95,12 @@ fun MiniPlayer(
                 .width(playerWidth)
                 .height(playerHeight)
                 .clip(RoundedCornerShape(20.dp))
-                // Vertical gestures — swipe up opens NowPlaying, swipe down dismisses
                 .pointerInput(Unit) {
                     detectVerticalDragGestures(
                         onDragEnd = {
                             scope.launch {
                                 when {
                                     offsetY.value > dismissDownThreshold -> {
-                                        // Animate down then dismiss
                                         isDismissing = true
                                         offsetY.animateTo(
                                             targetValue = 600f,
@@ -111,7 +109,6 @@ fun MiniPlayer(
                                         onDismiss()
                                     }
                                     offsetY.value < openUpThreshold -> {
-                                        // Animate back then open NowPlaying
                                         offsetY.animateTo(
                                             targetValue = 0f,
                                             animationSpec = spring(
@@ -122,7 +119,6 @@ fun MiniPlayer(
                                         onClick()
                                     }
                                     else -> {
-                                        // Snap back
                                         offsetY.animateTo(
                                             targetValue = 0f,
                                             animationSpec = spring(
@@ -155,7 +151,6 @@ fun MiniPlayer(
                         }
                     )
                 }
-                // Horizontal gestures — swipe right shrinks, swipe left expands
                 .pointerInput(isMinimal) {
                     detectHorizontalDragGestures(
                         onDragEnd = { },
@@ -169,6 +164,7 @@ fun MiniPlayer(
                         }
                     )
                 }
+                .clickable { onClick() }
         ) {
             // Blurred art background
             AsyncImage(
@@ -187,23 +183,8 @@ fun MiniPlayer(
                     .background(Color.Black.copy(alpha = 0.55f))
             )
 
-            // Tap anywhere to open NowPlaying — sits under content so play button still works
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { onClick() }
-                        )
-                    }
-            )
-
             // Full mode content
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { this.alpha = contentAlpha }
-            ) {
+            if(!isMinimal) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
