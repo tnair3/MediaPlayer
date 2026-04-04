@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -32,6 +34,7 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.text.selection.SelectionContainer
 
 // 3. Compose Runtime
 import androidx.compose.runtime.*
@@ -53,6 +56,7 @@ import kotlinx.coroutines.launch
 // 8. Local Project Imports
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.SongRow
+import com.tejasnair.mediaplayer.ui.components.formatBytes
 import com.tejasnair.mediaplayer.ui.components.formatTime
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
@@ -89,6 +93,12 @@ fun NowPlayingScreen(
     var showSkipRight by remember { mutableStateOf(false) }
 
     val queueListState = rememberLazyListState()
+
+    val detailsScrollState = rememberScrollState()
+    val fileSizeString = remember(currentSong?.filePath) {
+        val size = getFileSize(currentSong?.filePath)
+        if (size > 0) formatBytes(size) else "Unknown"
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -157,7 +167,10 @@ fun NowPlayingScreen(
                                     if (offsetX > threshold) playbackViewModel.skipToPreviousForce()
                                     else if (offsetX < -threshold) playbackViewModel.skipToNext()
                                     scope.launch {
-                                        animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
+                                        animate(
+                                            initialValue = offsetX,
+                                            targetValue = 0f
+                                        ) { value, _ ->
                                             offsetX = value
                                         }
                                     }
@@ -170,7 +183,8 @@ fun NowPlayingScreen(
                         }
                         .graphicsLayer {
                             translationX = offsetX
-                            alpha = 1f - (kotlin.math.abs(offsetX) / (threshold * 2f)).coerceAtMost(0.5f)
+                            alpha =
+                                1f - (kotlin.math.abs(offsetX) / (threshold * 2f)).coerceAtMost(0.5f)
                         },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -208,7 +222,10 @@ fun NowPlayingScreen(
                         Box(
                             modifier = Modifier
                                 .size(280.dp)
-                                .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(28.dp))
+                                .background(
+                                    Color.White.copy(alpha = 0.08f),
+                                    RoundedCornerShape(28.dp)
+                                )
                                 .blur(20.dp)
                         )
 
@@ -462,7 +479,6 @@ fun NowPlayingScreen(
                     }
                 }
 
-                // A subtle separator line
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -472,7 +488,7 @@ fun NowPlayingScreen(
 
                 Crossfade(targetState = selectedTab, label = "TabTransition") { tab ->
                     when (tab) {
-                        0 -> {
+                        0 -> { // Queue
                             LazyColumn(
                                 state = queueListState,
                                 modifier = Modifier.fillMaxSize()
@@ -580,7 +596,7 @@ fun NowPlayingScreen(
                                 }
                             }
                         }
-                        1 -> {
+                        1 -> { // Lyrics
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -592,30 +608,51 @@ fun NowPlayingScreen(
                                 )
                             }
                         }
-                        2 -> {
-                            Column(modifier = Modifier.padding(24.dp)) {
-                                Text(
-                                    text = "Title: ${currentSong?.title ?: "Unknown"}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Artist: ${currentSong?.artists ?: "Unknown"}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Technical Details",
-                                    color = Color.White.copy(alpha = 0.5f),
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Path: ${currentSong?.filePath}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.5f)
-                                )
+                        2 -> { // Details
+                            SelectionContainer {
+                                Column(modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(detailsScrollState)
+                                    .padding(24.dp)
+                                ) {
+                                    Text(
+                                        text = "Title: ${currentSong?.title ?: "Unknown"}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "Album: ${currentSong?.album ?: "Unknown"} • ${currentSong?.albumArtists ?: "Unknown"}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "Artist: ${currentSong?.artists ?: "Unknown"}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    MetadataRow(label = "Year", value = currentSong?.year ?: "N/A")
+                                    MetadataRow(label = "Duration", value = formatTime(currentSong?.duration ?: 0L))
+                                    MetadataRow(label = "Disc", value = "${currentSong?.discNumber ?: 1}")
+                                    MetadataRow(label = "Track", value = "${currentSong?.trackNumber ?: 1}")
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Technical Details",
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Size: $fileSizeString",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.5f)
+                                    )
+                                    Text(
+                                        text = "Path: ${currentSong?.filePath}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.5f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -654,4 +691,18 @@ fun SkipIndicator(
             )
         }
     }
+}
+
+fun getFileSize(path: String?): Long {
+    if (path == null) return 0L
+    val file = java.io.File(path)
+    return if (file.exists()) file.length() else 0L
+}
+@Composable
+fun MetadataRow(label: String, value: String) {
+    Text(
+        text = "$label: $value",
+        style = MaterialTheme.typography.bodySmall,
+        color = Color.White.copy(alpha = 0.6f)
+    )
 }

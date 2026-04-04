@@ -1,5 +1,6 @@
 package com.tejasnair.mediaplayer.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.scaleIn
@@ -25,11 +26,14 @@ import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.ui.components.DisplayList
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.SongSheet
+import com.tejasnair.mediaplayer.ui.components.formatTime
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 import kotlin.collections.emptyList
+import kotlin.time.Duration.Companion.milliseconds
 
+@SuppressLint("DefaultLocale")
 @Composable
 fun FavouritesScreen(
     libraryViewModel: LibraryViewModel,
@@ -88,7 +92,11 @@ fun FavouritesScreen(
                             )
                         }
 
-                        Column {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp)
+                        ) {
                             Text(
                                 text = "Liked Songs",
                                 style = MaterialTheme.typography.titleLarge,
@@ -104,22 +112,39 @@ fun FavouritesScreen(
                             )
                         }
 
-                        // Large decorative heart
-                        Box(
-                            modifier = Modifier
-                                .size(52.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Icon(
-                                painter = painterResource(R.drawable.song_favourite_true),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
-                            )
+                            // Large decorative heart
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.song_favourite_true),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+
+                            // Options button
+                            IconButton(
+                                modifier = Modifier,
+                                onClick = {  }
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.options),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }
@@ -160,6 +185,7 @@ fun FavouritesScreen(
                         subtitle = { it.artists },
                         artModel = { it.songArtUri },
                         trackNumber = { -1 },
+                        trackDuration = { formatTime(it.duration) },
                         onClick = { selectedSong = it },
                         isFavourite = { false }
                     )

@@ -1,49 +1,51 @@
 package com.tejasnair.mediaplayer
 
-// 1. Android & Core
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-
-// 2. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-
-// 3. Compose Animation & Core
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.runtime.*
-
-// 4. Material3
-import androidx.compose.material3.*
-
-// 5. Navigation
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.ModalBottomSheet
 import androidx.navigation.NavType
-import androidx.navigation.compose.*
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
-
-// 6. Lifecycle & State Management
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
-
-// 7. Local Project Imports
 import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
 import com.tejasnair.mediaplayer.data.local.files.MediaScanner
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 import com.tejasnair.mediaplayer.ui.components.MiniPlayer
-import com.tejasnair.mediaplayer.ui.screens.*
 import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
+import com.tejasnair.mediaplayer.ui.screens.*
 import com.tejasnair.mediaplayer.ui.viewmodel.*
 
 class MainActivity : ComponentActivity() {
@@ -58,9 +60,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel()
-            val libraryViewModel: LibraryViewModel = viewModel(
-                factory = LibraryViewModelFactory(repository)
-            )
+            val libraryViewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(repository))
             val playbackViewModel: PlaybackViewModel = viewModel()
 
             val currentSongId = playbackViewModel.currentSongId

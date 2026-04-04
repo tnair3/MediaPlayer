@@ -27,40 +27,49 @@ class MediaScanner(
     suspend fun scanAudioFile(fileUri: Uri) {
         withContext(Dispatchers.IO) {
             try {
-                val destinationFile = copyToInternalStorage(fileUri)
+                val tempFile = copyToInternalStorage(fileUri, "temp_${System.currentTimeMillis()}")
                     ?: run {
                         showToast("Failed to import file — could not read input")
                         return@withContext
                     }
 
                 val song = try {
-                    extractMetadata(destinationFile)
+                    extractMetadata(tempFile)
                 } catch (e: Exception) {
-                    Log.w("MediaScanner", "Metadata extraction failed for ${destinationFile.name}", e)
-                    destinationFile.delete()
+                    Log.w("MediaScanner", "Metadata extraction failed", e)
+                    tempFile.delete()
                     showToast("Failed to import file — could not read metadata")
                     return@withContext
                 }
 
+                val extension = tempFile.extension
+                val formattedName = "${song.album} - ${song.title} (${song.artists}) ${song.discNumber}.${song.trackNumber}.$extension"
+                    .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+
+                val finalFile = File(tempFile.parentFile, formattedName)
+
+                val destinationFile = if (tempFile.renameTo(finalFile)) finalFile else tempFile
+
+                val updatedSong = song.copy(filePath = destinationFile.absolutePath)
+
                 val isDuplicate = repository.findExistingSong(
-                    song.title,
-                    song.artists,
-                    song.album,
-                    song.albumArtists
+                    updatedSong.title,
+                    updatedSong.artists,
+                    updatedSong.album,
+                    updatedSong.albumArtists
                 ) != null
 
                 if (isDuplicate) {
-                    Log.d("MediaScanner", "Duplicate: ${song.title}")
                     destinationFile.delete()
-                    showToast("${song.title} is already in your library")
+                    showToast("${updatedSong.title} is already in your library")
                     return@withContext
                 }
 
-                repository.insert(song)
-                Log.d("MediaScanner", "Imported: ${song.title} — ${destinationFile.absolutePath}")
+                repository.insert(updatedSong)
+                Log.d("MediaScanner", "Imported: ${updatedSong.title} — ${destinationFile.absolutePath}")
 
             } catch (e: Exception) {
-                Log.e("MediaScanner", "Unexpected import error: $fileUri", e)
+                Log.e("MediaScanner", "Unexpected import error", e)
                 showToast("Failed to import file")
             }
         }
@@ -68,10 +77,10 @@ class MediaScanner(
 
     // File Copying
 
-    private fun copyToInternalStorage(fileUri: Uri): File? {
+    private fun copyToInternalStorage(fileUri: Uri, fileName: String): File? {
         val extension = resolveExtension(fileUri)
         val musicFolder = File(context.filesDir, "music_library").apply { mkdirs() }
-        val destination = File(musicFolder, "track_${java.util.UUID.randomUUID()}.$extension")
+        val destination = File(musicFolder, "$fileName.$extension")
 
         return try {
             context.contentResolver.openInputStream(fileUri)?.use { input ->

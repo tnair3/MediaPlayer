@@ -75,6 +75,7 @@ fun <T> DisplayList(
     subtitle: (T) -> String,
     artModel: (T) -> Any?,
     trackNumber: (T) -> Int,
+    trackDuration: (T) -> String,
     onClick: (T) -> Unit,
     isFavourite: ((T) -> Boolean)? = null
 ) {
@@ -134,7 +135,9 @@ fun <T> DisplayList(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = subtitle(item),
+                            text =
+                                if(trackDuration(item) != "") "${subtitle(item)} • ${trackDuration(item)}"
+                                else subtitle(item),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -198,7 +201,7 @@ fun SongRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = song.artists,
+                    text = "${song.artists} • ${formatTime(song.duration)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

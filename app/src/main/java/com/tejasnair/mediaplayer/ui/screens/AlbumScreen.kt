@@ -38,6 +38,8 @@ import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.DiscHeader
 import com.tejasnair.mediaplayer.ui.components.SongRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
+import com.tejasnair.mediaplayer.ui.components.StyledDropdownItem
+import com.tejasnair.mediaplayer.ui.components.formatTime
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
@@ -400,6 +402,7 @@ fun AlbumScreen(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                 )
 
+                // Songs
                 LazyColumn {
                     groupedSongs.forEach { (discNumber, discSongs) ->
                         item(key = "disc_header_$discNumber") {
@@ -524,7 +527,7 @@ fun AlbumScreen(
                         // Edit / Delete options
                         StyledDropdownItem(
                             icon = R.drawable.options_edit,
-                            label = "Edit Album Details",
+                            label = "Edit Details",
                             onClick = {
                                 showOptionsMenu = false
                                 editAlbumName = albumName
@@ -570,40 +573,4 @@ fun AlbumScreen(
             )
         }
     }
-}
-
-@Composable
-fun StyledDropdownItem(
-    icon: Int,
-    label: String,
-    tint: Color = MaterialTheme.colorScheme.onSurface,
-    onClick: () -> Unit
-) {
-    DropdownMenuItem(
-        text = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = tint
-            )
-        },
-        leadingIcon = {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(tint.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    tint = tint,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        },
-        onClick = onClick,
-        modifier = Modifier.padding(horizontal = 4.dp),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-    )
 }

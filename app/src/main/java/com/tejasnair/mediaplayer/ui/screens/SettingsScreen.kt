@@ -9,8 +9,6 @@ import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
 // 2. Compose UI, Layout & Graphics
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
@@ -18,6 +16,7 @@ import androidx.compose.ui.unit.dp
 
 // 3. Compose Runtime
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 
 // 4. Material3
 import androidx.compose.material3.*
@@ -28,6 +27,7 @@ import androidx.navigation.NavController
 // 6. Local Project Imports
 import com.tejasnair.mediaplayer.BuildConfig
 import com.tejasnair.mediaplayer.ui.components.StandardUIBar
+import com.tejasnair.mediaplayer.ui.components.formatBytes
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.SettingsViewModel
@@ -138,6 +138,13 @@ fun SettingsScreen(
                 )
 
                 Text(
+                    text = "Songs stored: ${libraryViewModel.allSongs.collectAsState().value.size}",
+                    modifier = Modifier.padding(start = 16.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Text(
                     text = "Storage used: ${formatBytes(librarySize)}",
                     modifier = Modifier.padding(start = 16.dp),
                     style = MaterialTheme.typography.labelMedium,
@@ -212,19 +219,5 @@ fun SettingsScreen(
                 )
             }
         }
-    }
-}
-
-@SuppressLint("DefaultLocale")
-fun formatBytes(bytes: Long): String {
-    val kb = 1024
-    val mb = kb * 1024
-    val gb = mb * 1024
-
-    return when {
-        bytes >= gb -> String.format("%.2f GB", bytes.toFloat() / gb)
-        bytes >= mb -> String.format("%.2f MB", bytes.toFloat() / mb)
-        bytes >= kb -> String.format("%.2f KB", bytes.toFloat() / kb)
-        else -> "$bytes B"
     }
 }
