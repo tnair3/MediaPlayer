@@ -1,30 +1,31 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-// 1. Android & Core
-import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.core.net.toUri
-import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
-
-// 2. Compose UI, Layout & Graphics
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-
-// 3. Compose Runtime
-import androidx.compose.runtime.*
-import androidx.compose.runtime.collectAsState
-
-// 4. Material3
-import androidx.compose.material3.*
-
-// 5. Navigation
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.navigation.NavController
-
-// 6. Local Project Imports
+import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
 import com.tejasnair.mediaplayer.BuildConfig
 import com.tejasnair.mediaplayer.ui.components.StandardUIBar
 import com.tejasnair.mediaplayer.ui.components.formatBytes
@@ -44,10 +45,10 @@ fun SettingsScreen(
         .getPackageInfo(context.packageName, 0)
 
     // State to manage the visibility of the two warning dialogs
-    var showFirstWarning by remember { mutableStateOf(false) }
-    var showFinalWarning by remember { mutableStateOf(false) }
+    var showFirstWarning by remember { mutableStateOf(value = false) }
+    var showFinalWarning by remember { mutableStateOf(value = false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(key1 = Unit) {
         libraryViewModel.loadLibrarySize()
     }
     val librarySize = libraryViewModel.librarySize
@@ -63,7 +64,9 @@ fun SettingsScreen(
                     showFirstWarning = false
                     showFinalWarning = true
                 }) {
-                    Text("Continue", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = "Continue",
+                        color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -84,7 +87,10 @@ fun SettingsScreen(
                     showFinalWarning = false
                     libraryViewModel.clearLibrary()
                 }) {
-                    Text("Clear Everything", color = MaterialTheme.colorScheme.error)
+                    Text(
+                        text = "Clear Everything",
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             },
             dismissButton = {

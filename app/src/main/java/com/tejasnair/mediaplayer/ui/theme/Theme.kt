@@ -1,21 +1,15 @@
 package com.tejasnair.mediaplayer.ui.theme
 
-// 1. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-
-// 2. Compose Runtime
-import androidx.compose.runtime.Composable
-
-// 3. Material3
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 
-val DarkColorScheme = darkColorScheme(
+private val DarkColorScheme = darkColorScheme(
     primary = Color.White,
     onPrimary = Color.Black,
     secondary = Color(0xFF03DAC6),
@@ -31,26 +25,23 @@ val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
+fun MediaPlayerTheme(
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = DarkColorScheme,
+        typography = Typography,
+        content = content
+    )
+}
+
+@Composable
 fun ThemedScreen(content: @Composable () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(color = MaterialTheme.colorScheme.background)
     ) {
         content()
     }
-}
-
-@Composable
-fun MediaPlayerTheme(
-    content: @Composable () -> Unit
-) {
-
-    val colorScheme = DarkColorScheme
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
 }

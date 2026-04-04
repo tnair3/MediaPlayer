@@ -1,33 +1,39 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-// 1. Android & Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-
-// 2. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-
-// 3. Compose Runtime
-import androidx.compose.runtime.*
-
-// 4. Material3
-import androidx.compose.material3.*
-
-// 5. Navigation
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.navigation.NavController
-
-// 6. Coroutines
 import kotlinx.coroutines.launch
-
-// 7. Local Project Imports
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.local.files.MediaScanner
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
@@ -39,7 +45,7 @@ fun UploadScreen(
 ) {
     val scope = rememberCoroutineScope()
 
-    var isProcessing by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(value = false) }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
@@ -48,9 +54,9 @@ fun UploadScreen(
             scope.launch {
                 isProcessing = true
                 uris.forEach { uri ->
-                    mediaScanner.scanAudioFile(uri)
+                    mediaScanner.scanAudioFile(fileUri = uri)
                 }
-                isProcessing = false // End loading
+                isProcessing = false
                 navController.navigateUp()
             }
         }
@@ -78,7 +84,7 @@ fun UploadScreen(
                 ) {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(
-                            painter = painterResource(R.drawable.nav_back_arrow),
+                            painter = painterResource(id = R.drawable.nav_back_arrow),
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -106,8 +112,8 @@ fun UploadScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = { launcher.launch("audio/*") },
-                        shape = RoundedCornerShape(12.dp)
+                        onClick = { launcher.launch(input = "audio/*") },
+                        shape = RoundedCornerShape(size = 12.dp)
                     ) {
                         Text(
                             text = "Select Files",
@@ -122,7 +128,7 @@ fun UploadScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
+                        .background(color = MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -132,9 +138,7 @@ fun UploadScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "Processing Uploads...",

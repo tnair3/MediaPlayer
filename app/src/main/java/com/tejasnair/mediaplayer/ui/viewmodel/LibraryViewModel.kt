@@ -1,22 +1,20 @@
 package com.tejasnair.mediaplayer.ui.viewmodel
 
-// 1. Compose Runtime
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
-
-// 2. Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-
-// 3. Coroutines & Flow
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-
-// 4. Local Project Imports
-import com.tejasnair.mediaplayer.data.model.*
+import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.data.model.AlbumSummary
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
 class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {

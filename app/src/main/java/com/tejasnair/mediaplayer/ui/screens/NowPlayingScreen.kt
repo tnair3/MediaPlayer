@@ -1,18 +1,58 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-// 1. Compose UI, Layout & Graphics
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -25,41 +65,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.gestures.detectTapGestures
-
-// 2. Compose Animation
-import androidx.compose.animation.*
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.text.selection.SelectionContainer
-
-// 3. Compose Runtime
-import androidx.compose.runtime.*
-
-// 4. Material3
-import androidx.compose.material3.*
-import androidx.compose.ui.Alignment
-
-// 5. Media3
 import androidx.media3.common.Player
-
-// 6. External Libraries
 import coil.compose.AsyncImage
-
-// 7. Coroutines
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-
-// 8. Local Project Imports
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.SongRow
 import com.tejasnair.mediaplayer.ui.components.formatBytes
 import com.tejasnair.mediaplayer.ui.components.formatTime
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun NowPlayingScreen(
@@ -68,37 +83,31 @@ fun NowPlayingScreen(
     onBackClick: () -> Unit
 ) {
     val allSongs by libraryViewModel.allSongs.collectAsState()
-
-    val currentSong = allSongs.find {
-        it.songId == playbackViewModel.currentSongId
-    }
-
-    val queue = playbackViewModel.currentQueue.mapNotNull { id ->
-        allSongs.find { it.songId == id }
-    }
+    val currentSong = allSongs.find { it.songId == playbackViewModel.currentSongId }
+    val queue = playbackViewModel.currentQueue.mapNotNull { id -> allSongs.find { it.songId == id } }
 
     val isPlaying = playbackViewModel.isPlaying
     val currentPosition = playbackViewModel.currentPosition
     val duration = playbackViewModel.duration
     val repeatMode = playbackViewModel.repeatMode
 
-    val scope = rememberCoroutineScope()
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    val threshold = 300f
-
-    var isFullScreen by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableIntStateOf(0) }
-
-    var showSkipLeft by remember { mutableStateOf(false) }
-    var showSkipRight by remember { mutableStateOf(false) }
-
-    val queueListState = rememberLazyListState()
-
-    val detailsScrollState = rememberScrollState()
-    val fileSizeString = remember(currentSong?.filePath) {
+    val fileSizeString = remember(key1 = currentSong?.filePath) {
         val size = getFileSize(currentSong?.filePath)
         if (size > 0) formatBytes(size) else "Unknown"
     }
+
+    val scope = rememberCoroutineScope()
+
+    var isFullScreen by remember { mutableStateOf(value = false) }
+    var selectedTab by remember { mutableIntStateOf(value = 0) }
+    var showSkipLeft by remember { mutableStateOf(value = false) }
+    var showSkipRight by remember { mutableStateOf(value = false) }
+
+    var offsetX by remember { mutableFloatStateOf(value = 0f) }
+    val threshold = 300f
+
+    val queueListState = rememberLazyListState()
+    val detailsScrollState = rememberScrollState()
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -108,7 +117,7 @@ fun NowPlayingScreen(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxSize()
-                .blur(24.dp),
+                .blur(radius = 24.dp),
             contentScale = ContentScale.Crop
         )
 
@@ -161,7 +170,7 @@ fun NowPlayingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp, start = 24.dp, end = 24.dp, bottom = 8.dp)
-                        .pointerInput(Unit) {
+                        .pointerInput(key1 = Unit) {
                             detectHorizontalDragGestures(
                                 onDragEnd = {
                                     if (offsetX > threshold) playbackViewModel.skipToPreviousForce()
@@ -184,34 +193,34 @@ fun NowPlayingScreen(
                         .graphicsLayer {
                             translationX = offsetX
                             alpha =
-                                1f - (kotlin.math.abs(offsetX) / (threshold * 2f)).coerceAtMost(0.5f)
+                                1f - (kotlin.math.abs(x = offsetX) / (threshold * 2f)).coerceAtMost(maximumValue = 0.5f)
                         },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    LaunchedEffect(showSkipLeft) {
+                    LaunchedEffect(key1 = showSkipLeft) {
                         if (showSkipLeft) {
-                            delay(600)
+                            delay(timeMillis = 600)
                             showSkipLeft = false
                         }
                     }
 
-                    LaunchedEffect(showSkipRight) {
+                    LaunchedEffect(key1 = showSkipRight) {
                         if (showSkipRight) {
-                            delay(600)
+                            delay(timeMillis = 600)
                             showSkipRight = false
                         }
                     }
 
                     Box(
                         modifier = Modifier
-                            .pointerInput(Unit) {
+                            .pointerInput(key1 = Unit) {
                                 detectTapGestures(
                                     onDoubleTap = { offset ->
                                         if (offset.x < size.width / 2) {
-                                            playbackViewModel.incrementSong(-5000)
+                                            playbackViewModel.incrementSong(incrementVal = -5000)
                                             showSkipLeft = true
                                         } else {
-                                            playbackViewModel.incrementSong(5000)
+                                            playbackViewModel.incrementSong(incrementVal = 5000)
                                             showSkipRight = true
                                         }
                                     }
@@ -223,16 +232,16 @@ fun NowPlayingScreen(
                             modifier = Modifier
                                 .size(280.dp)
                                 .background(
-                                    Color.White.copy(alpha = 0.08f),
-                                    RoundedCornerShape(28.dp)
+                                    color = Color.White.copy(alpha = 0.08f),
+                                    shape = RoundedCornerShape(size = 28.dp)
                                 )
-                                .blur(20.dp)
+                                .blur(radius = 20.dp)
                         )
 
                         AsyncImage(
                             modifier = Modifier
                                 .size(260.dp)
-                                .clip(RoundedCornerShape(24.dp)),
+                                .clip(shape = RoundedCornerShape(size = 24.dp)),
                             model = currentSong?.songArtUri,
                             contentDescription = "Album Art",
                             contentScale = ContentScale.Crop
@@ -241,7 +250,7 @@ fun NowPlayingScreen(
                         Box(
                             modifier = Modifier
                                 .size(260.dp)
-                                .clip(RoundedCornerShape(24.dp))
+                                .clip(shape = RoundedCornerShape(size = 24.dp))
                         ) {
                             SkipIndicator(
                                 visible = showSkipLeft,
@@ -277,8 +286,8 @@ fun NowPlayingScreen(
 
                     Slider(
                         value = currentPosition.toFloat(),
-                        onValueChange = { playbackViewModel.seekTo(it.toLong()) },
-                        valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
+                        onValueChange = { playbackViewModel.seekTo(position = it.toLong()) },
+                        valueRange = 0f..duration.toFloat().coerceAtLeast(minimumValue = 1f),
                         modifier = Modifier.fillMaxWidth(),
                         colors = SliderDefaults.colors(
                             thumbColor = Color.White,
@@ -292,12 +301,12 @@ fun NowPlayingScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = formatTime(currentPosition),
+                            text = formatTime(ms = currentPosition),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.7f)
                         )
                         Text(
-                            text = formatTime(duration),
+                            text = formatTime(ms = duration),
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.7f)
                         )
@@ -315,11 +324,11 @@ fun NowPlayingScreen(
                     ) {
                         IconButton(
                             onClick = {
-                                currentSong?.songId?.let(libraryViewModel::toggleFavourite)
+                                currentSong?.songId?.let(block = libraryViewModel::toggleFavourite)
                             }
                         ) {
                             Icon(
-                                painter = painterResource(
+                                painter = painterResource(id =
                                     if (currentSong?.isFavourite == true) R.drawable.song_favourite_true
                                     else R.drawable.song_favourite
                                 ),
@@ -331,7 +340,7 @@ fun NowPlayingScreen(
 
                         IconButton(onClick = { playbackViewModel.skipToPrevious() }) {
                             Icon(
-                                painterResource(R.drawable.song_previous),
+                                painter = painterResource(id = R.drawable.song_previous),
                                 contentDescription = "Previous",
                                 tint = Color.White,
                                 modifier = Modifier.size(36.dp)
@@ -350,7 +359,7 @@ fun NowPlayingScreen(
                                         Color.White.copy(alpha = 0.15f),
                                         CircleShape
                                     )
-                                    .blur(8.dp)
+                                    .blur(radius = 8.dp)
                             )
                             Box(
                                 modifier = Modifier
@@ -364,7 +373,7 @@ fun NowPlayingScreen(
                                     modifier = Modifier.fillMaxSize()
                                 ) {
                                     Icon(
-                                        painter = painterResource(
+                                        painter = painterResource(id =
                                             if (isPlaying) R.drawable.song_pause
                                             else if (duration in 1..currentPosition) R.drawable.song_restart
                                             else R.drawable.song_play
@@ -379,7 +388,7 @@ fun NowPlayingScreen(
 
                         IconButton(onClick = { playbackViewModel.skipToNext() }) {
                             Icon(
-                                painterResource(R.drawable.song_next),
+                                painter = painterResource(id = R.drawable.song_next),
                                 contentDescription = "Next",
                                 tint = Color.White,
                                 modifier = Modifier.size(36.dp)
@@ -393,7 +402,7 @@ fun NowPlayingScreen(
                                 else -> R.drawable.song_repeat_off
                             }
                             Icon(
-                                painterResource(iconRes),
+                                painter = painterResource(id = iconRes),
                                 contentDescription = "Repeat",
                                 tint =
                                     if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(alpha = 0.8f)
@@ -416,7 +425,7 @@ fun NowPlayingScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .pointerInput(Unit) {
+                        .pointerInput(key1 = Unit) {
                             detectVerticalDragGestures { change, dragAmount ->
                                 change.consume()
                                 if (dragAmount > 20) isFullScreen = false
@@ -444,10 +453,12 @@ fun NowPlayingScreen(
                                 TextButton(onClick = { selectedTab = index }) {
                                     Text(
                                         text = title,
-                                        color = if (selectedTab == index) Color.White
-                                        else Color.White.copy(alpha = 0.4f),
-                                        fontWeight = if (selectedTab == index) FontWeight.Bold
-                                        else FontWeight.Normal
+                                        color =
+                                            if (selectedTab == index) Color.White
+                                            else Color.White.copy(alpha = 0.4f),
+                                        fontWeight =
+                                            if (selectedTab == index) FontWeight.Bold
+                                            else FontWeight.Normal
                                     )
                                 }
                             }
@@ -456,7 +467,7 @@ fun NowPlayingScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { playbackViewModel.toggleShuffle() }) {
                                 Icon(
-                                    painter = painterResource(R.drawable.song_shuffle),
+                                    painter = painterResource(id = R.drawable.song_shuffle),
                                     contentDescription = "Shuffle",
                                     tint =
                                         if (playbackViewModel.isShuffleOn) Color.White
@@ -467,7 +478,7 @@ fun NowPlayingScreen(
 
                             IconButton(onClick = { isFullScreen = !isFullScreen }) {
                                 Icon(
-                                    painter = painterResource(
+                                    painter = painterResource(id =
                                         if (isFullScreen) R.drawable.chevron_down
                                         else R.drawable.chevron_up
                                     ),
@@ -510,8 +521,8 @@ fun NowPlayingScreen(
                                                 fadeInSpec = null,
                                                 fadeOutSpec = spring(stiffness = Spring.StiffnessLow)
                                             )
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(
+                                            .clip(shape = RoundedCornerShape(size = 16.dp))
+                                            .background(color =
                                                 if (isCurrent) Color.White.copy(alpha = 0.2f)
                                                 else Color.White.copy(alpha = 0.07f)
                                             )
@@ -531,8 +542,8 @@ fun NowPlayingScreen(
                                                             val firstOffset = queueListState.firstVisibleItemScrollOffset
                                                             playbackViewModel.moveQueueItem(index, index - 1)
                                                             scope.launch {
-                                                                delay(300)
-                                                                queueListState.scrollToItem(firstVisible, firstOffset)
+                                                                delay(timeMillis = 300)
+                                                                queueListState.scrollToItem(index = firstVisible, scrollOffset = firstOffset)
                                                             }
                                                         }
                                                     },
@@ -540,7 +551,7 @@ fun NowPlayingScreen(
                                                     enabled = upEnabled
                                                 ) {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.chevron_up),
+                                                        painter = painterResource(id = R.drawable.chevron_up),
                                                         contentDescription = null,
                                                         tint = if (upEnabled) Color.White else Color.White.copy(alpha = 0.2f),
                                                         modifier = Modifier.size(20.dp)
@@ -553,8 +564,8 @@ fun NowPlayingScreen(
                                                             val firstOffset = queueListState.firstVisibleItemScrollOffset
                                                             playbackViewModel.moveQueueItem(index, index + 1)
                                                             scope.launch {
-                                                                delay(300)
-                                                                queueListState.scrollToItem(firstVisible, firstOffset)
+                                                                delay(timeMillis = 300)
+                                                                queueListState.scrollToItem(index = firstVisible, scrollOffset = firstOffset)
                                                             }
                                                         }
                                                     },
@@ -562,7 +573,7 @@ fun NowPlayingScreen(
                                                     enabled = downEnabled
                                                 ) {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.chevron_down),
+                                                        painter = painterResource(id = R.drawable.chevron_down),
                                                         contentDescription = null,
                                                         tint = if (downEnabled) Color.White else Color.White.copy(alpha = 0.2f),
                                                         modifier = Modifier.size(20.dp)
@@ -585,7 +596,7 @@ fun NowPlayingScreen(
                                                     .size(40.dp)
                                             ) {
                                                 Icon(
-                                                    painter = painterResource(R.drawable.options_delete),
+                                                    painter = painterResource(id = R.drawable.options_delete),
                                                     contentDescription = "Remove",
                                                     tint = Color.White.copy(alpha = 0.5f),
                                                     modifier = Modifier.size(24.dp)
@@ -613,7 +624,7 @@ fun NowPlayingScreen(
                                 Column(modifier = Modifier
                                     .fillMaxSize()
                                     .verticalScroll(detailsScrollState)
-                                    .padding(24.dp)
+                                    .padding(all = 24.dp)
                                 ) {
                                     Text(
                                         text = "Title: ${currentSong?.title ?: "Unknown"}",
@@ -632,7 +643,7 @@ fun NowPlayingScreen(
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     MetadataRow(label = "Year", value = currentSong?.year ?: "N/A")
-                                    MetadataRow(label = "Duration", value = formatTime(currentSong?.duration ?: 0L))
+                                    MetadataRow(label = "Duration", value = formatTime(ms = currentSong?.duration ?: 0L))
                                     MetadataRow(label = "Disc", value = "${currentSong?.discNumber ?: 1}")
                                     MetadataRow(label = "Track", value = "${currentSong?.trackNumber ?: 1}")
                                     Spacer(modifier = Modifier.height(16.dp))
@@ -671,13 +682,13 @@ fun SkipIndicator(
     Box(
         modifier = Modifier
             .size(260.dp)
-            .clip(RoundedCornerShape(24.dp)),
+            .clip(shape = RoundedCornerShape(size = 24.dp)),
         contentAlignment = alignment
     ) {
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn(tween(80)) + scaleIn(tween(80), initialScale = 0.7f),
-            exit = fadeOut(tween(300))
+            enter = fadeIn(animationSpec = tween(durationMillis = 80)) + scaleIn(animationSpec = tween(durationMillis = 80), initialScale = 0.7f),
+            exit = fadeOut(animationSpec = tween(durationMillis = 300))
         ) {
             Text(
                 text = text,
@@ -686,7 +697,10 @@ fun SkipIndicator(
                 color = Color.White,
                 modifier = Modifier
                     .padding(horizontal = 12.dp)
-                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                    .background(
+                        color = Color.Black.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(size = 8.dp)
+                    )
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             )
         }

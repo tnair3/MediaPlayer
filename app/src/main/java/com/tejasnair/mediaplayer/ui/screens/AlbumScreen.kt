@@ -1,13 +1,24 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-// 1. Compose UI, Layout & Graphics
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -16,30 +27,38 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.navigation.NavController
-
-// 2. Compose Runtime
-import androidx.compose.runtime.*
-
-// 3. Material3
-import androidx.compose.material3.*
-import androidx.compose.ui.Alignment
-
-// 4. External Libraries
 import coil.compose.AsyncImage
-
-// 5. Kotlin Standard Library
 import kotlin.collections.emptyList
-
-// 6. Local Project Imports
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.DiscHeader
 import com.tejasnair.mediaplayer.ui.components.SongRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
 import com.tejasnair.mediaplayer.ui.components.StyledDropdownItem
-import com.tejasnair.mediaplayer.ui.components.formatTime
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
@@ -58,27 +77,27 @@ fun AlbumScreen(
     val favouriteSongs by libraryViewModel.favouriteSongs.collectAsState(initial = emptyList())
 
     val firstSong = albumSongs.firstOrNull()
-    var selectedSongId by remember { mutableStateOf<String?>(null) }
+    var selectedSongId by remember { mutableStateOf<String?>(value = null) }
     val selectedSong = albumSongs.find { it.songId == selectedSongId }
     val albumYear = firstSong?.year
 
     // Dropdown
-    var showOptionsMenu by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(value = false) }
 
     // Dialog states
-    var showDeleteAlbumDialog by remember { mutableStateOf(false) }
-    var showDeleteSongsDialog by remember { mutableStateOf(false) }
-    var showConfirmEditDeleteDialog by remember { mutableStateOf(false) }
-    var showEditDetailsDialog by remember { mutableStateOf(false) }
+    var showDeleteAlbumDialog by remember { mutableStateOf(value = false) }
+    var showDeleteSongsDialog by remember { mutableStateOf(value = false) }
+    var showConfirmEditDeleteDialog by remember { mutableStateOf(value = false) }
+    var showEditDetailsDialog by remember { mutableStateOf(value = false) }
 
     // Edit details fields
-    var editAlbumName by remember { mutableStateOf(albumName) }
-    var editAlbumArtist by remember { mutableStateOf(albumArtist) }
-    var editAlbumYear by remember { mutableStateOf(albumYear ?: "") }
+    var editAlbumName by remember { mutableStateOf(value = albumName) }
+    var editAlbumArtist by remember { mutableStateOf(value = albumArtist) }
+    var editAlbumYear by remember { mutableStateOf(value = albumYear ?: "") }
 
     val songsSelectedForDeletion = remember { mutableStateSetOf<String>() }
 
-    LaunchedEffect(albumSongs) {
+    LaunchedEffect(key1 = albumSongs) {
         if (albumSongs.isEmpty()) navController.navigateUp()
     }
 
@@ -125,7 +144,7 @@ fun AlbumScreen(
                         Checkbox(
                             checked = allSelected,
                             onCheckedChange = { checked ->
-                                if (checked) songsSelectedForDeletion.addAll(albumSongs.map { it.filePath })
+                                if (checked) songsSelectedForDeletion.addAll(elements = albumSongs.map { it.filePath })
                                 else songsSelectedForDeletion.clear()
                             }
                         )
@@ -146,7 +165,7 @@ fun AlbumScreen(
                                     checked = song.filePath in songsSelectedForDeletion,
                                     onCheckedChange = { checked ->
                                         if (checked) songsSelectedForDeletion.add(song.filePath)
-                                        else songsSelectedForDeletion.remove(song.filePath)
+                                        else songsSelectedForDeletion.remove(element = song.filePath)
                                     }
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
@@ -228,7 +247,7 @@ fun AlbumScreen(
                         label = { Text("Album Name") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(size = 12.dp)
                     )
                     OutlinedTextField(
                         value = editAlbumArtist,
@@ -236,7 +255,7 @@ fun AlbumScreen(
                         label = { Text("Album Artist") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(size = 12.dp)
                     )
                     OutlinedTextField(
                         value = editAlbumYear,
@@ -244,7 +263,7 @@ fun AlbumScreen(
                         label = { Text("Year") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(size = 12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                 }
@@ -328,7 +347,7 @@ fun AlbumScreen(
                                 .wrapContentSize()
                                 .background(
                                     color = Color.Black.copy(alpha = 0.55f),
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(size = 16.dp)
                                 )
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
@@ -370,29 +389,35 @@ fun AlbumScreen(
                     Button(
                         onClick = {
                             if (albumSongs.isNotEmpty())
-                                playbackViewModel.playSong(albumSongs.first(), albumSongs)
+                                playbackViewModel.playSong(selectedSong = albumSongs.first(), playlist =  albumSongs)
                             showNowPlaying.value = true
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(size = 14.dp)
                     ) {
-                        Icon(painterResource(R.drawable.song_play), null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.song_play),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text("Play")
                     }
                     OutlinedButton(
                         onClick = {
                             if (albumSongs.isNotEmpty()) {
                                 val shuffled = albumSongs.shuffled()
-                                playbackViewModel.playSong(shuffled.first(), shuffled)
+                                playbackViewModel.playSong(selectedSong = shuffled.first(), playlist = shuffled)
                             }
                             showNowPlaying.value = true
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(size = 14.dp)
                     ) {
-                        Icon(painterResource(R.drawable.song_shuffle), null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.song_shuffle),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text("Shuffle")
                     }
                 }
@@ -430,7 +455,7 @@ fun AlbumScreen(
                     modifier = Modifier.safeDrawingPadding()
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.nav_back_arrow),
+                        painter = painterResource(id = R.drawable.nav_back_arrow),
                         contentDescription = "Back",
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -442,7 +467,7 @@ fun AlbumScreen(
                         modifier = Modifier.padding(bottom = 4.dp)
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.options),
+                            painter = painterResource(id = R.drawable.options),
                             contentDescription = "Album Options",
                             tint = MaterialTheme.colorScheme.onSurface
                         )
@@ -452,7 +477,7 @@ fun AlbumScreen(
                         expanded = showOptionsMenu,
                         onDismissRequest = { showOptionsMenu = false },
                         offset = DpOffset(x = (-10).dp, y = (-10).dp),
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(size = 20.dp),
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
                         modifier = Modifier.width(220.dp)
                     ) {
@@ -491,7 +516,7 @@ fun AlbumScreen(
                             label = "Play Album",
                             onClick = {
                                 showOptionsMenu = false
-                                playbackViewModel.playSong(albumSongs.first(), albumSongs)
+                                playbackViewModel.playSong(selectedSong = albumSongs.first(), playlist = albumSongs)
                             }
                         )
                         StyledDropdownItem(
@@ -500,7 +525,7 @@ fun AlbumScreen(
                             onClick = {
                                 showOptionsMenu = false
                                 val shuffled = albumSongs.shuffled()
-                                playbackViewModel.playSong(shuffled.first(), shuffled)
+                                playbackViewModel.playSong(selectedSong = shuffled.first(), playlist = shuffled)
                             }
                         )
                         StyledDropdownItem(
