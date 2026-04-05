@@ -1,32 +1,16 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -35,23 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -76,6 +45,7 @@ import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NowPlayingScreen(
     libraryViewModel: LibraryViewModel,
@@ -90,6 +60,31 @@ fun NowPlayingScreen(
     val currentPosition = playbackViewModel.currentPosition
     val duration = playbackViewModel.duration
     val repeatMode = playbackViewModel.repeatMode
+
+    var sliderThumbValue by remember { mutableFloatStateOf(value = currentPosition.toFloat()) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isDragging by interactionSource.collectIsDraggedAsState()
+
+    LaunchedEffect(key1 = currentPosition, key2 = isDragging) {
+        if (!isDragging) {
+            sliderThumbValue = currentPosition.toFloat()
+        }
+    }
+
+    val animatedHeight by animateDpAsState(
+        targetValue = if (isDragging) 16.dp else 12.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "HeightAnimation"
+    )
+
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (duration > 0) {
+            val positionToShow = if (isDragging) currentPosition.toFloat() else sliderThumbValue
+            positionToShow / duration.toFloat()
+        } else 0f,
+        animationSpec = tween(durationMillis = 700),
+        label = "ProgressAnimation"
+    )
 
     val fileSizeString = remember(key1 = currentSong?.filePath) {
         val size = getFileSize(currentSong?.filePath)
@@ -217,10 +212,10 @@ fun NowPlayingScreen(
                                 detectTapGestures(
                                     onDoubleTap = { offset ->
                                         if (offset.x < size.width / 2) {
-                                            playbackViewModel.incrementSong(incrementVal = -5000)
+                                            playbackViewModel.incrementSong(incrementVal = -10000)
                                             showSkipLeft = true
                                         } else {
-                                            playbackViewModel.incrementSong(incrementVal = 5000)
+                                            playbackViewModel.incrementSong(incrementVal = 10000)
                                             showSkipRight = true
                                         }
                                     }
@@ -254,12 +249,12 @@ fun NowPlayingScreen(
                         ) {
                             SkipIndicator(
                                 visible = showSkipLeft,
-                                text = "-5s",
+                                text = "-10s",
                                 alignment = Alignment.CenterStart
                             )
                             SkipIndicator(
                                 visible = showSkipRight,
-                                text = "+5s",
+                                text = "+10s",
                                 alignment = Alignment.CenterEnd
                             )
                         }
@@ -285,15 +280,31 @@ fun NowPlayingScreen(
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Slider(
-                        value = currentPosition.toFloat(),
-                        onValueChange = { playbackViewModel.seekTo(position = it.toLong()) },
+                        value = sliderThumbValue,
+                        onValueChange = { sliderThumbValue = it },
+                        onValueChangeFinished = { playbackViewModel.seekTo(position = sliderThumbValue.toLong()) },
                         valueRange = 0f..duration.toFloat().coerceAtLeast(minimumValue = 1f),
+                        interactionSource = interactionSource,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color.White,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                        )
+                        track = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(animatedHeight)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(fraction = animatedFraction.coerceIn(0f, 1f))
+                                        .fillMaxHeight()
+                                        .clip(CircleShape)
+                                        .background(Color.White)
+                                )
+                            }
+                        },
+                        thumb = { Spacer(modifier = Modifier.size(24.dp)) }
                     )
 
                     Row(

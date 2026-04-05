@@ -9,17 +9,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Color.White,
+private val ColorScheme = darkColorScheme(
+    primary = Color(0xFFF5F5F5),
     onPrimary = Color.Black,
-    secondary = Color(0xFF03DAC6),
-    onSecondary = Color.Black,
-    background = Color(0xFF111111),
+    background = Color.Black,
     onBackground = Color(0xFFE0E0E0),
-    surface = Color(0xFF1E1E1E),
+    surface = Color(0xFF121212),
     onSurface = Color(0xFFE0E0E0),
     onSurfaceVariant = Color(0xFF787878),
-    outline = Color.White,
+    outline = Color(0xFFBBBBBB),
+    outlineVariant = Color(0xFF444444),
     error = Color(0xFFCF6679),
     onError = Color.Black
 )
@@ -29,7 +28,7 @@ fun MediaPlayerTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = ColorScheme,
         typography = Typography,
         content = content
     )

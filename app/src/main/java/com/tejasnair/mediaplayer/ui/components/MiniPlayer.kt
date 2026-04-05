@@ -24,12 +24,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.animation.core.*
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

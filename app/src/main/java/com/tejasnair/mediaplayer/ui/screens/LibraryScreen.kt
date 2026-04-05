@@ -1,35 +1,15 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,18 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.*
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import com.tejasnair.mediaplayer.R
@@ -58,6 +27,7 @@ import com.tejasnair.mediaplayer.ui.components.DisplayList
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.FilterRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
+import com.tejasnair.mediaplayer.ui.components.SortOption
 import com.tejasnair.mediaplayer.ui.components.StyledDropdownItem
 import com.tejasnair.mediaplayer.ui.components.TopNavigation
 import com.tejasnair.mediaplayer.ui.components.formatTime
@@ -65,7 +35,6 @@ import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
-@SuppressLint("DefaultLocale")
 @Composable
 fun LibraryScreen(
     libraryViewModel: LibraryViewModel,
@@ -90,11 +59,11 @@ fun LibraryScreen(
     var showSortMenu by remember { mutableStateOf(value = false) }
 
     var songSortOption by remember { mutableStateOf<SortOption>(value = SortOption.SongName) }
-    var songSortDirection by remember { mutableStateOf(value = SortDirection.Ascending) }
+    var songSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
     var albumSortOption by remember { mutableStateOf<SortOption>(value = SortOption.AlbumName) }
-    var albumSortDirection by remember { mutableStateOf(value = SortDirection.Ascending) }
+    var albumSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
     var artistSortOption by remember { mutableStateOf<SortOption>(value = SortOption.ArtistName) }
-    var artistSortDirection by remember { mutableStateOf(value = SortDirection.Ascending) }
+    var artistSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
 
     val currentPage = pagerState.currentPage
 
@@ -112,14 +81,14 @@ fun LibraryScreen(
             SortOption.SongYear   -> filtered.sortedBy { it.year ?: "" }
             else -> filtered
         }
-        if (songSortDirection == SortDirection.Descending) sorted.reversed() else sorted
+        if (songSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
     val filteredAlbums = remember(searchQuery, albums, albumSortOption, albumSortDirection) {
         val filtered = if (searchQuery.isBlank()) albums
         else albums.filter { album ->
             album.album.contains(other = searchQuery, ignoreCase = true) ||
-                    album.albumArtists.contains(other = searchQuery, ignoreCase = true)
+            album.albumArtists.contains(other = searchQuery, ignoreCase = true)
         }
         val sorted = when (albumSortOption) {
             SortOption.AlbumName   -> filtered.sortedBy { it.album.lowercase() }
@@ -127,7 +96,7 @@ fun LibraryScreen(
             SortOption.AlbumYear   -> filtered.sortedBy { it.year ?: "" }
             else -> filtered
         }
-        if (albumSortDirection == SortDirection.Descending) sorted.reversed() else sorted
+        if (albumSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
     val filteredArtists = remember(searchQuery, artists, artistSortOption, artistSortDirection) {
@@ -138,7 +107,7 @@ fun LibraryScreen(
             SortOption.ArtistSongCount -> filtered
             else -> filtered
         }
-        if (artistSortDirection == SortDirection.Descending) sorted.reversed() else sorted
+        if (artistSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
     ThemedScreen {
@@ -255,12 +224,12 @@ fun LibraryScreen(
                                             0 -> songSortDirection
                                             1 -> albumSortDirection
                                             2 -> artistSortDirection
-                                            else -> SortDirection.Ascending
+                                            else -> SortDirection.ASC
                                         }
-                                        val directionIcon = if (currentDirection == SortDirection.Ascending)
+                                        val directionIcon = if (currentDirection == SortDirection.ASC)
                                             R.drawable.sort_modeasc else R.drawable.sort_modedesc
-                                        val directionLabel = if (currentDirection == SortDirection.Ascending)
-                                            "Ascending" else "Descending"
+                                        val directionLabel = if (currentDirection == SortDirection.ASC)
+                                            "ASC" else "DESC"
 
                                         DropdownMenuItem(
                                             text = {
@@ -290,8 +259,8 @@ fun LibraryScreen(
                                                 }
                                             },
                                             onClick = {
-                                                val newDir = if (currentDirection == SortDirection.Ascending)
-                                                    SortDirection.Descending else SortDirection.Ascending
+                                                val newDir = if (currentDirection == SortDirection.ASC)
+                                                    SortDirection.DESC else SortDirection.ASC
                                                 when (currentPage) {
                                                     0 -> songSortDirection = newDir
                                                     1 -> albumSortDirection = newDir
@@ -375,8 +344,9 @@ fun LibraryScreen(
                                 ) {
                                     Crossfade(targetState = showSearch) { isOpen ->
                                         Icon(
-                                            painter = painterResource(
-                                                id = if (isOpen) R.drawable.close else R.drawable.search
+                                            painter = painterResource(id =
+                                                if (isOpen) R.drawable.close
+                                                else R.drawable.search
                                             ),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp),
@@ -540,7 +510,7 @@ fun LibraryScreen(
     }
 }
 
-// Sort Dropdown Components
+enum class SortDirection { ASC, DESC }
 
 @Composable
 private fun SortOptionGroup(
@@ -562,34 +532,14 @@ private fun SortOptionGroup(
     }
 }
 
-// Sort Helpers
-
 private fun isSortActive(
     currentPage: Int,
     songSort: SortOption, songDir: SortDirection,
     albumSort: SortOption, albumDir: SortDirection,
     artistSort: SortOption, artistDir: SortDirection
 ): Boolean = when (currentPage) {
-    0 -> songSort !is SortOption.SongName || songDir != SortDirection.Ascending
-    1 -> albumSort !is SortOption.AlbumName || albumDir != SortDirection.Ascending
-    2 -> artistSort !is SortOption.ArtistName || artistDir != SortDirection.Ascending
+    0 -> songSort !is SortOption.SongName || songDir != SortDirection.ASC
+    1 -> albumSort !is SortOption.AlbumName || albumDir != SortDirection.ASC
+    2 -> artistSort !is SortOption.ArtistName || artistDir != SortDirection.ASC
     else -> false
-}
-
-// Sort Model
-
-enum class SortDirection { Ascending, Descending }
-
-sealed class SortOption(val label: String, val iconRes: Int) {
-    object SongName : SortOption(label = "Name", iconRes = R.drawable.sort_name)
-    object SongAlbum : SortOption(label = "Album", iconRes = R.drawable.sort_album)
-    object SongArtist : SortOption(label = "Artist", iconRes = R.drawable.sort_artist)
-    object SongYear : SortOption(label = "Year", iconRes = R.drawable.sort_year)
-
-    object AlbumName : SortOption(label = "Name", iconRes = R.drawable.sort_name)
-    object AlbumArtist : SortOption(label = "Artist", iconRes = R.drawable.sort_artist)
-    object AlbumYear : SortOption(label = "Year", iconRes = R.drawable.sort_year)
-
-    object ArtistName : SortOption(label = "Name", iconRes = R.drawable.sort_name)
-    object ArtistSongCount : SortOption(label = "Number of Songs", iconRes = R.drawable.sort_number)
 }
