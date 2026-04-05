@@ -1,16 +1,10 @@
 package com.tejasnair.mediaplayer.ui.components
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,12 +18,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.animation.core.*
 import coil.compose.AsyncImage
+import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -39,100 +39,168 @@ fun MiniPlayer(
     onTogglePlay: () -> Unit,
     onClick: () -> Unit,
     onDismiss: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    libraryViewModel: LibraryViewModel,
     playbackViewModel: PlaybackViewModel
 ) {
     val currentPosition = playbackViewModel.currentPosition
     val duration = playbackViewModel.duration
-    val progress = if (duration > 0L)
-        (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
-    else 0f
+    val progress =
+        if (duration > 0L) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
+        else 0f
 
     val scope = rememberCoroutineScope()
-    var isDismissing by remember { mutableStateOf(false) }
-    var isMinimal by remember { mutableStateOf(false) }
+    val offsetX = remember { Animatable(0f) }
+    val dismissThreshold = 300f
+    var trayOpen by remember { mutableStateOf(false) }
 
-    // Vertical offset for dismiss (swipe down) and NowPlaying (swipe up)
-    val offsetY = remember { Animatable(0f) }
-    val dismissDownThreshold = 150f
-    val openUpThreshold = -100f
+    val trayHeight = 48.dp
+    val trayWidth = 200.dp  // narrower than the 280dp card
 
-    val verticalAlpha = (1f - (offsetY.value / (dismissDownThreshold * 1.5f))).coerceIn(0f, 1f)
-
-    val dominantColor = rememberDominantColor(song.songArtUri)
-    val darkVariant = dominantColor.copy(
-        red = (dominantColor.red * 0.5f).coerceIn(0f, 1f),
-        green = (dominantColor.green * 0.5f).coerceIn(0f, 1f),
-        blue = (dominantColor.blue * 0.5f).coerceIn(0f, 1f)
-    )
-
-    // Animated size transition
-    val playerWidth by animateDpAsState(
-        targetValue = if (isMinimal) 72.dp else 280.dp,
+    val traySlide by animateDpAsState(
+        targetValue = if (trayOpen) 0.dp else trayHeight,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "playerWidth"
+        label = "traySlide"
     )
-    val playerHeight by animateDpAsState(
-        targetValue = if (isMinimal) 72.dp else 88.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-        label = "playerHeight"
+    val trayAlpha by animateFloatAsState(
+        targetValue = if (trayOpen) 1f else 0f,
+        animationSpec = tween(200),
+        label = "trayAlpha"
     )
-    val contentAlpha by animateFloatAsState(
-        targetValue = if (isMinimal) 0f else 1f,
-        animationSpec = tween(150),
-        label = "contentAlpha"
-    )
+
+    val cardAlpha = (1f - (offsetX.value / (dismissThreshold * 1.5f))).coerceIn(0f, 1f)
 
     Box(
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .navigationBarsPadding()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.BottomEnd
     ) {
+        // Tray
+        Box(
+            modifier = Modifier
+                .width(trayWidth)
+                .height(trayHeight)
+                .offset {
+                    IntOffset(
+                        x = offsetX.value.roundToInt(),
+                        y = ((-88).dp + traySlide).roundToPx()
+                    )
+                }
+                .graphicsLayer { this.alpha = trayAlpha * cardAlpha }
+                .clip(shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp))
+                .background(color = MaterialTheme.colorScheme.primary)
+                .align(Alignment.BottomCenter)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // Close
+                IconButton(
+                    onClick = {
+                        trayOpen = false
+                        onDismiss()
+                    },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .padding(end = 4.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.close),
+                        contentDescription = "Close",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // Previous
+                IconButton(
+                    onClick = {
+                        onPrevious()
+                        trayOpen = false
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.song_previous),
+                        contentDescription = "Previous",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                // Favourite
+                IconButton(
+                    onClick = {
+                        song.songId.let(block = libraryViewModel::toggleFavourite)
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id =
+                            if(song.isFavourite) R.drawable.song_favourite_true
+                            else R.drawable.song_favourite),
+                        contentDescription = "Close",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // Next
+                IconButton(
+                    onClick = {
+                        onNext()
+                        trayOpen = false
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.song_next),
+                        contentDescription = "Next",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+
         // Player card
         Box(
             modifier = Modifier
-                .offset { androidx.compose.ui.unit.IntOffset(0, offsetY.value.toInt()) }
-                .graphicsLayer { this.alpha = verticalAlpha }
-                .width(playerWidth)
-                .height(playerHeight)
+                .offset { IntOffset(x = offsetX.value.roundToInt(), y = 0) }
+                .graphicsLayer { this.alpha = cardAlpha }
+                .width(280.dp)
+                .height(88.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .pointerInput(Unit) {
-                    detectVerticalDragGestures(
+                    detectHorizontalDragGestures(
                         onDragEnd = {
                             scope.launch {
-                                when {
-                                    offsetY.value > dismissDownThreshold -> {
-                                        isDismissing = true
-                                        offsetY.animateTo(
-                                            targetValue = 600f,
-                                            animationSpec = tween(200)
+                                if (offsetX.value > dismissThreshold) {
+                                    offsetX.animateTo(
+                                        targetValue = 1000f,
+                                        animationSpec = tween(200)
+                                    )
+                                    onDismiss()
+                                } else {
+                                    offsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessMedium
                                         )
-                                        onDismiss()
-                                    }
-                                    offsetY.value < openUpThreshold -> {
-                                        offsetY.animateTo(
-                                            targetValue = 0f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        )
-                                        onClick()
-                                    }
-                                    else -> {
-                                        offsetY.animateTo(
-                                            targetValue = 0f,
-                                            animationSpec = spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         },
                         onDragCancel = {
                             scope.launch {
-                                offsetY.animateTo(
+                                offsetX.animateTo(
                                     targetValue = 0f,
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -141,30 +209,31 @@ fun MiniPlayer(
                                 )
                             }
                         },
-                        onVerticalDrag = { change, dragAmount ->
-                            change.consume()
-                            // Allow dragging down freely, restrict upward
-                            val newOffset = offsetY.value + dragAmount
-                            scope.launch {
-                                offsetY.snapTo(newOffset.coerceAtLeast(-150f))
-                            }
-                        }
-                    )
-                }
-                .pointerInput(isMinimal) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = { },
                         onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            if (!isMinimal && dragAmount > 30f) {
-                                isMinimal = true
-                            } else if (isMinimal && dragAmount < -30f) {
-                                isMinimal = false
-                            }
+                            val newOffset = (offsetX.value + dragAmount).coerceAtLeast(0f)
+                            scope.launch { offsetX.snapTo(newOffset) }
                         }
                     )
                 }
-                .clickable { onClick() }
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragEnd = { },
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            if (dragAmount < -20f && !trayOpen) trayOpen = true
+                            else if (dragAmount > 20f && trayOpen) trayOpen = false
+                        }
+                    )
+                }
+                .pointerInput(trayOpen) {
+                    detectTapGestures(
+                        onTap = {
+                            if (trayOpen) trayOpen = false
+                            else onClick()
+                        }
+                    )
+                }
         ) {
             // Blurred art background
             AsyncImage(
@@ -183,49 +252,52 @@ fun MiniPlayer(
                     .background(Color.Black.copy(alpha = 0.55f))
             )
 
-            // Full mode content
-            if(!isMinimal) {
-                Row(
+            // Content
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = song.songArtUri,
+                    contentDescription = null,
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(10.dp)),
+                    contentScale = ContentScale.Crop
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 10.dp)
                 ) {
-                    AsyncImage(
-                        model = song.songArtUri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(10.dp)),
-                        contentScale = ContentScale.Crop
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        modifier = Modifier.basicMarquee(),
+                        color = Color.White
                     )
+                    Text(
+                        text = song.artists,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.65f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "${formatTime(currentPosition)} · ${formatTime(duration)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.45f)
+                    )
+                }
 
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 10.dp)
-                    ) {
-                        Text(
-                            text = song.title,
-                            style = MaterialTheme.typography.labelLarge,
-                            maxLines = 1,
-                            modifier = Modifier.basicMarquee(),
-                            color = Color.White
-                        )
-                        Text(
-                            text = song.artists,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.65f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "${formatTime(currentPosition)} · ${formatTime(duration)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.45f)
-                        )
-                    }
-
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(44.dp)
+                ) {
                     PlayButtonWithRing(
                         progress = progress,
                         isPlaying = isPlaying,
@@ -238,27 +310,6 @@ fun MiniPlayer(
                         ringStrokeWidth = 3f
                     )
                 }
-            }
-
-            // Minimal mode content
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { this.alpha = 1f - contentAlpha },
-                contentAlignment = Alignment.Center
-            ) {
-                PlayButtonWithRing(
-                    progress = progress,
-                    isPlaying = isPlaying,
-                    currentPosition = currentPosition,
-                    duration = duration,
-                    onTogglePlay = onTogglePlay,
-                    size = 60,
-                    buttonSize = 48,
-                    iconSize = 22,
-                    ringStrokeWidth = 4f,
-                    fillParent = false
-                )
             }
         }
     }
