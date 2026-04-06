@@ -1,23 +1,12 @@
 package com.tejasnair.mediaplayer.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -29,31 +18,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateSetOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.surfaceColorAtElevation
+import androidx.compose.material3.*
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import kotlin.collections.emptyList
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.DiscHeader
 import com.tejasnair.mediaplayer.ui.components.SongRow
@@ -73,24 +40,33 @@ fun AlbumScreen(
     showNowPlaying: MutableState<Boolean>
 ) {
     val albumSongs by libraryViewModel.getSongsByAlbum(albumName, albumArtist).collectAsState(initial = emptyList())
-    val groupedSongs = albumSongs.groupBy { it.discNumber }
     val favouriteSongs by libraryViewModel.favouriteSongs.collectAsState(initial = emptyList())
 
-    val firstSong = albumSongs.firstOrNull()
+    val favouriteIds by remember(key1 = favouriteSongs) {
+        derivedStateOf { favouriteSongs.map { it.songId }.toHashSet() }
+    }
+
+    val groupedSongs by remember(key1 = albumSongs) {
+        derivedStateOf { albumSongs.groupBy { it.discNumber } }
+    }
+
+    val firstSong by remember(key1 = albumSongs) {
+        derivedStateOf { albumSongs.firstOrNull() }
+    }
+
+    val albumYear by remember(key1 = firstSong) {
+        derivedStateOf { firstSong?.year }
+    }
+
     var selectedSongId by remember { mutableStateOf<String?>(value = null) }
-    val selectedSong = albumSongs.find { it.songId == selectedSongId }
-    val albumYear = firstSong?.year
+    val selectedSong by remember { derivedStateOf { albumSongs.find { it.songId == selectedSongId } } }
 
-    // Dropdown
     var showOptionsMenu by remember { mutableStateOf(value = false) }
-
-    // Dialog states
     var showDeleteAlbumDialog by remember { mutableStateOf(value = false) }
     var showDeleteSongsDialog by remember { mutableStateOf(value = false) }
     var showConfirmEditDeleteDialog by remember { mutableStateOf(value = false) }
     var showEditDetailsDialog by remember { mutableStateOf(value = false) }
 
-    // Edit details fields
     var editAlbumName by remember { mutableStateOf(value = albumName) }
     var editAlbumArtist by remember { mutableStateOf(value = albumArtist) }
     var editAlbumYear by remember { mutableStateOf(value = albumYear ?: "") }
@@ -112,14 +88,10 @@ fun AlbumScreen(
                 TextButton(onClick = {
                     albumSongs.forEach { libraryViewModel.deleteSong(it) }
                     showDeleteAlbumDialog = false
-                }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteAlbumDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDeleteAlbumDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -137,9 +109,7 @@ fun AlbumScreen(
                     val allSelected = songsSelectedForDeletion.size == albumSongs.size
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp)
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     ) {
                         Checkbox(
                             checked = allSelected,
@@ -192,20 +162,14 @@ fun AlbumScreen(
                 ) {
                     Text(
                         "Delete (${songsSelectedForDeletion.size})",
-                        color = if (songsSelectedForDeletion.isNotEmpty())
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        color =
+                            if (songsSelectedForDeletion.isNotEmpty()) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     )
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    showDeleteSongsDialog = false
-                    songsSelectedForDeletion.clear()
-                }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDeleteSongsDialog = false; songsSelectedForDeletion.clear() }) { Text("Cancel") }
             }
         )
     }
@@ -217,20 +181,15 @@ fun AlbumScreen(
             text = { Text("Are you sure you want to delete ${songsSelectedForDeletion.size} song(s)? This cannot be undone.") },
             confirmButton = {
                 TextButton(onClick = {
-                    albumSongs
-                        .filter { it.filePath in songsSelectedForDeletion }
+                    albumSongs.filter { it.filePath in songsSelectedForDeletion }
                         .forEach { libraryViewModel.deleteSong(it) }
                     songsSelectedForDeletion.clear()
                     showConfirmEditDeleteDialog = false
                     showDeleteSongsDialog = false
-                }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmEditDeleteDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showConfirmEditDeleteDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -244,28 +203,19 @@ fun AlbumScreen(
                     OutlinedTextField(
                         value = editAlbumName,
                         onValueChange = { editAlbumName = it },
-                        label = { Text("Album Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(size = 12.dp)
-                    )
+                        label = { Text("Album Name") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(size = 12.dp))
                     OutlinedTextField(
                         value = editAlbumArtist,
                         onValueChange = { editAlbumArtist = it },
-                        label = { Text("Album Artist") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(size = 12.dp)
-                    )
+                        label = { Text("Album Artist") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(size = 12.dp))
                     OutlinedTextField(
                         value = editAlbumYear,
                         onValueChange = { editAlbumYear = it },
-                        label = { Text("Year") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(size = 12.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                    )
+                        label = { Text("Year") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(size = 12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 }
             },
             confirmButton = {
@@ -273,27 +223,19 @@ fun AlbumScreen(
                     enabled = editAlbumName.isNotBlank() && editAlbumArtist.isNotBlank(),
                     onClick = {
                         libraryViewModel.updateAlbumDetails(
-                            oldAlbum = albumName,
-                            oldArtist = albumArtist,
-                            newAlbum = editAlbumName.trim(),
-                            newArtist = editAlbumArtist.trim(),
+                            oldAlbum = albumName, oldArtist = albumArtist,
+                            newAlbum = editAlbumName.trim(), newArtist = editAlbumArtist.trim(),
                             newYear = editAlbumYear.trim().takeIf { it.isNotBlank() }
                         )
                         showEditDetailsDialog = false
                     }
-                ) {
-                    Text("Save")
-                }
+                ) { Text("Save") }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    editAlbumName = albumName
-                    editAlbumArtist = albumArtist
-                    editAlbumYear = albumYear ?: ""
-                    showEditDetailsDialog = false
-                }) {
-                    Text("Cancel")
-                }
+                    editAlbumName = albumName; editAlbumArtist = albumArtist
+                    editAlbumYear = albumYear ?: ""; showEditDetailsDialog = false
+                }) { Text("Cancel") }
             }
         )
     }
@@ -309,11 +251,9 @@ fun AlbumScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Full bleed header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(360.dp)
-                ) {
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(360.dp)) {
                     AsyncImage(
                         model = firstSong?.backCoverUri ?: firstSong?.songArtUri,
                         contentDescription = "Album Art",
@@ -326,14 +266,12 @@ fun AlbumScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.background
-                                    )
+                                Brush.verticalGradient(colors = listOf(
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.background)
                                 )
-                            )
+                        )
                     )
 
                     Box(
@@ -345,18 +283,14 @@ fun AlbumScreen(
                         Column(
                             modifier = Modifier
                                 .wrapContentSize()
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.55f),
-                                    shape = RoundedCornerShape(size = 16.dp)
-                                )
+                                .background(Color.Black.copy(alpha = 0.55f), shape = RoundedCornerShape(size = 16.dp))
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
                             Text(
                                 text = albumName,
                                 style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
+                                fontWeight = FontWeight.Bold, color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -365,8 +299,10 @@ fun AlbumScreen(
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = Color.White.copy(alpha = 0.8f)
                             )
-                            var tertiaryText = albumSongs.size.toString() + " songs"
-                            if (albumYear != null) tertiaryText = "$tertiaryText • $albumYear"
+                            val tertiaryText = buildString {
+                                append("${albumSongs.size} songs")
+                                if (albumYear != null) append(" • $albumYear")
+                            }
                             if (albumSongs.isNotEmpty()) {
                                 Text(
                                     text = tertiaryText,
@@ -388,18 +324,18 @@ fun AlbumScreen(
                 ) {
                     Button(
                         onClick = {
-                            if (albumSongs.isNotEmpty())
-                                playbackViewModel.playSong(selectedSong = albumSongs.first(), playlist =  albumSongs)
+                            if (albumSongs.isNotEmpty()) playbackViewModel.playSong(selectedSong = albumSongs.first(), playlist = albumSongs)
                             showNowPlaying.value = true
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(size = 14.dp)
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.song_play),
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Text("Play")
                     }
                     OutlinedButton(
@@ -411,13 +347,13 @@ fun AlbumScreen(
                             showNowPlaying.value = true
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(size = 14.dp)
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.song_shuffle),
                             contentDescription = null,
                             modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text("Shuffle")
                     }
                 }
@@ -427,7 +363,6 @@ fun AlbumScreen(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                 )
 
-                // Songs
                 LazyColumn {
                     groupedSongs.forEach { (discNumber, discSongs) ->
                         item(key = "disc_header_$discNumber") {
@@ -438,7 +373,7 @@ fun AlbumScreen(
                                 song = song,
                                 onClick = { selectedSongId = song.songId },
                                 showTrackNumbers = true,
-                                isFavourite = song in favouriteSongs
+                                isFavourite = song.songId in favouriteIds
                             )
                         }
                     }
@@ -477,11 +412,10 @@ fun AlbumScreen(
                         expanded = showOptionsMenu,
                         onDismissRequest = { showOptionsMenu = false },
                         offset = DpOffset(x = (-10).dp, y = (-10).dp),
-                        shape = RoundedCornerShape(size = 20.dp),
+                        shape = RoundedCornerShape(20.dp),
                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
                         modifier = Modifier.width(220.dp)
                     ) {
-                        // Header
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -507,40 +441,24 @@ fun AlbumScreen(
                             modifier = Modifier.padding(horizontal = 12.dp),
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
-
                         Spacer(Modifier.height(4.dp))
 
-                        // Playback options
-                        StyledDropdownItem(
-                            icon = R.drawable.song_play,
-                            label = "Play Album",
-                            onClick = {
-                                showOptionsMenu = false
-                                playbackViewModel.playSong(selectedSong = albumSongs.first(), playlist = albumSongs)
-                            }
-                        )
-                        StyledDropdownItem(
-                            icon = R.drawable.song_shuffle,
-                            label = "Shuffle Album",
-                            onClick = {
-                                showOptionsMenu = false
-                                val shuffled = albumSongs.shuffled()
-                                playbackViewModel.playSong(selectedSong = shuffled.first(), playlist = shuffled)
-                            }
-                        )
-                        StyledDropdownItem(
-                            icon = R.drawable.song_options_addtoqueue,
-                            label = "Add to Queue",
-                            onClick = {
-                                showOptionsMenu = false
-                                playbackViewModel.addAlbumToQueue(albumSongs)
-                            }
-                        )
-                        StyledDropdownItem(
-                            icon = R.drawable.song_options_playlist,
-                            label = "Save to Playlist",
-                            onClick = { showOptionsMenu = false }
-                        )
+                        StyledDropdownItem(icon = R.drawable.song_play, label = "Play Album") {
+                            showOptionsMenu = false
+                            playbackViewModel.playSong(selectedSong = albumSongs.first(), playlist = albumSongs)
+                        }
+                        StyledDropdownItem(icon = R.drawable.song_shuffle, label = "Shuffle Album") {
+                            showOptionsMenu = false
+                            val shuffled = albumSongs.shuffled()
+                            playbackViewModel.playSong(selectedSong = shuffled.first(), playlist = shuffled)
+                        }
+                        StyledDropdownItem(icon = R.drawable.song_options_addtoqueue, label = "Add to Queue") {
+                            showOptionsMenu = false
+                            playbackViewModel.addAlbumToQueue(albumSongs)
+                        }
+                        StyledDropdownItem(icon = R.drawable.song_options_playlist, label = "Save to Playlist") {
+                            showOptionsMenu = false
+                        }
 
                         Spacer(Modifier.height(4.dp))
                         HorizontalDivider(
@@ -549,36 +467,18 @@ fun AlbumScreen(
                         )
                         Spacer(Modifier.height(4.dp))
 
-                        // Edit / Delete options
-                        StyledDropdownItem(
-                            icon = R.drawable.options_edit,
-                            label = "Edit Details",
-                            onClick = {
-                                showOptionsMenu = false
-                                editAlbumName = albumName
-                                editAlbumArtist = albumArtist
-                                editAlbumYear = albumYear ?: ""
-                                showEditDetailsDialog = true
-                            }
-                        )
-                        StyledDropdownItem(
-                            icon = R.drawable.options_deletesome,
-                            label = "Delete Songs",
-                            onClick = {
-                                showOptionsMenu = false
-                                songsSelectedForDeletion.clear()
-                                showDeleteSongsDialog = true
-                            }
-                        )
-                        StyledDropdownItem(
-                            icon = R.drawable.options_delete,
-                            label = "Delete Album",
-                            tint = MaterialTheme.colorScheme.error,
-                            onClick = {
-                                showOptionsMenu = false
-                                showDeleteAlbumDialog = true
-                            }
-                        )
+                        StyledDropdownItem(icon = R.drawable.options_edit, label = "Edit Details") {
+                            showOptionsMenu = false
+                            editAlbumName = albumName; editAlbumArtist = albumArtist
+                            editAlbumYear = albumYear ?: ""; showEditDetailsDialog = true
+                        }
+                        StyledDropdownItem(icon = R.drawable.options_deletesome, label = "Delete Songs") {
+                            showOptionsMenu = false
+                            songsSelectedForDeletion.clear(); showDeleteSongsDialog = true
+                        }
+                        StyledDropdownItem(icon = R.drawable.options_delete, label = "Delete Album", tint = MaterialTheme.colorScheme.error) {
+                            showOptionsMenu = false; showDeleteAlbumDialog = true
+                        }
 
                         Spacer(Modifier.height(4.dp))
                     }

@@ -35,6 +35,8 @@ import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
+enum class SortDirection { ASC, DESC }
+
 @Composable
 fun LibraryScreen(
     libraryViewModel: LibraryViewModel,
@@ -52,7 +54,7 @@ fun LibraryScreen(
     val coroutineScope = rememberCoroutineScope()
 
     var selectedSongId by remember { mutableStateOf<String?>(value = null) }
-    val selectedSong = songs.find { it.songId == selectedSongId }
+    val selectedSong by remember { derivedStateOf { songs.find { it.songId == selectedSongId } } }
 
     var showSearch by remember { mutableStateOf(value = false) }
     var searchQuery by remember { mutableStateOf(value = "") }
@@ -66,6 +68,27 @@ fun LibraryScreen(
     var artistSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
 
     val currentPage = pagerState.currentPage
+
+    val sortActive by remember {
+        derivedStateOf {
+            isSortActive(currentPage,
+                songSortOption, songDir = songSortDirection,
+                albumSortOption, albumDir = albumSortDirection,
+                artistSortOption, artistDir = artistSortDirection
+            )
+        }
+    }
+
+    val currentSortDirection by remember {
+        derivedStateOf {
+            when (currentPage) {
+                0 -> songSortDirection
+                1 -> albumSortDirection
+                2 -> artistSortDirection
+                else -> SortDirection.ASC
+            }
+        }
+    }
 
     val filteredSongs = remember(searchQuery, songs, songSortOption, songSortDirection) {
         val filtered = if (searchQuery.isBlank()) songs
@@ -88,7 +111,7 @@ fun LibraryScreen(
         val filtered = if (searchQuery.isBlank()) albums
         else albums.filter { album ->
             album.album.contains(other = searchQuery, ignoreCase = true) ||
-            album.albumArtists.contains(other = searchQuery, ignoreCase = true)
+                    album.albumArtists.contains(other = searchQuery, ignoreCase = true)
         }
         val sorted = when (albumSortOption) {
             SortOption.AlbumName   -> filtered.sortedBy { it.album.lowercase() }
@@ -140,9 +163,7 @@ fun LibraryScreen(
                             coroutineScope.launch { pagerState.animateScrollToPage(index) }
                         }
                     )
-                }
 
-                if (songs.isNotEmpty()) {
                     Column {
                         Row(
                             modifier = Modifier
@@ -151,24 +172,23 @@ fun LibraryScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Play button
                             Button(
                                 onClick = {
-                                    playbackViewModel.playSong(selectedSong = songs.first(), playlist =  songs)
+                                    playbackViewModel.playSong(selectedSong = songs.first(), playlist = songs)
                                     showNowPlaying.value = true
                                 },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(size = 14.dp)
+                                shape = RoundedCornerShape(14.dp)
                             ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.song_play),
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp))
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Play")
                             }
 
-                            // Shuffle button
                             OutlinedButton(
                                 onClick = {
                                     val shuffled = songs.shuffled()
@@ -181,17 +201,16 @@ fun LibraryScreen(
                                 Icon(
                                     painter = painterResource(id = R.drawable.song_shuffle),
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
                                 Text("Shuffle")
                             }
 
-                            // Sort + Search grouped tightly together
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(0.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Sort button
                                 Box {
                                     IconButton(
                                         onClick = { showSortMenu = true },
@@ -201,13 +220,9 @@ fun LibraryScreen(
                                             painter = painterResource(id = R.drawable.sort),
                                             contentDescription = "Sort",
                                             modifier = Modifier.size(20.dp),
-                                            tint = if (isSortActive(
-                                                    currentPage, songSortOption, songDir = songSortDirection,
-                                                    albumSortOption, albumDir = albumSortDirection,
-                                                    artistSortOption, artistDir = artistSortDirection))
-                                                MaterialTheme.colorScheme.primary
-                                            else
-                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint =
+                                                if (sortActive) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
 
@@ -219,17 +234,10 @@ fun LibraryScreen(
                                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
                                         modifier = Modifier.width(210.dp)
                                     ) {
-                                        // Direction toggle
-                                        val currentDirection = when (currentPage) {
-                                            0 -> songSortDirection
-                                            1 -> albumSortDirection
-                                            2 -> artistSortDirection
-                                            else -> SortDirection.ASC
-                                        }
-                                        val directionIcon = if (currentDirection == SortDirection.ASC)
+                                        val directionIcon = if (currentSortDirection == SortDirection.ASC)
                                             R.drawable.sort_modeasc else R.drawable.sort_modedesc
-                                        val directionLabel = if (currentDirection == SortDirection.ASC)
-                                            "ASC" else "DESC"
+                                        val directionLabel = if (currentSortDirection == SortDirection.ASC)
+                                            "Ascending" else "Descending"
 
                                         DropdownMenuItem(
                                             text = {
@@ -259,7 +267,7 @@ fun LibraryScreen(
                                                 }
                                             },
                                             onClick = {
-                                                val newDir = if (currentDirection == SortDirection.ASC)
+                                                val newDir = if (currentSortDirection == SortDirection.ASC)
                                                     SortDirection.DESC else SortDirection.ASC
                                                 when (currentPage) {
                                                     0 -> songSortDirection = newDir
@@ -276,50 +284,26 @@ fun LibraryScreen(
                                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                         )
 
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(Modifier.height(4.dp))
 
-                                        // Sort options
                                         when (currentPage) {
                                             0 -> SortOptionGroup(
-                                                sortOptions = listOf(
-                                                    SortOption.SongName,
-                                                    SortOption.SongAlbum,
-                                                    SortOption.SongArtist,
-                                                    SortOption.SongYear
-                                                ),
+                                                sortOptions = listOf(SortOption.SongName, SortOption.SongAlbum, SortOption.SongArtist, SortOption.SongYear),
                                                 currentOption = songSortOption,
-                                                onOptionSelected = { opt ->
-                                                    songSortOption = opt
-                                                    showSortMenu = false
-                                                }
+                                                onOptionSelected = { songSortOption = it; showSortMenu = false }
                                             )
                                             1 -> SortOptionGroup(
-                                                sortOptions = listOf(
-                                                    SortOption.AlbumName,
-                                                    SortOption.AlbumArtist,
-                                                    SortOption.AlbumYear
-                                                ),
+                                                sortOptions = listOf(SortOption.AlbumName, SortOption.AlbumArtist, SortOption.AlbumYear),
                                                 currentOption = albumSortOption,
-                                                onOptionSelected = { opt ->
-                                                    albumSortOption = opt
-                                                    showSortMenu = false
-                                                }
+                                                onOptionSelected = { albumSortOption = it; showSortMenu = false }
                                             )
                                             2 -> SortOptionGroup(
-                                                sortOptions = listOf(
-                                                    SortOption.ArtistName,
-                                                    SortOption.ArtistSongCount
-                                                ),
+                                                sortOptions = listOf(SortOption.ArtistName, SortOption.ArtistSongCount),
                                                 currentOption = artistSortOption,
-                                                onOptionSelected = { opt ->
-                                                    artistSortOption = opt
-                                                    showSortMenu = false
-                                                }
+                                                onOptionSelected = { artistSortOption = it; showSortMenu = false }
                                             )
                                             else -> Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(all = 16.dp),
+                                                modifier = Modifier.fillMaxWidth().padding(all = 16.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
@@ -330,11 +314,10 @@ fun LibraryScreen(
                                             }
                                         }
 
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(Modifier.height(4.dp))
                                     }
                                 }
 
-                                // Search button
                                 IconButton(
                                     onClick = {
                                         showSearch = !showSearch
@@ -346,13 +329,11 @@ fun LibraryScreen(
                                         Icon(
                                             painter = painterResource(id =
                                                 if (isOpen) R.drawable.close
-                                                else R.drawable.search
-                                            ),
+                                                else R.drawable.search),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp),
-                                            tint =
-                                                if (showSearch) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = if (showSearch) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -377,8 +358,7 @@ fun LibraryScreen(
                                     Icon(
                                         painter = painterResource(id = R.drawable.search),
                                         contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                        modifier = Modifier.size(20.dp))
                                 },
                                 trailingIcon = {
                                     if (searchQuery.isNotEmpty()) {
@@ -386,8 +366,7 @@ fun LibraryScreen(
                                             Icon(
                                                 painter = painterResource(id = R.drawable.close),
                                                 contentDescription = "Clear search",
-                                                modifier = Modifier.size(20.dp)
-                                            )
+                                                modifier = Modifier.size(20.dp))
                                         }
                                     }
                                 },
@@ -425,8 +404,7 @@ fun LibraryScreen(
                                     EmptyLibrary(
                                         imageId = R.drawable.disp_empty_library,
                                         primaryText = "No Results",
-                                        secondaryText = "No songs match \"$searchQuery\""
-                                    )
+                                        secondaryText = "No songs match \"$searchQuery\"")
                                 } else {
                                     DisplayList(
                                         items = filteredSongs,
@@ -445,8 +423,7 @@ fun LibraryScreen(
                                     EmptyLibrary(
                                         imageId = R.drawable.disp_empty_library,
                                         primaryText = "No Results",
-                                        secondaryText = "No albums match \"$searchQuery\""
-                                    )
+                                        secondaryText = "No albums match \"$searchQuery\"")
                                 } else {
                                     DisplayList(
                                         items = filteredAlbums,
@@ -469,8 +446,7 @@ fun LibraryScreen(
                                     EmptyLibrary(
                                         imageId = R.drawable.disp_empty_library,
                                         primaryText = "No Results",
-                                        secondaryText = "No artists match \"$searchQuery\""
-                                    )
+                                        secondaryText = "No artists match \"$searchQuery\"")
                                 } else {
                                     DisplayList(
                                         items = filteredArtists,
@@ -484,13 +460,10 @@ fun LibraryScreen(
                                     )
                                 }
                             }
-                            3 -> {
-                                EmptyLibrary(
-                                    imageId = R.drawable.disp_empty_library,
-                                    primaryText = "No Playlists",
-                                    secondaryText = "Create a playlist to see it here"
-                                )
-                            }
+                            3 -> EmptyLibrary(
+                                imageId = R.drawable.disp_empty_library,
+                                primaryText = "No Playlists",
+                                secondaryText = "Create a playlist to see it here")
                         }
                     }
                 }
@@ -510,8 +483,6 @@ fun LibraryScreen(
     }
 }
 
-enum class SortDirection { ASC, DESC }
-
 @Composable
 private fun SortOptionGroup(
     sortOptions: List<SortOption>,
@@ -520,13 +491,11 @@ private fun SortOptionGroup(
 ) {
     sortOptions.forEach { option ->
         val isSelected = option::class == currentOption::class
-
         StyledDropdownItem(
             icon = option.iconRes,
             label = option.label,
-            tint =
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = if (isSelected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = { onOptionSelected(option) }
         )
     }
