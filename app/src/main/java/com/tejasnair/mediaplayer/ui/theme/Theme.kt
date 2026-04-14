@@ -10,17 +10,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 
 private val ColorScheme = darkColorScheme(
-    primary = Color(0xFFF5F5F5),
-    onPrimary = Color.Black,
-    background = Color.Black,
-    onBackground = Color(0xFFE0E0E0),
-    surface = Color(0xFF121212),
-    onSurface = Color(0xFFE0E0E0),
-    onSurfaceVariant = Color(0xFF787878),
-    outline = Color(0xFFBBBBBB),
-    outlineVariant = Color(0xFF444444),
+    primary = Color(0xFFFFFFFF),
+    onPrimary = Color(0xFF1A1A1A),
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFF2F2F2),
+    surface = Color(0xFF1A1A1A),
+    onSurface = Color(0xFFB0B0B0),
+    onSurfaceVariant = Color(0xFF858585),
+    outline = Color(0xFF4A4A4A),
+    outlineVariant = Color(0xFF2E2E2E),
     error = Color(0xFFCF6679),
-    onError = Color.Black
+    onError = Color(0xFF000000),
 )
 
 @Composable
