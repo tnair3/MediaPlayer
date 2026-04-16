@@ -1,8 +1,8 @@
 # Media Player
 A local media player app built using Kotlin for Android devices to allow users to listen to audio files they can upload onto the app's local storage
 
-App Version: 1.0-alpha1
-Build: debug 2026-04-16
+* App Version: 1.0-alpha1
+* Build: debug 2026-04-16
 
 ## Technologies
 * Kotlin
