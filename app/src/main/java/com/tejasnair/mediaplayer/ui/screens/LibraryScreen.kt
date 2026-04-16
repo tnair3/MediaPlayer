@@ -1,5 +1,6 @@
 package com.tejasnair.mediaplayer.ui.screens
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -37,6 +38,7 @@ import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
 enum class SortDirection { ASC, DESC }
 
+@SuppressLint("UnrememberedMutableState")
 @Composable
 fun LibraryScreen(
     libraryViewModel: LibraryViewModel,
@@ -46,9 +48,8 @@ fun LibraryScreen(
 ) {
     val songs by libraryViewModel.allSongs.collectAsState()
     val albums by libraryViewModel.albums.collectAsState()
-    val artists by libraryViewModel.artists.collectAsState()
 
-    val options = listOf("Songs", "Albums", "Artists", "Playlists")
+    val options = listOf("Songs", "Albums", "Playlists")
     val focusManager = LocalFocusManager.current
     val pagerState = rememberPagerState(pageCount = { options.size })
     val coroutineScope = rememberCoroutineScope()
@@ -64,29 +65,21 @@ fun LibraryScreen(
     var songSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
     var albumSortOption by remember { mutableStateOf<SortOption>(value = SortOption.AlbumName) }
     var albumSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
-    var artistSortOption by remember { mutableStateOf<SortOption>(value = SortOption.ArtistName) }
-    var artistSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
 
     val currentPage = pagerState.currentPage
 
-    val sortActive by remember {
-        derivedStateOf {
-            isSortActive(currentPage,
-                songSortOption, songDir = songSortDirection,
-                albumSortOption, albumDir = albumSortDirection,
-                artistSortOption, artistDir = artistSortDirection
-            )
-        }
+    val sortActive by derivedStateOf {
+        isSortActive(currentPage,
+            songSortOption, songDir = songSortDirection,
+            albumSortOption, albumDir = albumSortDirection
+        )
     }
 
-    val currentSortDirection by remember {
-        derivedStateOf {
-            when (currentPage) {
-                0 -> songSortDirection
-                1 -> albumSortDirection
-                2 -> artistSortDirection
-                else -> SortDirection.ASC
-            }
+    val currentSortDirection by derivedStateOf {
+        when (currentPage) {
+            0 -> songSortDirection
+            1 -> albumSortDirection
+            else -> SortDirection.ASC
         }
     }
 
@@ -120,17 +113,6 @@ fun LibraryScreen(
             else -> filtered
         }
         if (albumSortDirection == SortDirection.DESC) sorted.reversed() else sorted
-    }
-
-    val filteredArtists = remember(searchQuery, artists, artistSortOption, artistSortDirection) {
-        val filtered = if (searchQuery.isBlank()) artists
-        else artists.filter { it.contains(other = searchQuery, ignoreCase = true) }
-        val sorted = when (artistSortOption) {
-            SortOption.ArtistName      -> filtered.sortedBy { it.lowercase() }
-            SortOption.ArtistSongCount -> filtered
-            else -> filtered
-        }
-        if (artistSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
     ThemedScreen {
@@ -272,7 +254,6 @@ fun LibraryScreen(
                                                 when (currentPage) {
                                                     0 -> songSortDirection = newDir
                                                     1 -> albumSortDirection = newDir
-                                                    2 -> artistSortDirection = newDir
                                                 }
                                             },
                                             modifier = Modifier.padding(horizontal = 4.dp),
@@ -296,11 +277,6 @@ fun LibraryScreen(
                                                 sortOptions = listOf(SortOption.AlbumName, SortOption.AlbumArtist, SortOption.AlbumYear),
                                                 currentOption = albumSortOption,
                                                 onOptionSelected = { albumSortOption = it; showSortMenu = false }
-                                            )
-                                            2 -> SortOptionGroup(
-                                                sortOptions = listOf(SortOption.ArtistName, SortOption.ArtistSongCount),
-                                                currentOption = artistSortOption,
-                                                onOptionSelected = { artistSortOption = it; showSortMenu = false }
                                             )
                                             else -> Box(
                                                 modifier = Modifier.fillMaxWidth().padding(all = 16.dp),
@@ -441,26 +417,7 @@ fun LibraryScreen(
                                     )
                                 }
                             }
-                            2 -> {
-                                if (filteredArtists.isEmpty()) {
-                                    EmptyLibrary(
-                                        imageId = R.drawable.disp_empty_library,
-                                        primaryText = "No Results",
-                                        secondaryText = "No artists match \"$searchQuery\"")
-                                } else {
-                                    DisplayList(
-                                        items = filteredArtists,
-                                        title = { it },
-                                        subtitle = { "Artist" },
-                                        artModel = { -1 },
-                                        trackNumber = { -1 },
-                                        trackDuration = { "" },
-                                        onClick = { },
-                                        isFavourite = { false },
-                                    )
-                                }
-                            }
-                            3 -> EmptyLibrary(
+                            2 -> EmptyLibrary(
                                 imageId = R.drawable.disp_empty_library,
                                 primaryText = "No Playlists",
                                 secondaryText = "Create a playlist to see it here")
@@ -505,10 +462,8 @@ private fun isSortActive(
     currentPage: Int,
     songSort: SortOption, songDir: SortDirection,
     albumSort: SortOption, albumDir: SortDirection,
-    artistSort: SortOption, artistDir: SortDirection
 ): Boolean = when (currentPage) {
     0 -> songSort !is SortOption.SongName || songDir != SortDirection.ASC
     1 -> albumSort !is SortOption.AlbumName || albumDir != SortDirection.ASC
-    2 -> artistSort !is SortOption.ArtistName || artistDir != SortDirection.ASC
     else -> false
 }

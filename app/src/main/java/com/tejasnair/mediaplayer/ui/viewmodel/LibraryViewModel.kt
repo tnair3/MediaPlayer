@@ -25,15 +25,6 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
     val albums: StateFlow<List<AlbumSummary>> = repository.albums
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val artists: StateFlow<List<String>> = repository.artists
-        .map { rawArtistList ->
-            rawArtistList.flatMap { fullString ->
-                fullString.split(Regex(",|&|\\band\\b", RegexOption.IGNORE_CASE))
-                    .map { it.trim() }
-            }.distinct().sorted()
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     val favouriteSongs: StateFlow<List<Song>> = repository.favouriteSongs
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -55,12 +46,6 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
 
     fun getSong(songId: String): Flow<Song?> {
         return repository.getSongById(songId)
-    }
-
-    fun getSongsByArtist(artistName: String): Flow<List<Song>> {
-        return allSongs.map { songs ->
-            songs.filter { it.artists.contains(artistName, ignoreCase = true) }
-        }
     }
 
     fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> {

@@ -21,7 +21,6 @@ class MusicRepository(
 
     val allSongs: Flow<List<Song>> = musicDao.getAllSongs()
     val albums: Flow<List<AlbumSummary>> = musicDao.getUniqueAlbums()
-    val artists: Flow<List<String>> = musicDao.getUniqueArtists()
 
     val favouriteSongs: Flow<List<Song>> = musicDao.getFavouriteSongs()
 
