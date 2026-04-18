@@ -1,16 +1,9 @@
 package com.tejasnair.mediaplayer.data.repository
 
-// 1. Android & Core
 import android.content.Context
 import android.util.Log
-
-// 2. Java IO
 import java.io.File
-
-// 3. Coroutines & Flow
 import kotlinx.coroutines.flow.Flow
-
-// 4. Local Project Imports
 import com.tejasnair.mediaplayer.data.local.dao.MusicDao
 import com.tejasnair.mediaplayer.data.model.*
 
@@ -19,22 +12,53 @@ class MusicRepository(
     private val context: Context
 ) {
 
-    val allSongs: Flow<List<Song>> = musicDao.getAllSongs()
-    val albums: Flow<List<AlbumSummary>> = musicDao.getUniqueAlbums()
+    // --- CORE SONG DATA ---
 
+    val allSongs: Flow<List<Song>> = musicDao.getAllSongs()
     val favouriteSongs: Flow<List<Song>> = musicDao.getFavouriteSongs()
 
-    fun getSongById(songId: String): Flow<Song?> {
-        return musicDao.getSongById(songId)
+    fun getSongById(songId: String): Flow<Song?> = musicDao.getSongById(songId)
+
+    suspend fun insert(song: Song) = musicDao.insertSong(song)
+
+    suspend fun updateSong(song: Song) = musicDao.updateSong(song)
+
+    suspend fun toggleFavourite(songId: String) = musicDao.toggleFavourite(songId)
+
+    suspend fun findExistingSong(title: String, artist: String, album: String, albumArtist: String): Song? =
+        musicDao.findExistingSong(title, artist, album, albumArtist)
+
+
+    // --- ALBUMS & ARTISTS ---
+
+    val albums: Flow<List<AlbumSummary>> = musicDao.getUniqueAlbums()
+
+    fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> =
+        musicDao.getSongsByAlbum(name, artist)
+
+    fun getSongsByArtist(artistName: String): Flow<List<Song>> =
+        musicDao.getSongsByArtist(artistName)
+
+    suspend fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) =
+        musicDao.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)
+
+
+    // --- PLAYLIST MANAGEMENT ---
+
+    val allPlaylists: Flow<List<Playlist>> = musicDao.getAllPlaylists()
+
+    suspend fun createPlaylist(playlist: Playlist) = musicDao.insertPlaylist(playlist)
+
+    suspend fun addSongToPlaylist(songId: String, playlistId: String, position: Int) {
+        val crossRef = SongToPlaylist(songId, playlistId, position)
+        musicDao.addSongToPlaylist(crossRef)
     }
 
-    suspend fun insert(song: Song) {
-        musicDao.insertSong(song)
-    }
+    fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> =
+        musicDao.getSongsInPlaylist(playlistId)
 
-    suspend fun toggleFavourite(songId: String) {
-        musicDao.toggleFavourite(songId)
-    }
+
+    // --- STORAGE & FILE CLEANUP ---
 
     suspend fun deleteSong(song: Song) {
         try {
@@ -42,25 +66,19 @@ class MusicRepository(
             if (audioFile.exists()) {
                 audioFile.delete()
             }
-
-            musicDao.deleteSong(song)
-        }
-        catch (e: Exception) {
-            Log.e("Repository", "Error deleting files: ${e.message}")
+        } catch (e: Exception) {
+            Log.e("Repository", "Error deleting physical file: ${e.message}")
+        } finally {
             musicDao.deleteSong(song)
         }
     }
 
     suspend fun clearLibrary() {
         val allSongs = musicDao.getAllSongsOnce()
-
         allSongs.forEach { song ->
             val file = File(song.filePath)
-            if (file.exists()) {
-                file.delete()
-            }
+            if (file.exists()) file.delete()
         }
-
         musicDao.clearLibrary()
     }
 
@@ -70,14 +88,4 @@ class MusicRepository(
             if (file.exists()) file.length() else 0L
         }
     }
-
-    suspend fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) {
-        musicDao.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)
-    }
-
-    suspend fun findExistingSong(title: String, artist: String, album: String, albumArtist: String): Song? =
-        musicDao.findExistingSong(title, artist, album, albumArtist)
-
-    fun getSongsByAlbum(name: String, artist: String) =
-        musicDao.getSongsByAlbum(name, artist)
 }

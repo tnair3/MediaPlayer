@@ -1,16 +1,12 @@
 package com.tejasnair.mediaplayer.data.model
 
-// 1. Room Persistence
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-
-// 2. Java Standard Library
 import java.util.UUID
 
 @Entity(tableName = "songs")
 data class Song(
-    @PrimaryKey
-    val songId: String = UUID.randomUUID().toString(),
+    @PrimaryKey val songId: String = UUID.randomUUID().toString(),
     val filePath: String,
     val title: String,
     val duration: Long, // milliseconds

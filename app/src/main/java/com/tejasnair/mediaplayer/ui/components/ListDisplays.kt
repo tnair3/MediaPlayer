@@ -74,10 +74,9 @@ fun <T> DisplayList(
     title: (T) -> String,
     subtitle: (T) -> String,
     artModel: (T) -> Any?,
-    trackNumber: (T) -> Int,
     trackDuration: (T) -> String,
     onClick: (T) -> Unit,
-    isFavourite: ((T) -> Boolean)? = null
+    isFavourite: ((T) -> Boolean)
 ) {
     LazyColumn {
         items(items) { item ->
@@ -97,31 +96,15 @@ fun <T> DisplayList(
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                 ) {
-                    if (trackNumber(item) != -1) {
-                        Box(
-                            modifier = Modifier
-                                .width(32.dp)
-                                .padding(end = 4.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = trackNumber(item).toString(),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
 
-                    if (artModel(item) != -1) {
-                        AsyncImage(
-                            model = artModel(item),
-                            contentDescription = "Album Art",
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    AsyncImage(
+                        model = artModel(item),
+                        contentDescription = "Art",
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
 
                     Spacer(modifier = Modifier.width(12.dp))
 
@@ -135,9 +118,7 @@ fun <T> DisplayList(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text =
-                                if(trackDuration(item) != "") "${subtitle(item)} • ${trackDuration(item)}"
-                                else subtitle(item),
+                            text = "${subtitle(item)} • ${trackDuration(item)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -145,7 +126,7 @@ fun <T> DisplayList(
                         )
                     }
 
-                    if (isFavourite != null && isFavourite(item)) {
+                    if (isFavourite(item)) {
                         Icon(
                             painter = painterResource(R.drawable.song_favourite_true),
                             contentDescription = "Favourite",

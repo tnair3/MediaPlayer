@@ -15,18 +15,74 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.data.model.AlbumSummary
+import com.tejasnair.mediaplayer.data.model.Playlist
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
 class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
 
+    // --- DATA STREAMS ---
+
     val allSongs: StateFlow<List<Song>> = repository.allSongs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val favouriteSongs: StateFlow<List<Song>> = repository.favouriteSongs
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val albums: StateFlow<List<AlbumSummary>> = repository.albums
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val favouriteSongs: StateFlow<List<Song>> = repository.favouriteSongs
+    val allPlaylists: StateFlow<List<Playlist>> = repository.allPlaylists
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+
+    // --- SONG ACTIONS ---
+
+    fun getSong(songId: String): Flow<Song?> = repository.getSongById(songId)
+
+    fun toggleFavourite(songId: String) {
+        viewModelScope.launch {
+            repository.toggleFavourite(songId)
+        }
+    }
+
+    fun deleteSong(song: Song) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteSong(song)
+        }
+    }
+
+
+    // --- ALBUM & ARTIST ACTIONS ---
+
+    fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> =
+        repository.getSongsByAlbum(name, artist)
+
+    fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)
+        }
+    }
+
+
+    // --- PLAYLIST ACTIONS ---
+
+    fun createPlaylist(name: String) {
+        viewModelScope.launch {
+            repository.createPlaylist(Playlist(playlistName = name))
+        }
+    }
+
+    fun addSongToPlaylist(songId: String, playlistId: String, position: Int) {
+        viewModelScope.launch {
+            repository.addSongToPlaylist(songId, playlistId, position)
+        }
+    }
+
+    fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> =
+        repository.getSongsInPlaylist(playlistId)
+
+
+    // --- LIBRARY MANAGEMENT ---
 
     var librarySize by mutableLongStateOf(0L)
         private set
@@ -41,38 +97,6 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             repository.clearLibrary()
             librarySize = 0L
-        }
-    }
-
-    fun getSong(songId: String): Flow<Song?> {
-        return repository.getSongById(songId)
-    }
-
-    fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> {
-        return allSongs.map { list ->
-            list.filter { it.album == name && it.albumArtists == artist }
-                .sortedWith(
-                    compareBy<Song> { it.discNumber }
-                        .thenBy { it.trackNumber }
-                )
-        }
-    }
-
-    fun toggleFavourite(songId: String) {
-        viewModelScope.launch {
-            repository.toggleFavourite(songId)
-        }
-    }
-
-    fun deleteSong(song: Song) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.deleteSong(song)
-        }
-    }
-
-    fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)
         }
     }
 }

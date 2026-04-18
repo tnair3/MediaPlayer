@@ -29,14 +29,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.R
@@ -49,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import com.tejasnair.mediaplayer.ui.components.Waveform
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -185,7 +183,10 @@ fun NowPlayingScreen(
                                             if (offsetX > threshold) playbackViewModel.skipToPreviousForce()
                                             else if (offsetX < -threshold) playbackViewModel.skipToNext()
                                             scope.launch {
-                                                animate(initialValue = offsetX, targetValue = 0f) { value, _ ->
+                                                animate(
+                                                    initialValue = offsetX,
+                                                    targetValue = 0f
+                                                ) { value, _ ->
                                                     offsetX = value
                                                 }
                                             }
@@ -198,15 +199,22 @@ fun NowPlayingScreen(
                                 }
                                 .graphicsLayer {
                                     translationX = offsetX
-                                    alpha = 1f - (kotlin.math.abs(offsetX) / (threshold * 2f)).coerceAtMost(0.5f)
+                                    alpha =
+                                        1f - (kotlin.math.abs(offsetX) / (threshold * 2f)).coerceAtMost(
+                                            0.5f
+                                        )
                                 },
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             LaunchedEffect(showSkipLeft) {
-                                if (showSkipLeft) { delay(600); showSkipLeft = false }
+                                if (showSkipLeft) {
+                                    delay(600); showSkipLeft = false
+                                }
                             }
                             LaunchedEffect(showSkipRight) {
-                                if (showSkipRight) { delay(600); showSkipRight = false }
+                                if (showSkipRight) {
+                                    delay(600); showSkipRight = false
+                                }
                             }
 
                             Box(
@@ -228,18 +236,32 @@ fun NowPlayingScreen(
                                 Box(
                                     modifier = Modifier
                                         .size(280.dp)
-                                        .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(28.dp))
+                                        .background(
+                                            Color.White.copy(alpha = 0.08f),
+                                            RoundedCornerShape(28.dp)
+                                        )
                                         .blur(20.dp)
                                 )
                                 AsyncImage(
-                                    modifier = Modifier.size(260.dp).clip(RoundedCornerShape(24.dp)),
+                                    modifier = Modifier.size(260.dp)
+                                        .clip(RoundedCornerShape(24.dp)),
                                     model = currentSong?.songArtUri,
                                     contentDescription = "Album Art",
                                     contentScale = ContentScale.Crop
                                 )
-                                Box(modifier = Modifier.size(260.dp).clip(RoundedCornerShape(24.dp))) {
-                                    SkipIndicator(visible = showSkipLeft, text = "-10s", alignment = Alignment.CenterStart)
-                                    SkipIndicator(visible = showSkipRight, text = "+10s", alignment = Alignment.CenterEnd)
+                                Box(
+                                    modifier = Modifier.size(260.dp).clip(RoundedCornerShape(24.dp))
+                                ) {
+                                    SkipIndicator(
+                                        visible = showSkipLeft,
+                                        text = "-10s",
+                                        alignment = Alignment.CenterStart
+                                    )
+                                    SkipIndicator(
+                                        visible = showSkipRight,
+                                        text = "+10s",
+                                        alignment = Alignment.CenterEnd
+                                    )
                                 }
                             }
 
@@ -294,8 +316,16 @@ fun NowPlayingScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(formatTime(currentPosition), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                                Text(formatTime(duration), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+                                Text(
+                                    formatTime(currentPosition),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                                Text(
+                                    formatTime(duration),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
                             }
 
                             Spacer(Modifier.height(8.dp))
@@ -318,16 +348,33 @@ fun NowPlayingScreen(
                                 }
 
                                 IconButton(onClick = { playbackViewModel.skipToPrevious() }) {
-                                    Icon(painterResource(R.drawable.song_previous), "Previous", tint = Color.White, modifier = Modifier.size(36.dp))
+                                    Icon(
+                                        painterResource(R.drawable.song_previous),
+                                        "Previous",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(36.dp)
+                                    )
                                 }
 
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(72.dp)) {
-                                    Box(modifier = Modifier.size(72.dp).background(Color.White.copy(alpha = 0.15f), CircleShape).blur(8.dp))
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.size(72.dp)
+                                ) {
                                     Box(
-                                        modifier = Modifier.size(60.dp).background(Color.White, CircleShape).clip(CircleShape),
+                                        modifier = Modifier.size(72.dp).background(
+                                            Color.White.copy(alpha = 0.15f),
+                                            CircleShape
+                                        ).blur(8.dp)
+                                    )
+                                    Box(
+                                        modifier = Modifier.size(60.dp)
+                                            .background(Color.White, CircleShape).clip(CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        IconButton(onClick = { playbackViewModel.togglePlayPause() }, modifier = Modifier.fillMaxSize()) {
+                                        IconButton(
+                                            onClick = { playbackViewModel.togglePlayPause() },
+                                            modifier = Modifier.fillMaxSize()
+                                        ) {
                                             Icon(
                                                 painter = painterResource(
                                                     if (isPlaying) R.drawable.song_pause
@@ -343,7 +390,12 @@ fun NowPlayingScreen(
                                 }
 
                                 IconButton(onClick = { playbackViewModel.skipToNext() }) {
-                                    Icon(painterResource(R.drawable.song_next), "Next", tint = Color.White, modifier = Modifier.size(36.dp))
+                                    Icon(
+                                        painterResource(R.drawable.song_next),
+                                        "Next",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(36.dp)
+                                    )
                                 }
 
                                 IconButton(onClick = { playbackViewModel.toggleRepeatMode() }) {
@@ -354,7 +406,9 @@ fun NowPlayingScreen(
                                     }
                                     Icon(
                                         painterResource(iconRes), "Repeat",
-                                        tint = if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(alpha = 0.8f) else Color.White,
+                                        tint = if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(
+                                            alpha = 0.8f
+                                        ) else Color.White,
                                         modifier = Modifier.size(26.dp)
                                     )
                                 }
@@ -429,13 +483,21 @@ fun NowPlayingScreen(
                                     Icon(
                                         painter = painterResource(R.drawable.song_shuffle),
                                         contentDescription = "Shuffle",
-                                        tint = if (playbackViewModel.isShuffleOn) Color.White else Color.White.copy(alpha = 0.4f),
+                                        tint = if (playbackViewModel.isShuffleOn) Color.White else Color.White.copy(
+                                            alpha = 0.4f
+                                        ),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
 
                                 // Chevron right — navigate to info panel
-                                IconButton(onClick = { scope.launch { pagerState.animateScrollToPage(1) } }) {
+                                IconButton(onClick = {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(
+                                            1
+                                        )
+                                    }
+                                }) {
                                     Icon(
                                         painter = painterResource(R.drawable.chevron_right),
                                         contentDescription = "More",
@@ -500,6 +562,12 @@ fun NowPlayingScreen(
                                 )
                             }
                         }
+
+                        Spacer(Modifier.height(16.dp))
+
+                        Waveform(modifier = Modifier
+                            .size(18.dp)
+                            .align(Alignment.CenterHorizontally))
                     }
                 }
 

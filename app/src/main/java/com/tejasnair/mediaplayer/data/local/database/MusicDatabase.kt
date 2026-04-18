@@ -1,20 +1,17 @@
 package com.tejasnair.mediaplayer.data.local.database
 
-// 1. Android & Core
 import android.content.Context
-
-// 2. Room Database
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-
-// 3. Local Project Imports
 import com.tejasnair.mediaplayer.data.local.dao.MusicDao
 import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.data.model.Playlist
+import com.tejasnair.mediaplayer.data.model.SongToPlaylist
 
 @Database(
-    entities = [Song::class], // Our only physical table
-    version = 1,
+    entities = [Song::class, Playlist::class, SongToPlaylist::class],
+    version = 2,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {

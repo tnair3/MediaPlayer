@@ -5,8 +5,11 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,10 +24,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import com.tejasnair.mediaplayer.R
-import com.tejasnair.mediaplayer.ui.components.DisplayList
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.FilterRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
@@ -48,6 +54,7 @@ fun LibraryScreen(
 ) {
     val songs by libraryViewModel.allSongs.collectAsState()
     val albums by libraryViewModel.albums.collectAsState()
+    val playlists by libraryViewModel.allPlaylists.collectAsState()
 
     val options = listOf("Songs", "Albums", "Playlists")
     val focusManager = LocalFocusManager.current
@@ -235,7 +242,9 @@ fun LibraryScreen(
                                                     modifier = Modifier
                                                         .size(32.dp)
                                                         .background(
-                                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                            color = MaterialTheme.colorScheme.primary.copy(
+                                                                alpha = 0.1f
+                                                            ),
                                                             shape = RoundedCornerShape(size = 8.dp)
                                                         ),
                                                     contentAlignment = Alignment.Center
@@ -279,7 +288,9 @@ fun LibraryScreen(
                                                 onOptionSelected = { albumSortOption = it; showSortMenu = false }
                                             )
                                             else -> Box(
-                                                modifier = Modifier.fillMaxWidth().padding(all = 16.dp),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(all = 16.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
@@ -381,17 +392,77 @@ fun LibraryScreen(
                                         imageId = R.drawable.disp_empty_library,
                                         primaryText = "No Results",
                                         secondaryText = "No songs match \"$searchQuery\"")
-                                } else {
-                                    DisplayList(
-                                        items = filteredSongs,
-                                        title = { it.title },
-                                        subtitle = { it.artists },
-                                        artModel = { it.songArtUri },
-                                        trackNumber = { -1 },
-                                        trackDuration = { formatTime(ms = it.duration) },
-                                        onClick = { selectedSongId = it.songId },
-                                        isFavourite = { it.isFavourite },
-                                    )
+                                }
+                                else {
+                                    LazyColumn {
+                                        items(filteredSongs) { item ->
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { selectedSongId = item.songId }
+                                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                            ) {
+                                                // Outer card-like row container
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(
+                                                            MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                                alpha = 0.3f
+                                                            )
+                                                        )
+                                                        .padding(
+                                                            horizontal = 10.dp,
+                                                            vertical = 8.dp
+                                                        )
+                                                ) {
+
+                                                    AsyncImage(
+                                                        model = item.songArtUri,
+                                                        contentDescription = "Album Art",
+                                                        modifier = Modifier
+                                                            .size(48.dp)
+                                                            .clip(RoundedCornerShape(8.dp)),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+
+                                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = item.title,
+                                                            style = MaterialTheme.typography.bodyLarge,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Text(
+                                                            text = "${item.artists} • ${formatTime(ms = item.duration)}",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+
+                                                    if (item.isFavourite) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.song_favourite_true),
+                                                            contentDescription = "Favourite",
+                                                            tint = MaterialTheme.colorScheme.surfaceVariant,
+                                                            modifier = Modifier
+                                                                .padding(start = 8.dp)
+                                                                .size(16.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             1 -> {
@@ -400,27 +471,126 @@ fun LibraryScreen(
                                         imageId = R.drawable.disp_empty_library,
                                         primaryText = "No Results",
                                         secondaryText = "No albums match \"$searchQuery\"")
-                                } else {
-                                    DisplayList(
-                                        items = filteredAlbums,
-                                        title = { it.album },
-                                        subtitle = { it.albumArtists },
-                                        artModel = { it.backCoverUri ?: it.songArtUri },
-                                        trackNumber = { -1 },
-                                        trackDuration = { "" },
-                                        onClick = { album ->
-                                            val encodedName = Uri.encode(album.album)
-                                            val encodedArtist = Uri.encode(album.albumArtists)
-                                            navController.navigate(route = "album/$encodedName/$encodedArtist")
-                                        },
-                                        isFavourite = { false },
-                                    )
+                                }
+                                else {
+                                    LazyColumn {
+                                        items(filteredAlbums) { item ->
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        val encodedAlbum = Uri.encode(item.album)
+                                                        val encodedArtist = Uri.encode(item.albumArtists)
+
+                                                        navController.navigate("album/$encodedAlbum/$encodedArtist") {
+                                                            launchSingleTop = true
+                                                        }
+                                                    }
+                                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                            ) {
+                                                // Outer card-like row container
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(
+                                                            MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                                alpha = 0.3f
+                                                            )
+                                                        )
+                                                        .padding(
+                                                            horizontal = 10.dp,
+                                                            vertical = 8.dp
+                                                        )
+                                                ) {
+
+                                                    AsyncImage(
+                                                        model = item.backCoverUri ?: item.songArtUri,
+                                                        contentDescription = "Album Art",
+                                                        modifier = Modifier
+                                                            .size(48.dp)
+                                                            .clip(RoundedCornerShape(8.dp)),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+
+                                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = item.album,
+                                                            style = MaterialTheme.typography.bodyLarge,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Text(
+                                                            text = item.albumArtists,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                            2 -> EmptyLibrary(
-                                imageId = R.drawable.disp_empty_library,
-                                primaryText = "No Playlists",
-                                secondaryText = "Create a playlist to see it here")
+                            2 -> {
+                                if (playlists.isEmpty()) {
+                                    EmptyLibrary(
+                                        imageId = R.drawable.disp_empty_library,
+                                        primaryText = "No Playlists",
+                                        secondaryText = "Create a playlist to see it here")
+                                }
+                                else {
+                                    LazyColumn {
+                                        items(playlists) { item ->
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {  }
+                                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                            ) {
+                                                // Outer card-like row container
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                                ) {
+                                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = item.playlistName,
+                                                            style = MaterialTheme.typography.bodyLarge,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Text(
+                                                            text = "Number of songs",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -30,6 +30,8 @@ import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
+import android.util.Log
+
 @Composable
 fun AlbumScreen(
     albumName: String,
@@ -73,8 +75,11 @@ fun AlbumScreen(
 
     val songsSelectedForDeletion = remember { mutableStateSetOf<String>() }
 
+    var hasLoadedInitially by remember { mutableStateOf(false) }
+
     LaunchedEffect(key1 = albumSongs) {
-        if (albumSongs.isEmpty()) navController.navigateUp()
+        if (albumSongs.isNotEmpty()) hasLoadedInitially = true
+        if (albumSongs.isEmpty() && hasLoadedInitially) navController.navigateUp()
     }
 
     // Dialogs
