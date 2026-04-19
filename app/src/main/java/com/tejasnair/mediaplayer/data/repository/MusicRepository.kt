@@ -29,15 +29,12 @@ class MusicRepository(
         musicDao.findExistingSong(title, artist, album, albumArtist)
 
 
-    // --- ALBUMS & ARTISTS ---
+    // --- ALBUM ---
 
     val albums: Flow<List<AlbumSummary>> = musicDao.getUniqueAlbums()
 
     fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> =
         musicDao.getSongsByAlbum(name, artist)
-
-    fun getSongsByArtist(artistName: String): Flow<List<Song>> =
-        musicDao.getSongsByArtist(artistName)
 
     suspend fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) =
         musicDao.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)

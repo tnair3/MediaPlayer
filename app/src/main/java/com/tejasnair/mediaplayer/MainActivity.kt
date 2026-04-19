@@ -1,9 +1,14 @@
 package com.tejasnair.mediaplayer
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.Spring
@@ -38,40 +43,54 @@ import androidx.navigation.navArgument
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
-import com.tejasnair.mediaplayer.data.local.files.MediaScanner
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 import com.tejasnair.mediaplayer.ui.components.MiniPlayer
+import com.tejasnair.mediaplayer.ui.components.UploadToast
 import com.tejasnair.mediaplayer.ui.screens.*
 import com.tejasnair.mediaplayer.ui.theme.MediaPlayerTheme
 import com.tejasnair.mediaplayer.ui.viewmodel.*
 
 class MainActivity : ComponentActivity() {
+
+    private val requestNotificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Request POST_NOTIFICATIONS at runtime on Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
         val database = MusicDatabase.getDatabase(applicationContext)
         val repository = MusicRepository(database.musicDao(), applicationContext)
-        val mediaScanner = MediaScanner(applicationContext, repository)
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel()
             val libraryViewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(repository))
             val playbackViewModel: PlaybackViewModel = viewModel()
+            val uploadViewModel: UploadViewModel = viewModel()
 
             val scope = rememberCoroutineScope()
 
             val currentSongId = playbackViewModel.currentSongId
             val currentSong by remember(currentSongId) {
-                currentSongId?.let { id ->
-                    libraryViewModel.getSong(id)
-                } ?: flowOf(null)
+                currentSongId?.let { id -> libraryViewModel.getSong(id) } ?: flowOf(null)
             }.collectAsState(initial = null)
 
             val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
             val showNowPlaying = remember { mutableStateOf(false) }
+
+            val uploadProgress by uploadViewModel.uploadProgress.collectAsState()
 
             MediaPlayerTheme {
                 val navController = rememberNavController()
@@ -92,7 +111,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         composable("library") { LibraryScreen(libraryViewModel, playbackViewModel, navController, showNowPlaying) }
                         composable("settings") { SettingsScreen(settingsViewModel, libraryViewModel, navController) }
-                        composable("upload") { UploadScreen(navController, mediaScanner) }
+                        composable("upload") { UploadScreen(navController, uploadViewModel) }
                         composable("favourites") { FavouritesScreen(libraryViewModel, playbackViewModel, navController, showNowPlaying) }
                         composable("vinyls") { VinylsScreen(navController) }
                         composable("record") { RecordScreen(navController) }
@@ -139,7 +158,6 @@ class MainActivity : ComponentActivity() {
                     val targetCornerSize by remember(sheetState) {
                         derivedStateOf {
                             val offset = kotlin.runCatching { sheetState.requireOffset() }.getOrDefault(0f)
-
                             val progress = (offset / 300f).coerceIn(0f, 1f)
                             (progress * 28).dp
                         }
@@ -173,6 +191,8 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+
+                    UploadToast(progress = uploadProgress)
                 }
             }
         }

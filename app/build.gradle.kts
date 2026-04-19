@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.palette)
     implementation(libs.jaudiotagger)
+    implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
