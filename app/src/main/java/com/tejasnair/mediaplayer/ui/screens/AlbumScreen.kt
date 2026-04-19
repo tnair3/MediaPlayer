@@ -331,11 +331,7 @@ fun AlbumScreen(
                         onClick = {
                             if (albumSongs.isNotEmpty()) playbackViewModel.playSong(
                                 selectedSong = albumSongs.first(),
-                                playlist = albumSongs.sortedWith(
-                                    compareBy(
-                                        { it.discNumber }, { it.trackNumber }
-                                    )
-                                )
+                                playlist = albumSongs
                             )
                             showNowPlaying.value = true
                         },
@@ -353,13 +349,7 @@ fun AlbumScreen(
                     OutlinedButton(
                         onClick = {
                             if (albumSongs.isNotEmpty()) {
-                                val shuffled = albumSongs
-                                    .sortedWith(
-                                    compareBy(
-                                        { it.discNumber }, { it.trackNumber }
-                                    )
-                                )
-                                    .shuffled()
+                                val shuffled = albumSongs.shuffled()
                                 playbackViewModel.playSong(
                                     selectedSong = shuffled.first(),
                                     playlist = shuffled
@@ -510,11 +500,7 @@ fun AlbumScreen(
         selectedSong?.let { song ->
             SongSheet(
                 song = song,
-                playlist = albumSongs.sortedWith(
-                    compareBy(
-                        { it.discNumber }, { it.trackNumber }
-                    )
-                ),
+                playlist = albumSongs,
                 playbackViewModel = playbackViewModel,
                 libraryViewModel = libraryViewModel,
                 onDelete = { libraryViewModel.deleteSong(it) },

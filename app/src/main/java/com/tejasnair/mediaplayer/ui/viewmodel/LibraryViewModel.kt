@@ -56,6 +56,13 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
 
     fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> =
         repository.getSongsByAlbum(name, artist)
+            .map { list ->
+                list.sortedWith(
+                    compareBy(
+                        { it.discNumber }, { it.trackNumber }
+                    )
+                )
+            }
 
     fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) {
         viewModelScope.launch(Dispatchers.IO) {
