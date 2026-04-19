@@ -329,7 +329,14 @@ fun AlbumScreen(
                 ) {
                     Button(
                         onClick = {
-                            if (albumSongs.isNotEmpty()) playbackViewModel.playSong(selectedSong = albumSongs.first(), playlist = albumSongs)
+                            if (albumSongs.isNotEmpty()) playbackViewModel.playSong(
+                                selectedSong = albumSongs.first(),
+                                playlist = albumSongs.sortedWith(
+                                    compareBy(
+                                        { it.discNumber }, { it.trackNumber }
+                                    )
+                                )
+                            )
                             showNowPlaying.value = true
                         },
                         modifier = Modifier.weight(1f),
@@ -346,8 +353,17 @@ fun AlbumScreen(
                     OutlinedButton(
                         onClick = {
                             if (albumSongs.isNotEmpty()) {
-                                val shuffled = albumSongs.shuffled()
-                                playbackViewModel.playSong(selectedSong = shuffled.first(), playlist = shuffled)
+                                val shuffled = albumSongs
+                                    .sortedWith(
+                                    compareBy(
+                                        { it.discNumber }, { it.trackNumber }
+                                    )
+                                )
+                                    .shuffled()
+                                playbackViewModel.playSong(
+                                    selectedSong = shuffled.first(),
+                                    playlist = shuffled
+                                )
                             }
                             showNowPlaying.value = true
                         },
@@ -494,7 +510,11 @@ fun AlbumScreen(
         selectedSong?.let { song ->
             SongSheet(
                 song = song,
-                playlist = albumSongs,
+                playlist = albumSongs.sortedWith(
+                    compareBy(
+                        { it.discNumber }, { it.trackNumber }
+                    )
+                ),
                 playbackViewModel = playbackViewModel,
                 libraryViewModel = libraryViewModel,
                 onDelete = { libraryViewModel.deleteSong(it) },
