@@ -126,6 +126,13 @@ class MainActivity : ComponentActivity() {
                             val artist = backStackEntry.arguments?.getString("albumArtist") ?: ""
                             AlbumScreen(name, artist, libraryViewModel, playbackViewModel, navController, showNowPlaying)
                         }
+                        composable(
+                            route = "playlist/{playlistId}",
+                            arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val playlistId = backStackEntry.arguments?.getString("playlistId") ?: ""
+                            PlaylistScreen(playlistId, libraryViewModel, playbackViewModel, navController, showNowPlaying)
+                        }
                     }
 
                     val navBackStackEntry by navController.currentBackStackEntryAsState()

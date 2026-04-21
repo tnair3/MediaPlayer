@@ -73,6 +73,8 @@ fun AlbumScreen(
     var editAlbumArtist by remember { mutableStateOf(value = albumArtist) }
     var editAlbumYear by remember { mutableStateOf(value = albumYear ?: "") }
 
+    var showAlbumPlaylistPicker by remember { mutableStateOf(false) }
+
     val songsSelectedForDeletion = remember { mutableStateSetOf<String>() }
 
     var hasLoadedInitially by remember { mutableStateOf(false) }
@@ -243,6 +245,101 @@ fun AlbumScreen(
                 }) { Text("Cancel") }
             }
         )
+    }
+
+    if (showAlbumPlaylistPicker) {
+        val playlists by libraryViewModel.allPlaylists.collectAsState()
+        var showNewPlaylistFromAlbum by remember { mutableStateOf(false) }
+        var newNameFromAlbum by remember { mutableStateOf("") }
+
+        if (showNewPlaylistFromAlbum) {
+            AlertDialog(
+                onDismissRequest = { showNewPlaylistFromAlbum = false },
+                title = { Text("New Playlist") },
+                text = {
+                    OutlinedTextField(
+                        value = newNameFromAlbum,
+                        onValueChange = { newNameFromAlbum = it },
+                        label = { Text("Playlist name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = newNameFromAlbum.isNotBlank(),
+                        onClick = {
+                            val newId = java.util.UUID.randomUUID().toString()
+                            val newPlaylist = com.tejasnair.mediaplayer.data.model.Playlist(
+                                playlistId = newId,
+                                playlistName = newNameFromAlbum.trim()
+                            )
+                            libraryViewModel.createPlaylistWithId(newPlaylist)
+                            libraryViewModel.addSongsToPlaylist(albumSongs.map { it.songId }, newId, 0)
+                            showNewPlaylistFromAlbum = false
+                            showAlbumPlaylistPicker = false
+                            newNameFromAlbum = ""
+                        }
+                    ) { Text("Create & Add") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showNewPlaylistFromAlbum = false }) { Text("Cancel") }
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { showAlbumPlaylistPicker = false },
+                title = { Text("Add Album to Playlist") },
+                text = {
+                    LazyColumn {
+                        item {
+                            TextButton(
+                                onClick = { showNewPlaylistFromAlbum = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Start) {
+                                    Icon(painterResource(R.drawable.add), null,
+                                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("New Playlist", color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        }
+                        items(playlists) { pl ->
+                            val count by libraryViewModel.getPlaylistSongCount(pl.playlistId).collectAsState(initial = 0)
+                            TextButton(
+                                onClick = {
+                                    libraryViewModel.addSongsToPlaylist(albumSongs.map { it.songId }, pl.playlistId, count)
+                                    showAlbumPlaylistPicker = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Start) {
+                                    Icon(painterResource(R.drawable.song_options_playlist), null,
+                                        tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Text(pl.playlistName, color = MaterialTheme.colorScheme.onSurface,
+                                            style = MaterialTheme.typography.bodyMedium)
+                                        Text("$count songs", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showAlbumPlaylistPicker = false }) { Text("Cancel") }
+                }
+            )
+        }
     }
 
     // Main UI
@@ -467,9 +564,14 @@ fun AlbumScreen(
                             showOptionsMenu = false
                             playbackViewModel.addAlbumToQueue(albumSongs)
                         }
-                        StyledDropdownItem(icon = R.drawable.song_options_playlist, label = "Save to Playlist") {
-                            showOptionsMenu = false
-                        }
+                        StyledDropdownItem(
+                            icon = R.drawable.song_options_playlist,
+                            label = "Save to Playlist",
+                            onClick = {
+                                showOptionsMenu = false
+                                showAlbumPlaylistPicker = true
+                            }
+                        )
 
                         Spacer(Modifier.height(4.dp))
                         HorizontalDivider(

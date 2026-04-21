@@ -7,15 +7,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.data.model.AlbumSummary
 import com.tejasnair.mediaplayer.data.model.Playlist
+import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
 class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
@@ -34,35 +34,23 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
     val allPlaylists: StateFlow<List<Playlist>> = repository.allPlaylists
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-
     // --- SONG ACTIONS ---
 
     fun getSong(songId: String): Flow<Song?> = repository.getSongById(songId)
 
     fun toggleFavourite(songId: String) {
-        viewModelScope.launch {
-            repository.toggleFavourite(songId)
-        }
+        viewModelScope.launch { repository.toggleFavourite(songId) }
     }
 
     fun deleteSong(song: Song) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.deleteSong(song)
-        }
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteSong(song) }
     }
 
-
-    // --- ALBUM & ARTIST ACTIONS ---
+    // --- ALBUM ACTIONS ---
 
     fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> =
         repository.getSongsByAlbum(name, artist)
-            .map { list ->
-                list.sortedWith(
-                    compareBy(
-                        { it.discNumber }, { it.trackNumber }
-                    )
-                )
-            }
+            .map { list -> list.sortedWith(compareBy({ it.discNumber }, { it.trackNumber })) }
 
     fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -70,24 +58,45 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
         }
     }
 
-
     // --- PLAYLIST ACTIONS ---
 
     fun createPlaylist(name: String) {
-        viewModelScope.launch {
-            repository.createPlaylist(Playlist(playlistName = name))
-        }
+        viewModelScope.launch { repository.createPlaylist(Playlist(playlistName = name)) }
+    }
+
+    fun createPlaylistWithId(playlist: Playlist) {
+        viewModelScope.launch { repository.createPlaylist(playlist) }
+    }
+
+    fun updatePlaylistName(playlistId: String, newName: String) {
+        viewModelScope.launch { repository.updatePlaylistName(playlistId, newName) }
+    }
+
+    fun deletePlaylist(playlistId: String) {
+        viewModelScope.launch { repository.deletePlaylist(playlistId) }
     }
 
     fun addSongToPlaylist(songId: String, playlistId: String, position: Int) {
-        viewModelScope.launch {
-            repository.addSongToPlaylist(songId, playlistId, position)
-        }
+        viewModelScope.launch { repository.addSongToPlaylist(songId, playlistId, position) }
+    }
+
+    fun addSongsToPlaylist(songIds: List<String>, playlistId: String, startPosition: Int) {
+        viewModelScope.launch { repository.addSongsToPlaylist(songIds, playlistId, startPosition) }
+    }
+
+    fun removeSongFromPlaylist(songId: String, playlistId: String) {
+        viewModelScope.launch { repository.removeSongFromPlaylist(songId, playlistId) }
+    }
+
+    fun reorderPlaylist(playlistId: String, orderedSongIds: List<String>) {
+        viewModelScope.launch { repository.reorderPlaylist(playlistId, orderedSongIds) }
     }
 
     fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> =
         repository.getSongsInPlaylist(playlistId)
 
+    fun getPlaylistSongCount(playlistId: String): Flow<Int> =
+        repository.getPlaylistSongCount(playlistId)
 
     // --- LIBRARY MANAGEMENT ---
 
@@ -95,9 +104,7 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
         private set
 
     fun loadLibrarySize() {
-        viewModelScope.launch(Dispatchers.IO) {
-            librarySize = repository.getLibrarySizeBytes()
-        }
+        viewModelScope.launch(Dispatchers.IO) { librarySize = repository.getLibrarySizeBytes() }
     }
 
     fun clearLibrary() {

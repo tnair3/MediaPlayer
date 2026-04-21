@@ -12,7 +12,7 @@ import com.tejasnair.mediaplayer.data.model.*
 @Dao
 interface MusicDao {
 
-    // --- SONG CRUD OPERATIONS ---
+    // --- SONG CRUD ---
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSong(song: Song)
@@ -25,7 +25,6 @@ interface MusicDao {
 
     @Query("DELETE FROM songs WHERE songId = :id")
     suspend fun deleteSongById(id: String)
-
 
     // --- SONG QUERIES ---
 
@@ -44,8 +43,7 @@ interface MusicDao {
     @Query("SELECT * FROM songs WHERE title = :title AND artists = :artist AND album = :album AND albumArtists = :albumArtist LIMIT 1")
     suspend fun findExistingSong(title: String, artist: String, album: String, albumArtist: String): Song?
 
-
-    // --- FILTERING & SEARCHING ---
+    // --- FILTERING ---
 
     @Query("SELECT * FROM songs WHERE album = :albumName AND albumArtists = :albumArtist ORDER BY trackNumber ASC")
     fun getSongsByAlbum(albumName: String, albumArtist: String): Flow<List<Song>>
@@ -53,8 +51,7 @@ interface MusicDao {
     @Query("SELECT * FROM songs WHERE artists LIKE '%' || :artistName || '%'")
     fun getSongsByArtist(artistName: String): Flow<List<Song>>
 
-
-    // --- AGGREGATES (ALBUMS & ARTISTS) ---
+    // --- AGGREGATES ---
 
     @Query("""SELECT DISTINCT album, albumArtists, songArtUri, backCoverUri, year FROM songs GROUP BY album, albumArtists ORDER BY album ASC""")
     fun getUniqueAlbums(): Flow<List<AlbumSummary>>
@@ -65,17 +62,36 @@ interface MusicDao {
     @Query("UPDATE songs SET album = :newAlbum, albumArtists = :newArtist, year = :newYear WHERE album = :oldAlbum AND albumArtists = :oldArtist")
     suspend fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?)
 
-
-    // --- PLAYLIST OPERATIONS ---
+    // --- PLAYLIST CRUD ---
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPlaylist(playlist: Playlist)
 
+    @Query("UPDATE playlists SET playlistName = :newName WHERE playlistId = :playlistId")
+    suspend fun updatePlaylistName(playlistId: String, newName: String)
+
+    @Query("DELETE FROM playlists WHERE playlistId = :playlistId")
+    suspend fun deletePlaylist(playlistId: String)
+
     @Query("SELECT * FROM playlists ORDER BY playlistName ASC")
     fun getAllPlaylists(): Flow<List<Playlist>>
 
+    // --- PLAYLIST-SONG CROSS REF ---
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addSongToPlaylist(crossRef: SongToPlaylist)
+
+    @Query("DELETE FROM songToPlaylist WHERE songId = :songId AND playlistId = :playlistId")
+    suspend fun removeSongFromPlaylist(songId: String, playlistId: String)
+
+    @Query("DELETE FROM songToPlaylist WHERE playlistId = :playlistId")
+    suspend fun clearPlaylistSongs(playlistId: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSongToPlaylistBatch(crossRefs: List<SongToPlaylist>)
+
+    @Query("SELECT COUNT(*) FROM songToPlaylist WHERE playlistId = :playlistId")
+    fun getPlaylistSongCount(playlistId: String): Flow<Int>
 
     @Query("""
         SELECT songs.* FROM songs 
@@ -85,8 +101,7 @@ interface MusicDao {
     """)
     fun getSongsInPlaylist(playlistId: String): Flow<List<Song>>
 
-
-    // --- SPECIAL ACTIONS & CLEANUP ---
+    // --- SPECIAL ---
 
     @Query("UPDATE songs SET isFavourite = NOT isFavourite WHERE songId = :songId")
     suspend fun toggleFavourite(songId: String)

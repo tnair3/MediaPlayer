@@ -16,17 +16,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -61,31 +61,37 @@ fun LibraryScreen(
     val pagerState = rememberPagerState(pageCount = { options.size })
     val coroutineScope = rememberCoroutineScope()
 
-    var selectedSongId by remember { mutableStateOf<String?>(value = null) }
+    var selectedSongId by remember { mutableStateOf<String?>(null) }
     val selectedSong by remember { derivedStateOf { songs.find { it.songId == selectedSongId } } }
 
-    var showSearch by remember { mutableStateOf(value = false) }
-    var searchQuery by remember { mutableStateOf(value = "") }
-    var showSortMenu by remember { mutableStateOf(value = false) }
+    var showSearch by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var showSortMenu by remember { mutableStateOf(false) }
+    var showCreatePlaylistDialog by remember { mutableStateOf(false) }
+    var newPlaylistName by remember { mutableStateOf("") }
 
-    var songSortOption by remember { mutableStateOf<SortOption>(value = SortOption.SongName) }
-    var songSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
-    var albumSortOption by remember { mutableStateOf<SortOption>(value = SortOption.AlbumName) }
-    var albumSortDirection by remember { mutableStateOf(value = SortDirection.ASC) }
+    var songSortOption by remember { mutableStateOf<SortOption>(SortOption.SongName) }
+    var songSortDirection by remember { mutableStateOf(SortDirection.ASC) }
+    var albumSortOption by remember { mutableStateOf<SortOption>(SortOption.AlbumName) }
+    var albumSortDirection by remember { mutableStateOf(SortDirection.ASC) }
+    var playlistSortDirection by remember { mutableStateOf(SortDirection.ASC) }
 
     val currentPage = pagerState.currentPage
 
     val sortActive by derivedStateOf {
-        isSortActive(currentPage,
-            songSortOption, songDir = songSortDirection,
-            albumSortOption, albumDir = albumSortDirection
-        )
+        when (currentPage) {
+            0 -> songSortOption !is SortOption.SongName || songSortDirection != SortDirection.ASC
+            1 -> albumSortOption !is SortOption.AlbumName || albumSortDirection != SortDirection.ASC
+            2 -> playlistSortDirection != SortDirection.ASC
+            else -> false
+        }
     }
 
     val currentSortDirection by derivedStateOf {
         when (currentPage) {
             0 -> songSortDirection
             1 -> albumSortDirection
+            2 -> playlistSortDirection
             else -> SortDirection.ASC
         }
     }
@@ -93,9 +99,9 @@ fun LibraryScreen(
     val filteredSongs = remember(searchQuery, songs, songSortOption, songSortDirection) {
         val filtered = if (searchQuery.isBlank()) songs
         else songs.filter { song ->
-            song.title.contains(other = searchQuery, ignoreCase = true) ||
-                    song.artists.contains(other = searchQuery, ignoreCase = true) ||
-                    song.album.contains(other = searchQuery, ignoreCase = true)
+            song.title.contains(searchQuery, ignoreCase = true) ||
+                    song.artists.contains(searchQuery, ignoreCase = true) ||
+                    song.album.contains(searchQuery, ignoreCase = true)
         }
         val sorted = when (songSortOption) {
             SortOption.SongName   -> filtered.sortedBy { it.title.lowercase() }
@@ -110,8 +116,8 @@ fun LibraryScreen(
     val filteredAlbums = remember(searchQuery, albums, albumSortOption, albumSortDirection) {
         val filtered = if (searchQuery.isBlank()) albums
         else albums.filter { album ->
-            album.album.contains(other = searchQuery, ignoreCase = true) ||
-                    album.albumArtists.contains(other = searchQuery, ignoreCase = true)
+            album.album.contains(searchQuery, ignoreCase = true) ||
+                    album.albumArtists.contains(searchQuery, ignoreCase = true)
         }
         val sorted = when (albumSortOption) {
             SortOption.AlbumName   -> filtered.sortedBy { it.album.lowercase() }
@@ -122,12 +128,56 @@ fun LibraryScreen(
         if (albumSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
+    val filteredPlaylists = remember(searchQuery, playlists, playlistSortDirection) {
+        val filtered = if (searchQuery.isBlank()) playlists
+        else playlists.filter { it.playlistName.contains(searchQuery, ignoreCase = true) }
+        val sorted = filtered.sortedBy { it.playlistName.lowercase() }
+        if (playlistSortDirection == SortDirection.DESC) sorted.reversed() else sorted
+    }
+
+    // Create Playlist dialog
+    if (showCreatePlaylistDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showCreatePlaylistDialog = false
+                newPlaylistName = ""
+            },
+            title = { Text("New Playlist") },
+            text = {
+                OutlinedTextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    label = { Text("Playlist name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = newPlaylistName.isNotBlank(),
+                    onClick = {
+                        libraryViewModel.createPlaylist(newPlaylistName.trim())
+                        showCreatePlaylistDialog = false
+                        newPlaylistName = ""
+                    }
+                ) { Text("Create") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showCreatePlaylistDialog = false
+                    newPlaylistName = ""
+                }) { Text("Cancel") }
+            }
+        )
+    }
+
     ThemedScreen {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .safeDrawingPadding()
-                .pointerInput(key1 = Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+                .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
         ) {
             Column(
                 modifier = Modifier
@@ -137,11 +187,11 @@ fun LibraryScreen(
             ) {
                 TopNavigation(
                     title = "Library",
-                    onVinylClick = { navController.navigate(route = "vinyls") },
-                    onFavouriteClick = { navController.navigate(route = "favourites") },
-                    onRecordedClick = { navController.navigate(route = "record") },
-                    onUploadClick = { navController.navigate(route = "upload") },
-                    onSettingsClick = { navController.navigate(route = "settings") }
+                    onVinylClick = { navController.navigate("vinyls") },
+                    onFavouriteClick = { navController.navigate("favourites") },
+                    onRecordedClick = { navController.navigate("record") },
+                    onUploadClick = { navController.navigate("upload") },
+                    onSettingsClick = { navController.navigate("settings") }
                 )
 
                 if (songs.isNotEmpty()) {
@@ -163,35 +213,27 @@ fun LibraryScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    playbackViewModel.playSong(selectedSong = songs.first(), playlist = songs)
+                                    playbackViewModel.playSong(songs.first(), songs)
                                     showNowPlaying.value = true
                                 },
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.song_play),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(painterResource(R.drawable.song_play), null, Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text("Play")
                             }
 
                             OutlinedButton(
                                 onClick = {
                                     val shuffled = songs.shuffled()
-                                    playbackViewModel.playSong(selectedSong = shuffled.first(), playlist = shuffled)
+                                    playbackViewModel.playSong(shuffled.first(), shuffled)
                                     showNowPlaying.value = true
                                 },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(size = 14.dp)
+                                shape = RoundedCornerShape(14.dp)
                             ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.song_shuffle),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Icon(painterResource(R.drawable.song_shuffle), null, Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
                                 Text("Shuffle")
                             }
@@ -206,12 +248,11 @@ fun LibraryScreen(
                                         modifier = Modifier.size(40.dp)
                                     ) {
                                         Icon(
-                                            painter = painterResource(id = R.drawable.sort),
+                                            painter = painterResource(R.drawable.sort),
                                             contentDescription = "Sort",
                                             modifier = Modifier.size(20.dp),
-                                            tint =
-                                                if (sortActive) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                            tint = if (sortActive) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
 
@@ -219,7 +260,7 @@ fun LibraryScreen(
                                         expanded = showSortMenu,
                                         onDismissRequest = { showSortMenu = false },
                                         offset = DpOffset(x = (-10).dp, y = (-4).dp),
-                                        shape = RoundedCornerShape(size = 20.dp),
+                                        shape = RoundedCornerShape(20.dp),
                                         containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
                                         modifier = Modifier.width(210.dp)
                                     ) {
@@ -242,15 +283,13 @@ fun LibraryScreen(
                                                     modifier = Modifier
                                                         .size(32.dp)
                                                         .background(
-                                                            color = MaterialTheme.colorScheme.primary.copy(
-                                                                alpha = 0.1f
-                                                            ),
-                                                            shape = RoundedCornerShape(size = 8.dp)
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                            RoundedCornerShape(8.dp)
                                                         ),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
-                                                        painter = painterResource(id = directionIcon),
+                                                        painter = painterResource(directionIcon),
                                                         contentDescription = null,
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(16.dp)
@@ -263,6 +302,7 @@ fun LibraryScreen(
                                                 when (currentPage) {
                                                     0 -> songSortDirection = newDir
                                                     1 -> albumSortDirection = newDir
+                                                    2 -> playlistSortDirection = newDir
                                                 }
                                             },
                                             modifier = Modifier.padding(horizontal = 4.dp),
@@ -273,7 +313,6 @@ fun LibraryScreen(
                                             modifier = Modifier.padding(horizontal = 12.dp),
                                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                         )
-
                                         Spacer(Modifier.height(4.dp))
 
                                         when (currentPage) {
@@ -287,18 +326,19 @@ fun LibraryScreen(
                                                 currentOption = albumSortOption,
                                                 onOptionSelected = { albumSortOption = it; showSortMenu = false }
                                             )
-                                            else -> Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(all = 16.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = "No sort options for this tab",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                            2 -> {
+                                                Box(
+                                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "Sorted by name",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
                                             }
+                                            else -> {}
                                         }
 
                                         Spacer(Modifier.height(4.dp))
@@ -314,9 +354,9 @@ fun LibraryScreen(
                                 ) {
                                     Crossfade(targetState = showSearch) { isOpen ->
                                         Icon(
-                                            painter = painterResource(id =
-                                                if (isOpen) R.drawable.close
-                                                else R.drawable.search),
+                                            painter = painterResource(
+                                                if (isOpen) R.drawable.close else R.drawable.search
+                                            ),
                                             contentDescription = null,
                                             modifier = Modifier.size(20.dp),
                                             tint = if (showSearch) MaterialTheme.colorScheme.primary
@@ -342,18 +382,12 @@ fun LibraryScreen(
                                     focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
                                 ),
                                 leadingIcon = {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.search),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp))
+                                    Icon(painterResource(R.drawable.search), null, Modifier.size(20.dp))
                                 },
                                 trailingIcon = {
                                     if (searchQuery.isNotEmpty()) {
                                         IconButton(onClick = { searchQuery = "" }) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.close),
-                                                contentDescription = "Clear search",
-                                                modifier = Modifier.size(20.dp))
+                                            Icon(painterResource(R.drawable.close), "Clear", Modifier.size(20.dp))
                                         }
                                     }
                                 },
@@ -373,11 +407,7 @@ fun LibraryScreen(
                 )
 
                 if (songs.isEmpty()) {
-                    EmptyLibrary(
-                        imageId = R.drawable.disp_empty_library,
-                        primaryText = "Library is Empty",
-                        secondaryText = "Upload media to listen"
-                    )
+                    EmptyLibrary(R.drawable.disp_empty_library, "Library is Empty", "Upload media to listen")
                 } else {
                     HorizontalPager(
                         state = pagerState,
@@ -388,12 +418,8 @@ fun LibraryScreen(
                         when (pageIndex) {
                             0 -> {
                                 if (filteredSongs.isEmpty()) {
-                                    EmptyLibrary(
-                                        imageId = R.drawable.disp_empty_library,
-                                        primaryText = "No Results",
-                                        secondaryText = "No songs match \"$searchQuery\"")
-                                }
-                                else {
+                                    EmptyLibrary(R.drawable.disp_empty_library, "No Results", "No songs match \"$searchQuery\"")
+                                } else {
                                     LazyColumn {
                                         items(filteredSongs) { item ->
                                             Row(
@@ -403,61 +429,34 @@ fun LibraryScreen(
                                                     .clickable { selectedSongId = item.songId }
                                                     .padding(horizontal = 12.dp, vertical = 4.dp)
                                             ) {
-                                                // Outer card-like row container
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     modifier = Modifier
                                                         .fillMaxWidth()
                                                         .clip(RoundedCornerShape(12.dp))
-                                                        .background(
-                                                            MaterialTheme.colorScheme.surfaceVariant.copy(
-                                                                alpha = 0.3f
-                                                            )
-                                                        )
-                                                        .padding(
-                                                            horizontal = 10.dp,
-                                                            vertical = 8.dp
-                                                        )
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                                        .padding(horizontal = 10.dp, vertical = 8.dp)
                                                 ) {
-
                                                     AsyncImage(
                                                         model = item.songArtUri,
-                                                        contentDescription = "Album Art",
-                                                        modifier = Modifier
-                                                            .size(48.dp)
-                                                            .clip(RoundedCornerShape(8.dp)),
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
                                                         contentScale = ContentScale.Crop
                                                     )
-
-                                                    Spacer(modifier = Modifier.width(12.dp))
-
+                                                    Spacer(Modifier.width(12.dp))
                                                     Column(modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = item.title,
-                                                            style = MaterialTheme.typography.bodyLarge,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = MaterialTheme.colorScheme.onSurface,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                        Text(
-                                                            text = "${item.artists} • ${formatTime(ms = item.duration)}",
+                                                        Text(item.title, style = MaterialTheme.typography.bodyLarge,
+                                                            fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                        Text("${item.artists} • ${formatTime(item.duration)}",
                                                             style = MaterialTheme.typography.bodySmall,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
+                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                     }
-
                                                     if (item.isFavourite) {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.song_favourite_true),
-                                                            contentDescription = "Favourite",
+                                                        Icon(painterResource(R.drawable.song_favourite_true), null,
                                                             tint = MaterialTheme.colorScheme.surfaceVariant,
-                                                            modifier = Modifier
-                                                                .padding(start = 8.dp)
-                                                                .size(16.dp)
-                                                        )
+                                                            modifier = Modifier.padding(start = 8.dp).size(16.dp))
                                                     }
                                                 }
                                             }
@@ -467,12 +466,8 @@ fun LibraryScreen(
                             }
                             1 -> {
                                 if (filteredAlbums.isEmpty()) {
-                                    EmptyLibrary(
-                                        imageId = R.drawable.disp_empty_library,
-                                        primaryText = "No Results",
-                                        secondaryText = "No albums match \"$searchQuery\"")
-                                }
-                                else {
+                                    EmptyLibrary(R.drawable.disp_empty_library, "No Results", "No albums match \"$searchQuery\"")
+                                } else {
                                     LazyColumn {
                                         items(filteredAlbums) { item ->
                                             Row(
@@ -482,82 +477,12 @@ fun LibraryScreen(
                                                     .clickable {
                                                         val encodedAlbum = Uri.encode(item.album)
                                                         val encodedArtist = Uri.encode(item.albumArtists)
-
                                                         navController.navigate("album/$encodedAlbum/$encodedArtist") {
                                                             launchSingleTop = true
                                                         }
                                                     }
                                                     .padding(horizontal = 12.dp, vertical = 4.dp)
                                             ) {
-                                                // Outer card-like row container
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(
-                                                            MaterialTheme.colorScheme.surfaceVariant.copy(
-                                                                alpha = 0.3f
-                                                            )
-                                                        )
-                                                        .padding(
-                                                            horizontal = 10.dp,
-                                                            vertical = 8.dp
-                                                        )
-                                                ) {
-
-                                                    AsyncImage(
-                                                        model = item.backCoverUri ?: item.songArtUri,
-                                                        contentDescription = "Album Art",
-                                                        modifier = Modifier
-                                                            .size(48.dp)
-                                                            .clip(RoundedCornerShape(8.dp)),
-                                                        contentScale = ContentScale.Crop
-                                                    )
-
-                                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = item.album,
-                                                            style = MaterialTheme.typography.bodyLarge,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = MaterialTheme.colorScheme.onSurface,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                        Text(
-                                                            text = item.albumArtists,
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            2 -> {
-                                if (playlists.isEmpty()) {
-                                    EmptyLibrary(
-                                        imageId = R.drawable.disp_empty_library,
-                                        primaryText = "No Playlists",
-                                        secondaryText = "Create a playlist to see it here")
-                                }
-                                else {
-                                    LazyColumn {
-                                        items(playlists) { item ->
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clickable {  }
-                                                    .padding(horizontal = 12.dp, vertical = 4.dp)
-                                            ) {
-                                                // Outer card-like row container
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     modifier = Modifier
@@ -566,23 +491,149 @@ fun LibraryScreen(
                                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                                                         .padding(horizontal = 10.dp, vertical = 8.dp)
                                                 ) {
-                                                    Spacer(modifier = Modifier.width(12.dp))
-
+                                                    AsyncImage(
+                                                        model = item.backCoverUri ?: item.songArtUri,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                    Spacer(Modifier.width(12.dp))
                                                     Column(modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = item.playlistName,
+                                                        Text(item.album, style = MaterialTheme.typography.bodyLarge,
+                                                            fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
+                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                        Text(item.albumArtists, style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            2 -> {
+                                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                    // Fixed "Create Playlist" item at the top
+                                    item(key = "create_playlist") {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { showCreatePlaylistDialog = true }
+                                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                                    .padding(horizontal = 10.dp, vertical = 12.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(48.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        painter = painterResource(R.drawable.add),
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                Spacer(Modifier.width(12.dp))
+                                                Text(
+                                                    text = "Create Playlist",
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (filteredPlaylists.isEmpty() && searchQuery.isNotBlank()) {
+                                        item {
+                                            Box(
+                                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    "No playlists match \"$searchQuery\"",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    } else if (filteredPlaylists.isEmpty()) {
+                                        item {
+                                            Box(
+                                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Spacer(Modifier.height(16.dp))
+                                                    Text("No Playlists", style = MaterialTheme.typography.titleMedium,
+                                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                                    Spacer(Modifier.height(4.dp))
+                                                    Text("Create a playlist to see it here",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        items(filteredPlaylists, key = { it.playlistId }) { playlist ->
+                                            // Collect song count per playlist
+                                            val songCount by libraryViewModel.getPlaylistSongCount(playlist.playlistId)
+                                                .collectAsState(initial = 0)
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        navController.navigate("playlist/${playlist.playlistId}")
+                                                    }
+                                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(48.dp)
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.song_options_playlist),
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(24.dp)
+                                                        )
+                                                    }
+                                                    Spacer(Modifier.width(12.dp))
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(playlist.playlistName,
                                                             style = MaterialTheme.typography.bodyLarge,
                                                             fontWeight = FontWeight.Medium,
                                                             color = MaterialTheme.colorScheme.onSurface,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
+                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text(
-                                                            text = "Number of songs",
+                                                            text = if (songCount == 1) "1 song" else "$songCount songs",
                                                             style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }
                                                 }
@@ -626,14 +677,4 @@ private fun SortOptionGroup(
             onClick = { onOptionSelected(option) }
         )
     }
-}
-
-private fun isSortActive(
-    currentPage: Int,
-    songSort: SortOption, songDir: SortDirection,
-    albumSort: SortOption, albumDir: SortDirection,
-): Boolean = when (currentPage) {
-    0 -> songSort !is SortOption.SongName || songDir != SortDirection.ASC
-    1 -> albumSort !is SortOption.AlbumName || albumDir != SortDirection.ASC
-    else -> false
 }

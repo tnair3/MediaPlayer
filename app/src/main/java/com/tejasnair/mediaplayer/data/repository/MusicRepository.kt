@@ -12,77 +12,72 @@ class MusicRepository(
     private val context: Context
 ) {
 
-    // --- CORE SONG DATA ---
+    // --- SONGS ---
 
     val allSongs: Flow<List<Song>> = musicDao.getAllSongs()
     val favouriteSongs: Flow<List<Song>> = musicDao.getFavouriteSongs()
 
     fun getSongById(songId: String): Flow<Song?> = musicDao.getSongById(songId)
-
     suspend fun insert(song: Song) = musicDao.insertSong(song)
-
     suspend fun updateSong(song: Song) = musicDao.updateSong(song)
-
     suspend fun toggleFavourite(songId: String) = musicDao.toggleFavourite(songId)
-
     suspend fun findExistingSong(title: String, artist: String, album: String, albumArtist: String): Song? =
         musicDao.findExistingSong(title, artist, album, albumArtist)
 
-
-    // --- ALBUM ---
+    // --- ALBUMS ---
 
     val albums: Flow<List<AlbumSummary>> = musicDao.getUniqueAlbums()
-
-    fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> =
-        musicDao.getSongsByAlbum(name, artist)
-
+    fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> = musicDao.getSongsByAlbum(name, artist)
     suspend fun updateAlbumDetails(oldAlbum: String, oldArtist: String, newAlbum: String, newArtist: String, newYear: String?) =
         musicDao.updateAlbumDetails(oldAlbum, oldArtist, newAlbum, newArtist, newYear)
 
-
-    // --- PLAYLIST MANAGEMENT ---
+    // --- PLAYLISTS ---
 
     val allPlaylists: Flow<List<Playlist>> = musicDao.getAllPlaylists()
 
     suspend fun createPlaylist(playlist: Playlist) = musicDao.insertPlaylist(playlist)
 
-    suspend fun addSongToPlaylist(songId: String, playlistId: String, position: Int) {
-        val crossRef = SongToPlaylist(songId, playlistId, position)
-        musicDao.addSongToPlaylist(crossRef)
+    suspend fun updatePlaylistName(playlistId: String, newName: String) =
+        musicDao.updatePlaylistName(playlistId, newName)
+
+    suspend fun deletePlaylist(playlistId: String) = musicDao.deletePlaylist(playlistId)
+
+    suspend fun addSongToPlaylist(songId: String, playlistId: String, position: Int) =
+        musicDao.addSongToPlaylist(SongToPlaylist(songId, playlistId, position))
+
+    suspend fun addSongsToPlaylist(songIds: List<String>, playlistId: String, startPosition: Int) {
+        val crossRefs = songIds.mapIndexed { i, id ->
+            SongToPlaylist(id, playlistId, startPosition + i)
+        }
+        musicDao.insertSongToPlaylistBatch(crossRefs)
     }
 
-    fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> =
-        musicDao.getSongsInPlaylist(playlistId)
+    suspend fun removeSongFromPlaylist(songId: String, playlistId: String) =
+        musicDao.removeSongFromPlaylist(songId, playlistId)
 
+    // Reorder: replace entire song list with a new ordered list
+    suspend fun reorderPlaylist(playlistId: String, orderedSongIds: List<String>) {
+        musicDao.clearPlaylistSongs(playlistId)
+        val crossRefs = orderedSongIds.mapIndexed { i, id -> SongToPlaylist(id, playlistId, i) }
+        musicDao.insertSongToPlaylistBatch(crossRefs)
+    }
 
-    // --- STORAGE & FILE CLEANUP ---
+    fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> = musicDao.getSongsInPlaylist(playlistId)
+    fun getPlaylistSongCount(playlistId: String): Flow<Int> = musicDao.getPlaylistSongCount(playlistId)
+
+    // --- FILE CLEANUP ---
 
     suspend fun deleteSong(song: Song) {
-        try {
-            val audioFile = File(song.filePath)
-            if (audioFile.exists()) {
-                audioFile.delete()
-            }
-        } catch (e: Exception) {
-            Log.e("Repository", "Error deleting physical file: ${e.message}")
-        } finally {
-            musicDao.deleteSong(song)
-        }
+        try { File(song.filePath).takeIf { it.exists() }?.delete() }
+        catch (e: Exception) { Log.e("Repository", "Error deleting file: ${e.message}") }
+        finally { musicDao.deleteSong(song) }
     }
 
     suspend fun clearLibrary() {
-        val allSongs = musicDao.getAllSongsOnce()
-        allSongs.forEach { song ->
-            val file = File(song.filePath)
-            if (file.exists()) file.delete()
-        }
+        musicDao.getAllSongsOnce().forEach { File(it.filePath).takeIf { f -> f.exists() }?.delete() }
         musicDao.clearLibrary()
     }
 
-    suspend fun getLibrarySizeBytes(): Long {
-        return musicDao.getAllSongsOnce().sumOf { song ->
-            val file = File(song.filePath)
-            if (file.exists()) file.length() else 0L
-        }
-    }
+    suspend fun getLibrarySizeBytes(): Long =
+        musicDao.getAllSongsOnce().sumOf { File(it.filePath).takeIf { f -> f.exists() }?.length() ?: 0L }
 }
