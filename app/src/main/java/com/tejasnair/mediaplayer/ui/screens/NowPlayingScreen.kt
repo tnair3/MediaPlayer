@@ -66,26 +66,14 @@ fun NowPlayingScreen(
 
     val interactionSource = remember { MutableInteractionSource() }
     val isDragging by interactionSource.collectIsDraggedAsState()
-    var sliderThumbValue by remember { mutableFloatStateOf(currentPosition.toFloat()) }
+
+    var sliderThumbValue by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(currentPosition, isDragging) {
-        if (!isDragging) sliderThumbValue = currentPosition.toFloat()
+        if (!isDragging) {
+            sliderThumbValue = currentPosition.toFloat()
+        }
     }
-
-    val animatedHeight by animateDpAsState(
-        targetValue = if (isDragging) 16.dp else 12.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "HeightAnimation"
-    )
-
-    val animatedFraction by animateFloatAsState(
-        targetValue = if (duration > 0) {
-            val positionToShow = if (isDragging) currentPosition.toFloat() else sliderThumbValue
-            positionToShow / duration.toFloat()
-        } else 0f,
-        animationSpec = tween(700),
-        label = "ProgressAnimation"
-    )
 
     val fileSizeString = remember(currentSong?.filePath) {
         val size = getFileSize(currentSong?.filePath)
@@ -142,7 +130,7 @@ fun NowPlayingScreen(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-            userScrollEnabled = true
+            userScrollEnabled = false
         ) { page ->
             when (page) {
 
@@ -287,29 +275,36 @@ fun NowPlayingScreen(
                             Slider(
                                 value = sliderThumbValue,
                                 onValueChange = { sliderThumbValue = it },
-                                onValueChangeFinished = { playbackViewModel.seekTo(sliderThumbValue.toLong()) },
+                                onValueChangeFinished = {
+                                    playbackViewModel.seekTo(sliderThumbValue.toLong())
+                                },
                                 valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
                                 interactionSource = interactionSource,
                                 modifier = Modifier.fillMaxWidth(),
-                                track = {
+                                track = { sliderState ->
+                                    val fraction = (sliderState.value - sliderState.valueRange.start) /
+                                            (sliderState.valueRange.endInclusive - sliderState.valueRange.start)
+
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(animatedHeight)
+                                            .height(12.dp)
                                             .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.2f)),
+                                            .background(Color.White.copy(alpha = 0.3f)),
                                         contentAlignment = Alignment.CenterStart
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .fillMaxWidth(animatedFraction.coerceIn(0f, 1f))
+                                                .fillMaxWidth(fraction.coerceIn(0f, 1f))
                                                 .fillMaxHeight()
                                                 .clip(CircleShape)
                                                 .background(Color.White)
                                         )
                                     }
                                 },
-                                thumb = { Spacer(Modifier.size(24.dp)) }
+                                thumb = {
+                                    Spacer(Modifier.size(24.dp))
+                                }
                             )
 
                             Row(
