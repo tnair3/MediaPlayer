@@ -3,6 +3,7 @@ package com.tejasnair.mediaplayer.ui.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -18,7 +19,10 @@ import com.tejasnair.mediaplayer.data.model.Playlist
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
-class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
+class LibraryViewModel(
+    private val repository: MusicRepository,
+    application: android.app.Application
+) : AndroidViewModel(application) {
 
     // --- DATA STREAMS ---
 
@@ -98,6 +102,18 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
     fun getPlaylistSongCount(playlistId: String): Flow<Int> =
         repository.getPlaylistSongCount(playlistId)
 
+    fun updatePlaylistCover(playlistId: String, artUri: String?, mosaicSongIds: String?) {
+        viewModelScope.launch { repository.updatePlaylistCover(playlistId, artUri, mosaicSongIds) }
+    }
+
+    fun copyImageToInternalStorage(uri: android.net.Uri, playlistId: String): String? {
+        return repository.copyImageToInternalStorage(
+            getApplication<android.app.Application>().applicationContext,
+            uri,
+            playlistId
+        )
+    }
+
     // --- LIBRARY MANAGEMENT ---
 
     var librarySize by mutableLongStateOf(0L)
@@ -115,11 +131,14 @@ class LibraryViewModel(private val repository: MusicRepository) : ViewModel() {
     }
 }
 
-class LibraryViewModelFactory(private val repository: MusicRepository) : ViewModelProvider.Factory {
+class LibraryViewModelFactory(
+    private val repository: MusicRepository,
+    private val application: android.app.Application
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LibraryViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return LibraryViewModel(repository) as T
+            return LibraryViewModel(repository, application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

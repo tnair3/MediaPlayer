@@ -30,6 +30,8 @@ import androidx.compose.material3.*
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.FilterRow
@@ -74,15 +76,29 @@ fun LibraryScreen(
     var songSortDirection by remember { mutableStateOf(SortDirection.ASC) }
     var albumSortOption by remember { mutableStateOf<SortOption>(SortOption.AlbumName) }
     var albumSortDirection by remember { mutableStateOf(SortDirection.ASC) }
+    var playlistSortOption by remember { mutableStateOf<SortOption>(SortOption.PlaylistName) }
     var playlistSortDirection by remember { mutableStateOf(SortDirection.ASC) }
 
     val currentPage = pagerState.currentPage
+
+    val playlistSongCounts by remember(playlists) {
+        if (playlists.isEmpty()) {
+            kotlinx.coroutines.flow.flowOf(emptyMap())
+        } else {
+            combine(
+                playlists.map { pl ->
+                    libraryViewModel.getPlaylistSongCount(pl.playlistId)
+                        .map { count -> pl.playlistId to count }
+                }
+            ) { pairs -> pairs.toMap() }
+        }
+    }.collectAsState(initial = emptyMap())
 
     val sortActive by derivedStateOf {
         when (currentPage) {
             0 -> songSortOption !is SortOption.SongName || songSortDirection != SortDirection.ASC
             1 -> albumSortOption !is SortOption.AlbumName || albumSortDirection != SortDirection.ASC
-            2 -> playlistSortDirection != SortDirection.ASC
+            2 -> playlistSortOption !is SortOption.PlaylistName || playlistSortDirection != SortDirection.ASC
             else -> false
         }
     }
@@ -128,10 +144,14 @@ fun LibraryScreen(
         if (albumSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
-    val filteredPlaylists = remember(searchQuery, playlists, playlistSortDirection) {
+    val filteredPlaylists = remember(searchQuery, playlists, playlistSortOption, playlistSortDirection, playlistSongCounts) {
         val filtered = if (searchQuery.isBlank()) playlists
         else playlists.filter { it.playlistName.contains(searchQuery, ignoreCase = true) }
-        val sorted = filtered.sortedBy { it.playlistName.lowercase() }
+        val sorted = when (playlistSortOption) {
+            SortOption.PlaylistName -> filtered.sortedBy { it.playlistName.lowercase() }
+            SortOption.PlaylistSongCount -> filtered.sortedBy { playlistSongCounts[it.playlistId] ?: 0 }
+            else -> filtered.sortedBy { it.playlistName.lowercase() }
+        }
         if (playlistSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
@@ -326,18 +346,11 @@ fun LibraryScreen(
                                                 currentOption = albumSortOption,
                                                 onOptionSelected = { albumSortOption = it; showSortMenu = false }
                                             )
-                                            2 -> {
-                                                Box(
-                                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = "Sorted by name",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
+                                            2 -> SortOptionGroup(
+                                                sortOptions = listOf(SortOption.PlaylistName, SortOption.PlaylistSongCount),
+                                                currentOption = playlistSortOption,
+                                                onOptionSelected = { playlistSortOption = it; showSortMenu = false }
+                                            )
                                             else -> {}
                                         }
 
@@ -514,7 +527,6 @@ fun LibraryScreen(
                             }
                             2 -> {
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                    // Fixed "Create Playlist" item at the top
                                     item(key = "create_playlist") {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
@@ -588,7 +600,6 @@ fun LibraryScreen(
                                         }
                                     } else {
                                         items(filteredPlaylists, key = { it.playlistId }) { playlist ->
-                                            // Collect song count per playlist
                                             val songCount by libraryViewModel.getPlaylistSongCount(playlist.playlistId)
                                                 .collectAsState(initial = 0)
 

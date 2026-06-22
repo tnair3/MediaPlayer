@@ -76,6 +76,9 @@ interface MusicDao {
     @Query("SELECT * FROM playlists ORDER BY playlistName ASC")
     fun getAllPlaylists(): Flow<List<Playlist>>
 
+    @Query("UPDATE playlists SET artUri = :artUri, mosaicSongIds = :mosaicSongIds WHERE playlistId = :playlistId")
+    suspend fun updatePlaylistCover(playlistId: String, artUri: String?, mosaicSongIds: String?)
+
     // --- PLAYLIST-SONG CROSS REF ---
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

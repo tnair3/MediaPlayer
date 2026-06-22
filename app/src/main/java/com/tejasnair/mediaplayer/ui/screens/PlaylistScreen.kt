@@ -1,8 +1,13 @@
 package com.tejasnair.mediaplayer.ui.screens
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +35,9 @@ import com.tejasnair.mediaplayer.ui.components.StyledDropdownItem
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun PlaylistScreen(
@@ -38,9 +47,13 @@ fun PlaylistScreen(
     navController: NavController,
     showNowPlaying: MutableState<Boolean>
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     val playlists by libraryViewModel.allPlaylists.collectAsState()
     val playlist = playlists.find { it.playlistId == playlistId }
     val playlistSongs by libraryViewModel.getSongsInPlaylist(playlistId).collectAsState(initial = emptyList())
+    val allSongs by libraryViewModel.allSongs.collectAsState()
     val favouriteSongs by libraryViewModel.favouriteSongs.collectAsState()
     val favouriteIds by remember(favouriteSongs) {
         derivedStateOf { favouriteSongs.map { it.songId }.toHashSet() }
@@ -53,12 +66,55 @@ fun PlaylistScreen(
     var showEditNameDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditSongsMode by remember { mutableStateOf(false) }
+    var showCoverPickerDialog by remember { mutableStateOf(false) }
+    var showMosaicSongPicker by remember { mutableStateOf(false) }
+    var showSongArtPicker by remember { mutableStateOf(false) }
     var editName by remember(playlist?.playlistName) { mutableStateOf(playlist?.playlistName ?: "") }
 
-    // Up to 4 art URIs for the mosaic header
-    val mosaicArts = remember(playlistSongs) {
-        playlistSongs.mapNotNull { it.songArtUri }.distinct().take(4)
+    val headerArtUri = playlist?.artUri
+    val customMosaicIds = playlist?.mosaicSongIds
+        ?.split(",")
+        ?.filter { it.isNotBlank() }
+        ?: emptyList()
+
+    val mosaicArts = remember(playlist, playlistSongs) {
+        if (playlist?.artUri != null) {
+            emptyList() // single image mode, mosaic not used
+        } else if (customMosaicIds.isNotEmpty()) {
+            customMosaicIds.mapNotNull { id -> allSongs.find { it.songId == id }?.songArtUri }
+        } else {
+            playlistSongs.mapNotNull { it.songArtUri }.distinct().take(4)
+        }
     }
+
+    // Gallery picker for custom single image
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri, Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+
+            scope.launch {
+                val localPath = withContext(Dispatchers.IO) {
+                    libraryViewModel.copyImageToInternalStorage(uri, playlistId)
+                }
+                if (localPath != null) {
+                    libraryViewModel.updatePlaylistCover(
+                        playlistId = playlistId,
+                        artUri = localPath,
+                        mosaicSongIds = null
+                    )
+                }
+            }
+        }
+    }
+
+    // Mosaic song selection state
+    val selectedMosaicIds = remember { mutableStateListOf<String>() }
 
     LaunchedEffect(playlist) {
         if (playlist == null && playlists.isNotEmpty()) navController.navigateUp()
@@ -113,6 +169,260 @@ fun PlaylistScreen(
         )
     }
 
+    // Cover picker dialog
+    if (showCoverPickerDialog) {
+        AlertDialog(
+            onDismissRequest = { showCoverPickerDialog = false },
+            title = { Text("Edit Cover") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // Option 1: Auto mosaic
+                    TextButton(
+                        onClick = {
+                            libraryViewModel.updatePlaylistCover(
+                                playlistId = playlistId,
+                                artUri = null,
+                                mosaicSongIds = null
+                            )
+                            showCoverPickerDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start) {
+                            Icon(painterResource(R.drawable.playlist_cover_auto), null,
+                                tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Auto Mosaic", color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium)
+                                Text("First 4 unique arts from playlist",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+
+                    // Custom mosaic
+                    TextButton(
+                        onClick = {
+                            selectedMosaicIds.clear()
+                            customMosaicIds.forEach { selectedMosaicIds.add(it) }
+                            showCoverPickerDialog = false
+                            showMosaicSongPicker = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start) {
+                            Icon(painterResource(R.drawable.playlist_cover_custom), null,
+                                tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Custom Mosaic", color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium)
+                                Text("Pick 2–4 songs from this playlist",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // Upload photo from gallery
+                    TextButton(
+                        onClick = {
+                            showCoverPickerDialog = false
+                            galleryLauncher.launch("image/*")
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start) {
+                            Icon(painterResource(R.drawable.nav_upload), null,
+                                tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Upload Photo", color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium)
+                                Text("Choose from your device",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+
+                    // Use a song's art
+                    TextButton(
+                        onClick = {
+                            showCoverPickerDialog = false
+                            showSongArtPicker = true
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start) {
+                            Icon(painterResource(R.drawable.playlist_song_cover), null,
+                                tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Use Song Art", color = MaterialTheme.colorScheme.onSurface,
+                                    style = MaterialTheme.typography.bodyMedium)
+                                Text("Pick any song from your library",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showCoverPickerDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Custom mosaic song picker
+    if (showMosaicSongPicker) {
+        AlertDialog(
+            onDismissRequest = { showMosaicSongPicker = false },
+            title = {
+                Column {
+                    Text("Select Songs for Mosaic")
+                    Text(
+                        "Choose 2–4 songs  •  ${selectedMosaicIds.size}/4 selected",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            text = {
+                LazyColumn {
+                    items(playlistSongs) { song ->
+                        val isSelected = song.songId in selectedMosaicIds
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isSelected) {
+                                        selectedMosaicIds.remove(song.songId)
+                                    } else if (selectedMosaicIds.size < 4) {
+                                        selectedMosaicIds.add(song.songId)
+                                    }
+                                }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = {
+                                    if (it && selectedMosaicIds.size < 4) selectedMosaicIds.add(song.songId)
+                                    else if (!it) selectedMosaicIds.remove(song.songId)
+                                }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            AsyncImage(
+                                model = song.songArtUri,
+                                contentDescription = null,
+                                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(6.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(song.title, style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(song.artists, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = selectedMosaicIds.size >= 2,
+                    onClick = {
+                        libraryViewModel.updatePlaylistCover(
+                            playlistId = playlistId,
+                            artUri = null,
+                            mosaicSongIds = selectedMosaicIds.joinToString(",")
+                        )
+                        showMosaicSongPicker = false
+                    }
+                ) { Text("Apply") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMosaicSongPicker = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    // Song art picker
+    if (showSongArtPicker) {
+        AlertDialog(
+            onDismissRequest = { showSongArtPicker = false },
+            title = { Text("Pick a Song's Art") },
+            text = {
+                LazyColumn {
+                    items(allSongs.filter { it.songArtUri != null }) { song ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        val srcPath = song.songArtUri ?: return@launch
+                                        val destPath = withContext(Dispatchers.IO) {
+                                            try {
+                                                val srcFile = java.io.File(srcPath)
+                                                val dir = java.io.File(
+                                                    context.filesDir, "playlist_art"
+                                                ).apply { mkdirs() }
+                                                val dest = java.io.File(dir, "cover_$playlistId.jpg")
+                                                srcFile.copyTo(dest, overwrite = true)
+                                                dest.absolutePath
+                                            } catch (e: Exception) { null }
+                                        }
+                                        if (destPath != null) {
+                                            libraryViewModel.updatePlaylistCover(
+                                                playlistId = playlistId,
+                                                artUri = destPath,
+                                                mosaicSongIds = null
+                                            )
+                                        }
+                                    }
+                                    showSongArtPicker = false
+                                }
+                                .padding(vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = song.songArtUri,
+                                contentDescription = null,
+                                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(song.title, style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(song.artists, style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showSongArtPicker = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     ThemedScreen {
         Box(
             modifier = Modifier
@@ -133,111 +443,63 @@ fun PlaylistScreen(
                         .clip(RoundedCornerShape(20.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 ) {
-                    // Mosaic art background — 2×2 grid of album arts
-                    if (mosaicArts.isNotEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                        ) {
-                            when (mosaicArts.size) {
-                                1 -> {
-                                    AsyncImage(
-                                        model = mosaicArts[0],
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                2 -> {
-                                    Row(modifier = Modifier.fillMaxSize()) {
-                                        AsyncImage(model = mosaicArts[0], contentDescription = null,
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                                            contentScale = ContentScale.Crop)
-                                        AsyncImage(model = mosaicArts[1], contentDescription = null,
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                                            contentScale = ContentScale.Crop)
-                                    }
-                                }
-                                3 -> {
-                                    Row(modifier = Modifier.fillMaxSize()) {
-                                        AsyncImage(model = mosaicArts[0], contentDescription = null,
-                                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                                            contentScale = ContentScale.Crop)
-                                        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                            AsyncImage(model = mosaicArts[1], contentDescription = null,
-                                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                                contentScale = ContentScale.Crop)
-                                            AsyncImage(model = mosaicArts[2], contentDescription = null,
-                                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                                contentScale = ContentScale.Crop)
-                                        }
-                                    }
-                                }
-                                else -> {
-                                    // 4 images in a 2×2 grid
-                                    Column(modifier = Modifier.fillMaxSize()) {
-                                        Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                                            AsyncImage(model = mosaicArts[0], contentDescription = null,
-                                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                                contentScale = ContentScale.Crop)
-                                            AsyncImage(model = mosaicArts[1], contentDescription = null,
-                                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                                contentScale = ContentScale.Crop)
-                                        }
-                                        Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                                            AsyncImage(model = mosaicArts[2], contentDescription = null,
-                                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                                contentScale = ContentScale.Crop)
-                                            AsyncImage(model = mosaicArts[3], contentDescription = null,
-                                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                                contentScale = ContentScale.Crop)
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Diagonal gradient overlay over the mosaic
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp)
+                    ) {
+                        if (headerArtUri != null) {
+                            // Single image mode
+                            AsyncImage(
+                                model = headerArtUri,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (mosaicArts.isNotEmpty()) {
+                            // Mosaic mode
+                            PlaylistMosaic(arts = mosaicArts)
+                        } else {
+                            // Empty placeholder
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .background(
                                         Brush.linearGradient(
                                             colors = listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                                Color.Transparent,
-                                                MaterialTheme.colorScheme.background.copy(alpha = 0.6f)
+                                                MaterialTheme.colorScheme.surfaceVariant,
+                                                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                                             )
                                         )
-                                    )
-                            )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.playlist_cover_custom),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(64.dp)
+                                )
+                            }
                         }
-                    }
-                    else {
+
+                        // Diagonal gradient overlay
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
+                                .fillMaxSize()
                                 .background(
                                     Brush.linearGradient(
                                         colors = listOf(
-                                            MaterialTheme.colorScheme.surfaceVariant,
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                            Color.Transparent,
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.6f)
                                         )
                                     )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.song_options_playlist),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
+                                )
+                        )
                     }
 
-                    // Playlist info row overlaid at the bottom of the mosaic
+                    // Info row overlaid at the bottom
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -246,36 +508,24 @@ fun PlaylistScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Back button
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.4f),
-                                    shape = CircleShape
-                                ),
+                                .background(Color.Black.copy(alpha = 0.4f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             IconButton(onClick = { navController.navigateUp() }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.nav_back_arrow),
-                                    contentDescription = "Back",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Icon(painterResource(R.drawable.nav_back_arrow), "Back",
+                                    tint = Color.White, modifier = Modifier.size(18.dp))
                             }
                         }
 
                         Spacer(Modifier.weight(1f))
 
-                        // Frosted name + count pill
                         Column(
                             horizontalAlignment = Alignment.End,
                             modifier = Modifier
-                                .background(
-                                    color = Color.Black.copy(alpha = 0.45f),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
+                                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
@@ -283,12 +533,10 @@ fun PlaylistScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                                 color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                maxLines = 1, overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = if (playlistSongs.size == 1) "1 song"
-                                else "${playlistSongs.size} songs",
+                                text = if (playlistSongs.size == 1) "1 song" else "${playlistSongs.size} songs",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.7f)
                             )
@@ -296,24 +544,16 @@ fun PlaylistScreen(
 
                         Spacer(Modifier.width(8.dp))
 
-                        // Options button
                         Box {
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .background(
-                                        color = Color.Black.copy(alpha = 0.4f),
-                                        shape = CircleShape
-                                    ),
+                                    .background(Color.Black.copy(alpha = 0.4f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 IconButton(onClick = { showOptionsMenu = true }) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.options),
-                                        contentDescription = "Options",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                    Icon(painterResource(R.drawable.options), "Options",
+                                        tint = Color.White, modifier = Modifier.size(18.dp))
                                 }
                             }
 
@@ -326,27 +566,20 @@ fun PlaylistScreen(
                                 modifier = Modifier.width(220.dp)
                             ) {
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth()
                                         .padding(horizontal = 16.dp, vertical = 12.dp)
                                 ) {
-                                    Text(
-                                        text = playlist?.playlistName ?: "Playlist",
+                                    Text(playlist?.playlistName ?: "Playlist",
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1, overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = "${playlistSongs.size} songs",
+                                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("${playlistSongs.size} songs",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 Spacer(Modifier.height(4.dp))
 
                                 StyledDropdownItem(R.drawable.song_play, "Play Playlist") {
@@ -370,10 +603,8 @@ fun PlaylistScreen(
                                 }
 
                                 Spacer(Modifier.height(4.dp))
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                                 Spacer(Modifier.height(4.dp))
 
                                 StyledDropdownItem(R.drawable.options_edit, "Edit Details") {
@@ -381,14 +612,16 @@ fun PlaylistScreen(
                                     editName = playlist?.playlistName ?: ""
                                     showEditNameDialog = true
                                 }
+                                StyledDropdownItem(R.drawable.playlist_cover, "Edit Cover") {
+                                    showOptionsMenu = false
+                                    showCoverPickerDialog = true
+                                }
                                 StyledDropdownItem(R.drawable.options_deletesome, "Edit Songs") {
                                     showOptionsMenu = false
                                     showEditSongsMode = !showEditSongsMode
                                 }
-                                StyledDropdownItem(
-                                    R.drawable.options_delete, "Delete Playlist",
-                                    tint = MaterialTheme.colorScheme.error
-                                ) {
+                                StyledDropdownItem(R.drawable.options_delete, "Delete Playlist",
+                                    tint = MaterialTheme.colorScheme.error) {
                                     showOptionsMenu = false
                                     showDeleteDialog = true
                                 }
@@ -443,9 +676,7 @@ fun PlaylistScreen(
 
                 // Gradient divider
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
+                    modifier = Modifier.fillMaxWidth().height(1.dp)
                         .background(
                             Brush.horizontalGradient(
                                 colors = listOf(
@@ -492,12 +723,10 @@ fun PlaylistScreen(
                                             modifier = Modifier.size(28.dp),
                                             enabled = index > 0
                                         ) {
-                                            Icon(
-                                                painterResource(R.drawable.chevron_up), null,
+                                            Icon(painterResource(R.drawable.chevron_up), null,
                                                 tint = if (index > 0) MaterialTheme.colorScheme.onSurface
                                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                                                modifier = Modifier.size(18.dp)
-                                            )
+                                                modifier = Modifier.size(18.dp))
                                         }
                                         IconButton(
                                             onClick = {
@@ -511,33 +740,26 @@ fun PlaylistScreen(
                                             modifier = Modifier.size(28.dp),
                                             enabled = index < playlistSongs.size - 1
                                         ) {
-                                            Icon(
-                                                painterResource(R.drawable.chevron_down), null,
+                                            Icon(painterResource(R.drawable.chevron_down), null,
                                                 tint = if (index < playlistSongs.size - 1) MaterialTheme.colorScheme.onSurface
                                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                                                modifier = Modifier.size(18.dp)
-                                            )
+                                                modifier = Modifier.size(18.dp))
                                         }
                                     }
 
                                     Box(modifier = Modifier.weight(1f)) {
-                                        SongRow(
-                                            song = song,
-                                            onClick = {},
+                                        SongRow(song = song, onClick = {},
                                             showTrackNumbers = false,
-                                            isFavourite = song.songId in favouriteIds
-                                        )
+                                            isFavourite = song.songId in favouriteIds)
                                     }
 
                                     IconButton(
                                         onClick = { libraryViewModel.removeSongFromPlaylist(song.songId, playlistId) },
                                         modifier = Modifier.padding(end = 4.dp).size(36.dp)
                                     ) {
-                                        Icon(
-                                            painterResource(R.drawable.options_delete), "Remove",
+                                        Icon(painterResource(R.drawable.options_delete), "Remove",
                                             tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(18.dp)
-                                        )
+                                            modifier = Modifier.size(18.dp))
                                     }
                                 }
                             } else {
@@ -567,17 +789,11 @@ fun PlaylistScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            "Editing songs",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
+                        Text("Editing songs", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimary)
                         TextButton(onClick = { showEditSongsMode = false }) {
-                            Text(
-                                "Done",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Text("Done", color = MaterialTheme.colorScheme.onPrimary,
+                                fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -594,6 +810,45 @@ fun PlaylistScreen(
                 onDismiss = { selectedSongId = null },
                 showNowPlaying = showNowPlaying
             )
+        }
+    }
+}
+
+// Mosaic composable
+@Composable
+fun PlaylistMosaic(arts: List<String>, modifier: Modifier = Modifier) {
+    when (arts.size) {
+        1 -> AsyncImage(model = arts[0], contentDescription = null,
+            modifier = modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        2 -> Row(modifier = modifier.fillMaxSize()) {
+            AsyncImage(model = arts[0], contentDescription = null,
+                modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+            AsyncImage(model = arts[1], contentDescription = null,
+                modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+        }
+        3 -> Row(modifier = modifier.fillMaxSize()) {
+            AsyncImage(model = arts[0], contentDescription = null,
+                modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                AsyncImage(model = arts[1], contentDescription = null,
+                    modifier = Modifier.weight(1f).fillMaxWidth(), contentScale = ContentScale.Crop)
+                AsyncImage(model = arts[2], contentDescription = null,
+                    modifier = Modifier.weight(1f).fillMaxWidth(), contentScale = ContentScale.Crop)
+            }
+        }
+        else -> Column(modifier = modifier.fillMaxSize()) {
+            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                AsyncImage(model = arts[0], contentDescription = null,
+                    modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                AsyncImage(model = arts[1], contentDescription = null,
+                    modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+            }
+            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                AsyncImage(model = arts[2], contentDescription = null,
+                    modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+                AsyncImage(model = arts[3], contentDescription = null,
+                    modifier = Modifier.weight(1f).fillMaxHeight(), contentScale = ContentScale.Crop)
+            }
         }
     }
 }

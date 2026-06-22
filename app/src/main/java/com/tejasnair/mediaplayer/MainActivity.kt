@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel()
-            val libraryViewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(repository))
+            val libraryViewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(repository, application))
             val playbackViewModel: PlaybackViewModel = viewModel()
             val uploadViewModel: UploadViewModel = viewModel()
 

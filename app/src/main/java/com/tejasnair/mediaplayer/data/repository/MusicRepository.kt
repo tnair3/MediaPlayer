@@ -52,6 +52,23 @@ class MusicRepository(
         musicDao.insertSongToPlaylistBatch(crossRefs)
     }
 
+    suspend fun updatePlaylistCover(playlistId: String, artUri: String?, mosaicSongIds: String?) =
+        musicDao.updatePlaylistCover(playlistId, artUri, mosaicSongIds)
+
+    fun copyImageToInternalStorage(context: android.content.Context, uri: android.net.Uri, playlistId: String): String? {
+        return try {
+            val dir = java.io.File(context.filesDir, "playlist_art").apply { mkdirs() }
+            val dest = java.io.File(dir, "cover_$playlistId.jpg")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                java.io.FileOutputStream(dest).use { output -> input.copyTo(output) }
+            }
+            dest.absolutePath
+        } catch (e: Exception) {
+            android.util.Log.e("Repository", "Failed to copy playlist cover", e)
+            null
+        }
+    }
+
     suspend fun removeSongFromPlaylist(songId: String, playlistId: String) =
         musicDao.removeSongFromPlaylist(songId, playlistId)
 
