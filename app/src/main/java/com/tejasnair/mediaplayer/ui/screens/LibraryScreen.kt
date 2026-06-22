@@ -27,6 +27,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
@@ -442,12 +446,33 @@ fun LibraryScreen(
                                                     .clickable { selectedSongId = item.songId }
                                                     .padding(horizontal = 12.dp, vertical = 4.dp)
                                             ) {
+                                                val containerShape = RoundedCornerShape(12.dp)
+
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .clip(containerShape)
                                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                                        .drawWithContent {
+                                                            drawContent()
+                                                            if (item.isFavourite) {
+                                                                val gradientWidth = 12.dp.toPx()
+                                                                drawRect(
+                                                                    brush = Brush.horizontalGradient(
+                                                                        colors = listOf(
+                                                                            Color.Transparent,
+                                                                            Color(0xFFE91E63).copy(alpha = 0.2f),
+                                                                            Color(0xFFFF2A6D).copy(alpha = 0.4f)
+                                                                        ),
+                                                                        startX = size.width - gradientWidth,
+                                                                        endX = size.width
+                                                                    ),
+                                                                    topLeft = Offset(size.width - gradientWidth, 0f),
+                                                                    size = Size(gradientWidth, size.height)
+                                                                )
+                                                            }
+                                                        }
                                                         .padding(horizontal = 10.dp, vertical = 8.dp)
                                                 ) {
                                                     AsyncImage(
@@ -461,15 +486,26 @@ fun LibraryScreen(
                                                         Text(item.title, style = MaterialTheme.typography.bodyLarge,
                                                             fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
                                                             maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                        Text("${item.artists} • ${formatTime(item.duration)}",
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                    }
-                                                    if (item.isFavourite) {
-                                                        Icon(painterResource(R.drawable.song_favourite_true), null,
-                                                            tint = MaterialTheme.colorScheme.surfaceVariant,
-                                                            modifier = Modifier.padding(start = 8.dp).size(16.dp))
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                        ) {
+                                                            Text(
+                                                                text = item.artists,
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis,
+                                                                modifier = Modifier.weight(1f, fill = false)
+                                                            )
+                                                            Text(
+                                                                modifier = Modifier.padding(end = 8.dp),
+                                                                text = " • ${formatTime(item.duration)}",
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                maxLines = 1
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
@@ -546,8 +582,7 @@ fun LibraryScreen(
                                                 Box(
                                                     modifier = Modifier
                                                         .size(48.dp)
-                                                        .clip(RoundedCornerShape(8.dp))
-                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                                        .clip(RoundedCornerShape(8.dp)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Icon(
@@ -620,22 +655,12 @@ fun LibraryScreen(
                                                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                                                         .padding(horizontal = 10.dp, vertical = 8.dp)
                                                 ) {
-                                                    Box(
+                                                    Column(
                                                         modifier = Modifier
-                                                            .size(48.dp)
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.song_options_playlist),
-                                                            contentDescription = null,
-                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            modifier = Modifier.size(24.dp)
+                                                            .weight(1f)
+                                                            .padding(vertical = 4.dp)
                                                         )
-                                                    }
-                                                    Spacer(Modifier.width(12.dp))
-                                                    Column(modifier = Modifier.weight(1f)) {
+                                                    {
                                                         Text(playlist.playlistName,
                                                             style = MaterialTheme.typography.bodyLarge,
                                                             fontWeight = FontWeight.Medium,

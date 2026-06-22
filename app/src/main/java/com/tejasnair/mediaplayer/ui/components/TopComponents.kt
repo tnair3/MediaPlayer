@@ -17,6 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.*
 import androidx.compose.material3.Icon
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.navigation.NavController
 import com.tejasnair.mediaplayer.R
 
@@ -168,7 +171,7 @@ fun StandardUIBar(
             modifier = Modifier.align(Alignment.Center)
         )
 
-        if (title == "Recordings" || title == "Vinyls") {
+        if (title == "Recordings" || title == "Vinyls" || title == "Settings") {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -194,18 +197,36 @@ fun ShowHelpMessage(
     title: String,
     onDismiss: () -> Unit
 ) {
-    val bodyText = when (title) {
+    val rawBodyText = when (title) {
         "Recordings" -> "This is where your recordings will appear. You can record audio directly in the app and it will be saved here for playback. Placeholder text — replace with your own description."
         "Vinyls" -> "Vinyls lets you visualise your music as a vinyl record. Placeholder text — replace with your own description."
+        "Settings" -> "v1.0-alpha3\nVinyls\nBetter Playlist Implementation\nBetter Miniplayer\nFix for Queue\nBetter Uploading\n\nv1.0-alpha4\nRecordings and Audio Trimming\nAesthetic Customisation\nLyrics Upload\n\nPlanned\nLibrary Export\niOS Port\nWindows Application"
         else -> "Help is not available for this screen."
     }
 
+    val annotatedBodyText = buildAnnotatedString {
+        append(rawBodyText)
+
+        if (title == "Settings") {
+            val versionRegex = Regex("""v\d+\.\d+-\w+|Planned""")
+            versionRegex.findAll(rawBodyText).forEach { matchResult ->
+                addStyle(
+                    style = SpanStyle(textDecoration = TextDecoration.Underline),
+                    start = matchResult.range.first,
+                    end = matchResult.range.last + 1
+                )
+            }
+        }
+    }
+
+    val heading = if (title == "Settings") "Upcoming Features" else title
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { Text(heading) },
         text = {
             Text(
-                text = bodyText,
+                text = annotatedBodyText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

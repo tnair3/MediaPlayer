@@ -18,6 +18,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
@@ -156,11 +161,46 @@ fun SongRow(
             .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val containerShape = RoundedCornerShape(12.dp)
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(containerShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .drawWithContent {
+                    drawContent()
+                    if (song.isFavourite) {
+                        val gradientWidth = 12.dp.toPx()
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFFFF2A6D).copy(alpha = 0.4f),
+                                    Color(0xFFE91E63).copy(alpha = 0.2f),
+                                    Color.Transparent
+                                ),
+                                startX = 0f,
+                                endX = gradientWidth
+                            ),
+                            topLeft = Offset(0f, 0f),
+                            size = Size(gradientWidth, size.height)
+                        )
+
+                        drawRect(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color(0xFFE91E63).copy(alpha = 0.2f),
+                                    Color(0xFFFF2A6D).copy(alpha = 0.4f)
+                                ),
+                                startX = size.width - gradientWidth,
+                                endX = size.width
+                            ),
+                            topLeft = Offset(size.width - gradientWidth, 0f),
+                            size = Size(gradientWidth, size.height)
+                        )
+                    }
+                }
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -181,21 +221,26 @@ fun SongRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = "${song.artists} • ${formatTime(song.duration)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (isFavourite) {
-                Icon(
-                    painter = painterResource(R.drawable.song_favourite_true),
-                    contentDescription = "Favourite",
-                    tint = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .size(16.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = song.artists,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Text(
+                        modifier = Modifier.padding(end = 8.dp),
+                        text = " • ${formatTime(song.duration)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

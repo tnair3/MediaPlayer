@@ -52,9 +52,6 @@ class MusicRepository(
         musicDao.insertSongToPlaylistBatch(crossRefs)
     }
 
-    suspend fun updatePlaylistCover(playlistId: String, artUri: String?, mosaicSongIds: String?) =
-        musicDao.updatePlaylistCover(playlistId, artUri, mosaicSongIds)
-
     fun copyImageToInternalStorage(context: android.content.Context, uri: android.net.Uri, playlistId: String): String? {
         return try {
             val dir = java.io.File(context.filesDir, "playlist_art").apply { mkdirs() }

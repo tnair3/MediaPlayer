@@ -23,9 +23,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -157,6 +160,81 @@ fun FavouritesScreen(
                     }
                 }
 
+                // Play + Shuffle row
+                if (songs.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .padding(bottom = 12.dp, top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                if (songs.isNotEmpty()) playbackViewModel.playSong(
+                                    selectedSong = songs.first(),
+                                    playlist = songs
+                                )
+                                showNowPlaying.value = true
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            contentPadding = PaddingValues()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            colors = listOf(
+                                                Color(0xFF7783CD),
+                                                Color(0xFF9F43AF),
+                                                Color(0xFFA8194A)
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.song_play),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = Color.White
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Play", color = Color.White)
+                                }
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                if (songs.isNotEmpty()) {
+                                    val shuffled = songs.shuffled()
+                                    playbackViewModel.playSong(
+                                        selectedSong = shuffled.first(),
+                                        playlist = shuffled
+                                    )
+                                }
+                                showNowPlaying.value = true
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.song_shuffle),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Shuffle")
+                        }
+                    }
+                }
+
                 // Gradient divider
                 Box(
                     modifier = Modifier
@@ -233,130 +311,6 @@ fun FavouritesScreen(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Floating play/shuffle buttons with backdrop
-            if (songs.isNotEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(end = 16.dp),
-                    contentAlignment = Alignment.CenterEnd
-                ) {
-                    AnimatedVisibility(
-                        visible = songs.isNotEmpty(),
-                        enter = fadeIn() + scaleIn(initialScale = 0.9f)
-                    ) {
-                        // Subtle frosted backdrop behind the buttons
-                        Box(
-                            modifier = Modifier
-                                .width(80.dp)
-                                .clip(shape = RoundedCornerShape(size = 40.dp))
-                                .border(
-                                    color = MaterialTheme.colorScheme.outlineVariant,
-                                    width = 2.dp,
-                                    shape = RoundedCornerShape(size = 40.dp)
-                                )
-                                .background(color = MaterialTheme.colorScheme.surface)
-                                .padding(vertical = 12.dp)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                    enabled = true,
-                                    onClick = {  }
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(14.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                // Play button
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.size(76.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(72.dp)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                                shape = CircleShape
-                                            )
-                                            .blur(radius = 8.dp)
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .size(58.dp)
-                                            .shadow(elevation = 8.dp, shape = CircleShape)
-                                            .background(color = MaterialTheme.colorScheme.primary, shape = CircleShape)
-                                            .clip(shape = CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        IconButton(
-                                            onClick = {
-                                                playbackViewModel.playSong(selectedSong = songs.first(), playlist = songs)
-                                                showNowPlaying.value = true
-                                            },
-                                            modifier = Modifier.fillMaxSize()
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.song_play),
-                                                contentDescription = "Play",
-                                                tint = MaterialTheme.colorScheme.onPrimary,
-                                                modifier = Modifier.size(26.dp)
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Shuffle button
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.size(56.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f),
-                                                shape = CircleShape
-                                            )
-                                            .blur(6.dp)
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .size(46.dp)
-                                            .shadow(elevation = 4.dp, shape =  CircleShape)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                                shape = CircleShape
-                                            )
-                                            .clip(shape = CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        IconButton(
-                                            onClick = {
-                                                val shuffled = songs.shuffled()
-                                                playbackViewModel.playSong(selectedSong = shuffled.first(), playlist = shuffled)
-                                                showNowPlaying.value = true
-                                            },
-                                            modifier = Modifier.fillMaxSize()
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.song_shuffle),
-                                                contentDescription = "Shuffle",
-                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
                                     }
                                 }
                             }

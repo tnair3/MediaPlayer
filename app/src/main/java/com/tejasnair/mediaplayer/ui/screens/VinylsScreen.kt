@@ -11,6 +11,9 @@ import androidx.compose.runtime.Composable
 // 3. Material3
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 
 // 4. Navigation
 import androidx.navigation.NavController
@@ -44,6 +47,29 @@ fun VinylsScreen(
                     thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
                 )
+
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        text = "Feature coming soon"
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "Projected for v1.0-alpha3"
+                    )
+                }
             }
         }
     }

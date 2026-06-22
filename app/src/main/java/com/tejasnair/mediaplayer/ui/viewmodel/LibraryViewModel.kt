@@ -102,10 +102,6 @@ class LibraryViewModel(
     fun getPlaylistSongCount(playlistId: String): Flow<Int> =
         repository.getPlaylistSongCount(playlistId)
 
-    fun updatePlaylistCover(playlistId: String, artUri: String?, mosaicSongIds: String?) {
-        viewModelScope.launch { repository.updatePlaylistCover(playlistId, artUri, mosaicSongIds) }
-    }
-
     fun copyImageToInternalStorage(uri: android.net.Uri, playlistId: String): String? {
         return repository.copyImageToInternalStorage(
             getApplication<android.app.Application>().applicationContext,

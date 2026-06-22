@@ -249,8 +249,11 @@ fun SongSheet(
                         contentAlignment = Alignment.Center
                     ) {
                         IconButton(onClick = { libraryViewModel.toggleFavourite(song.songId) }, modifier = Modifier.size(40.dp)) {
-                            Icon(painterResource(if (song.isFavourite) R.drawable.song_favourite_true else R.drawable.song_favourite),
-                                "Favourite", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                            Icon(
+                                painterResource(id = if (song.isFavourite) R.drawable.song_favourite_true else R.drawable.song_favourite),
+                                contentDescription = "Favourite",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp))
                         }
                     }
                 }
