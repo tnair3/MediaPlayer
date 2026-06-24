@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -32,6 +33,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.navigation.NavController
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
@@ -457,8 +461,68 @@ fun LibraryScreen(
                                                         .drawWithContent {
                                                             drawContent()
                                                             if (item.isFavourite) {
-                                                                val gradientWidth = 12.dp.toPx()
-                                                                drawRect(
+                                                                val gradientWidth = 20.dp.toPx()
+                                                                val cornerRadius = 12.dp.toPx()
+
+                                                                val leftPath = Path().apply {
+                                                                    moveTo(0f, 0f)
+                                                                    lineTo(gradientWidth, 0f)
+
+                                                                    cubicTo(
+                                                                        gradientWidth - cornerRadius, 0f,
+                                                                        gradientWidth - cornerRadius, cornerRadius,
+                                                                        gradientWidth - cornerRadius, cornerRadius
+                                                                    )
+
+                                                                    lineTo(gradientWidth - cornerRadius, size.height - cornerRadius)
+
+                                                                    cubicTo(
+                                                                        gradientWidth - cornerRadius, size.height - cornerRadius,
+                                                                        gradientWidth - cornerRadius, size.height,
+                                                                        gradientWidth, size.height
+                                                                    )
+
+                                                                    lineTo(0f, size.height)
+                                                                    close()
+                                                                }
+
+                                                                drawPath(
+                                                                    path = leftPath,
+                                                                    brush = Brush.horizontalGradient(
+                                                                        colors = listOf(
+                                                                            Color(0xFFFF2A6D).copy(alpha = 0.4f),
+                                                                            Color(0xFFE91E63).copy(alpha = 0.2f),
+                                                                            Color.Transparent
+                                                                        ),
+                                                                        startX = 0f,
+                                                                        endX = gradientWidth
+                                                                    )
+                                                                )
+
+                                                                val rightPath = Path().apply {
+                                                                    moveTo(size.width, 0f)
+                                                                    lineTo(size.width - gradientWidth, 0f)
+
+                                                                    cubicTo(
+                                                                        size.width - gradientWidth + cornerRadius, 0f,
+                                                                        size.width - gradientWidth + cornerRadius, cornerRadius,
+                                                                        size.width - gradientWidth + cornerRadius, cornerRadius
+                                                                    )
+
+                                                                    lineTo(size.width - gradientWidth + cornerRadius, size.height - cornerRadius)
+
+                                                                    cubicTo(
+                                                                        size.width - gradientWidth + cornerRadius, size.height - cornerRadius,
+                                                                        size.width - gradientWidth + cornerRadius, size.height,
+                                                                        size.width - gradientWidth, size.height
+                                                                    )
+
+                                                                    lineTo(size.width, size.height)
+                                                                    close()
+                                                                }
+
+                                                                drawPath(
+                                                                    path = rightPath,
                                                                     brush = Brush.horizontalGradient(
                                                                         colors = listOf(
                                                                             Color.Transparent,
@@ -467,9 +531,7 @@ fun LibraryScreen(
                                                                         ),
                                                                         startX = size.width - gradientWidth,
                                                                         endX = size.width
-                                                                    ),
-                                                                    topLeft = Offset(size.width - gradientWidth, 0f),
-                                                                    size = Size(gradientWidth, size.height)
+                                                                    )
                                                                 )
                                                             }
                                                         }
@@ -562,26 +624,27 @@ fun LibraryScreen(
                                 }
                             }
                             2 -> {
-                                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                LazyColumn(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
                                     item(key = "create_playlist") {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
-                                                .fillMaxWidth()
                                                 .clickable { showCreatePlaylistDialog = true }
                                                 .padding(horizontal = 12.dp, vertical = 4.dp)
                                         ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .clip(RoundedCornerShape(28.dp))
                                                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
                                                     .padding(horizontal = 10.dp, vertical = 12.dp)
                                             ) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(48.dp)
+                                                        .size(32.dp)
                                                         .clip(RoundedCornerShape(8.dp)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
@@ -592,15 +655,18 @@ fun LibraryScreen(
                                                         modifier = Modifier.size(24.dp)
                                                     )
                                                 }
-                                                Spacer(Modifier.width(12.dp))
+                                                Spacer(Modifier.width(4.dp))
                                                 Text(
-                                                    text = "Create Playlist",
+                                                    text = "Create New Playlist",
                                                     style = MaterialTheme.typography.bodyLarge,
                                                     fontWeight = FontWeight.Medium,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                                                 )
                                             }
                                         }
+
+                                        Spacer(Modifier.height(12.dp))
                                     }
 
                                     if (filteredPlaylists.isEmpty() && searchQuery.isNotBlank()) {

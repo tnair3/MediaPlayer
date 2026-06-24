@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
@@ -171,8 +172,33 @@ fun SongRow(
                 .drawWithContent {
                     drawContent()
                     if (song.isFavourite) {
-                        val gradientWidth = 12.dp.toPx()
-                        drawRect(
+                        val gradientWidth = 16.dp.toPx()
+                        val cornerRadius = 10.dp.toPx()
+
+                        val leftPath = Path().apply {
+                            moveTo(0f, 0f)
+                            lineTo(gradientWidth, 0f)
+
+                            cubicTo(
+                                gradientWidth - cornerRadius, 0f,
+                                gradientWidth - cornerRadius, cornerRadius,
+                                gradientWidth - cornerRadius, cornerRadius
+                            )
+
+                            lineTo(gradientWidth - cornerRadius, size.height - cornerRadius)
+
+                            cubicTo(
+                                gradientWidth - cornerRadius, size.height - cornerRadius,
+                                gradientWidth - cornerRadius, size.height,
+                                gradientWidth, size.height
+                            )
+
+                            lineTo(0f, size.height)
+                            close()
+                        }
+
+                        drawPath(
+                            path = leftPath,
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
                                     Color(0xFFFF2A6D).copy(alpha = 0.4f),
@@ -181,12 +207,33 @@ fun SongRow(
                                 ),
                                 startX = 0f,
                                 endX = gradientWidth
-                            ),
-                            topLeft = Offset(0f, 0f),
-                            size = Size(gradientWidth, size.height)
+                            )
                         )
 
-                        drawRect(
+                        val rightPath = Path().apply {
+                            moveTo(size.width, 0f)
+                            lineTo(size.width - gradientWidth, 0f)
+
+                            cubicTo(
+                                size.width - gradientWidth + cornerRadius, 0f,
+                                size.width - gradientWidth + cornerRadius, cornerRadius,
+                                size.width - gradientWidth + cornerRadius, cornerRadius
+                            )
+
+                            lineTo(size.width - gradientWidth + cornerRadius, size.height - cornerRadius)
+
+                            cubicTo(
+                                size.width - gradientWidth + cornerRadius, size.height - cornerRadius,
+                                size.width - gradientWidth + cornerRadius, size.height,
+                                size.width - gradientWidth, size.height
+                            )
+
+                            lineTo(size.width, size.height)
+                            close()
+                        }
+
+                        drawPath(
+                            path = rightPath,
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
                                     Color.Transparent,
@@ -195,9 +242,7 @@ fun SongRow(
                                 ),
                                 startX = size.width - gradientWidth,
                                 endX = size.width
-                            ),
-                            topLeft = Offset(size.width - gradientWidth, 0f),
-                            size = Size(gradientWidth, size.height)
+                            )
                         )
                     }
                 }
