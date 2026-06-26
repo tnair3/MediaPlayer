@@ -2,6 +2,7 @@ package com.tejasnair.mediaplayer.ui.viewmodel
 
 import android.app.Application
 import android.content.ComponentName
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -24,6 +25,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
 class PlaybackViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -301,7 +304,7 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
                         duration = it.duration.coerceAtLeast(0L)
                     }
                 }
-                delay(1000)
+                delay(1000.milliseconds)
             }
         }
     }
@@ -309,7 +312,7 @@ class PlaybackViewModel(application: Application) : AndroidViewModel(application
     private fun Song.toMediaItem(): MediaItem {
         return MediaItem.Builder()
             .setMediaId(this.songId)
-            .setUri(this.filePath.toUri())
+            .setUri(Uri.fromFile(File(this.filePath)))
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(this.title)

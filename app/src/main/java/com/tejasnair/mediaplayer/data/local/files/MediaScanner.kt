@@ -44,7 +44,7 @@ class MediaScanner(
 
                 val extension = tempFile.extension
                 val formattedName = "${song.album} - ${song.title} (${song.artists}) ${song.discNumber}.${song.trackNumber}.$extension"
-                    .replace(Regex("[\\\\/:*?\"<>|]"), "_")
+                    .replace(Regex("""[\\/:*?"<>|#%\u0000]"""), "_")
 
                 val finalFile = File(tempFile.parentFile, formattedName)
 
