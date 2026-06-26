@@ -123,7 +123,6 @@ fun PlaylistScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 56.dp)
             ) {
 
                 // Top Title Bar
@@ -345,7 +344,18 @@ fun PlaylistScreen(
                         secondaryText = "Add songs from the library"
                     )
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    val isPlayerActive = playbackViewModel.currentSongId != null
+                    val totalBottomPadding = if (isPlayerActive) 64.dp else 0.dp
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            bottom = totalBottomPadding,
+                            top = 0.dp,
+                            start = 0.dp,
+                            end = 0.dp
+                        )
+                    ) {
                         itemsIndexed(
                             items = playlistSongs,
                             key = { _, song -> song.songId }

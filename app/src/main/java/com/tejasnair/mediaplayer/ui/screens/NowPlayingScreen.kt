@@ -13,10 +13,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,6 +33,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import coil.compose.AsyncImage
@@ -40,20 +41,25 @@ import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.SongRow
 import com.tejasnair.mediaplayer.ui.components.formatBytes
 import com.tejasnair.mediaplayer.ui.components.formatTime
+import com.tejasnair.mediaplayer.ui.components.StyledDropdownItem
+import com.tejasnair.mediaplayer.ui.components.Waveform
+import com.tejasnair.mediaplayer.ui.components.MetadataRow
+import com.tejasnair.mediaplayer.ui.components.SkipIndicator
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
-import com.tejasnair.mediaplayer.ui.components.Waveform
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun NowPlayingScreen(
     libraryViewModel: LibraryViewModel,
     playbackViewModel: PlaybackViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    expansionFraction: Float = 1f
 ) {
     val allSongs by libraryViewModel.allSongs.collectAsState()
     val currentSong = allSongs.find { it.songId == playbackViewModel.currentSongId }
@@ -68,6 +74,7 @@ fun NowPlayingScreen(
     val isDragging by interactionSource.collectIsDraggedAsState()
 
     var sliderThumbValue by remember { mutableFloatStateOf(0f) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentPosition, isDragging) {
         if (!isDragging) {
@@ -89,10 +96,8 @@ fun NowPlayingScreen(
     val queueListState = rememberLazyListState()
     val detailsScrollState = rememberScrollState()
 
-    // Pager: page 0 = player, page 1 = info panel
     val pagerState = rememberPagerState(pageCount = { 2 })
 
-    // Next song in queue
     val currentQueueIndex = remember(queue, currentSong) {
         queue.indexOfFirst { it.songId == currentSong?.songId }
     }
@@ -102,9 +107,10 @@ fun NowPlayingScreen(
         else null
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val dynamicArtSize = (44 + (216 * expansionFraction)).dp
 
-        // Full bleed blurred background
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+
         AsyncImage(
             model = currentSong?.songArtUri,
             contentDescription = null,
@@ -126,22 +132,18 @@ fun NowPlayingScreen(
                 )
         )
 
-        // Horizontal pager — swipe left to info panel, right to return
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
             userScrollEnabled = false
         ) { page ->
             when (page) {
-
-                // Player Page
                 0 -> {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .safeDrawingPadding()
                     ) {
-                        // Album title header
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -149,6 +151,13 @@ fun NowPlayingScreen(
                                 .padding(top = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            IconButton(onClick = onBackClick) {
+                                Icon(
+                                    painter = painterResource(R.drawable.chevron_down),
+                                    contentDescription = "Collapse",
+                                    tint = Color.White
+                                )
+                            }
                             Text(
                                 text = currentSong?.album ?: "Now Playing",
                                 style = MaterialTheme.typography.labelLarge,
@@ -158,9 +167,60 @@ fun NowPlayingScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+
+                            // Context Menu Container
+                            Box {
+                                IconButton(onClick = { showOptionsMenu = true }) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.options),
+                                        contentDescription = "Playback Options",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showOptionsMenu,
+                                    onDismissRequest = { showOptionsMenu = false },
+                                    offset = DpOffset(x = (-10).dp, y = 0.dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
+                                    modifier = Modifier.width(200.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Queue Options",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+
+                                    StyledDropdownItem(
+                                        icon = R.drawable.options_delete,
+                                        label = "Dismiss Queue",
+                                        tint = MaterialTheme.colorScheme.error
+                                    ) {
+                                        showOptionsMenu = false
+                                        playbackViewModel.stopPlayback()
+                                        onBackClick()
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                }
+                            }
                         }
 
-                        // Art + controls
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -187,21 +247,18 @@ fun NowPlayingScreen(
                                 }
                                 .graphicsLayer {
                                     translationX = offsetX
-                                    alpha =
-                                        1f - (kotlin.math.abs(offsetX) / (threshold * 2f)).coerceAtMost(
-                                            0.5f
-                                        )
+                                    alpha = 1f - (kotlin.math.abs(offsetX) / (threshold * 2f)).coerceAtMost(0.5f)
                                 },
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             LaunchedEffect(showSkipLeft) {
                                 if (showSkipLeft) {
-                                    delay(600); showSkipLeft = false
+                                    delay(600.milliseconds); showSkipLeft = false
                                 }
                             }
                             LaunchedEffect(showSkipRight) {
                                 if (showSkipRight) {
-                                    delay(600); showSkipRight = false
+                                    delay(600.milliseconds); showSkipRight = false
                                 }
                             }
 
@@ -223,7 +280,7 @@ fun NowPlayingScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(280.dp)
+                                        .size(dynamicArtSize + 20.dp)
                                         .background(
                                             Color.White.copy(alpha = 0.08f),
                                             RoundedCornerShape(28.dp)
@@ -231,14 +288,15 @@ fun NowPlayingScreen(
                                         .blur(20.dp)
                                 )
                                 AsyncImage(
-                                    modifier = Modifier.size(260.dp)
+                                    modifier = Modifier
+                                        .size(dynamicArtSize)
                                         .clip(RoundedCornerShape(24.dp)),
                                     model = currentSong?.songArtUri,
                                     contentDescription = "Album Art",
                                     contentScale = ContentScale.Crop
                                 )
                                 Box(
-                                    modifier = Modifier.size(260.dp).clip(RoundedCornerShape(24.dp))
+                                    modifier = Modifier.size(dynamicArtSize).clip(RoundedCornerShape(24.dp))
                                 ) {
                                     SkipIndicator(
                                         visible = showSkipLeft,
@@ -412,7 +470,6 @@ fun NowPlayingScreen(
                             Spacer(Modifier.height(8.dp))
                         }
 
-                        // Up Next Card
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -425,7 +482,6 @@ fun NowPlayingScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                // Next song art
                                 if (nextSong != null) {
                                     AsyncImage(
                                         model = nextSong.songArtUri,
@@ -473,7 +529,6 @@ fun NowPlayingScreen(
                                     }
                                 }
 
-                                // Shuffle toggle
                                 IconButton(onClick = { playbackViewModel.toggleShuffle() }) {
                                     Icon(
                                         painter = painterResource(R.drawable.song_shuffle),
@@ -485,12 +540,9 @@ fun NowPlayingScreen(
                                     )
                                 }
 
-                                // Chevron right — navigate to info panel
                                 IconButton(onClick = {
                                     scope.launch {
-                                        pagerState.animateScrollToPage(
-                                            1
-                                        )
+                                        pagerState.animateScrollToPage(1)
                                     }
                                 }) {
                                     Icon(
@@ -503,7 +555,6 @@ fun NowPlayingScreen(
                             }
                         }
 
-                        // Song Count Indicator
                         Text(
                             text = if (currentQueueIndex >= 0) "Song ${currentQueueIndex + 1} of ${queue.size}" else "",
                             style = MaterialTheme.typography.labelSmall,
@@ -516,7 +567,6 @@ fun NowPlayingScreen(
 
                         Spacer(Modifier.height(16.dp))
 
-                        // Compact Details Section
                         SelectionContainer {
                             Column(
                                 modifier = Modifier
@@ -566,7 +616,6 @@ fun NowPlayingScreen(
                     }
                 }
 
-                // Info Panel Page
                 1 -> {
                     var selectedTab by remember { mutableIntStateOf(0) }
 
@@ -575,7 +624,6 @@ fun NowPlayingScreen(
                             .fillMaxSize()
                             .safeDrawingPadding()
                     ) {
-                        // Tab bar with chevron left to return
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -584,7 +632,6 @@ fun NowPlayingScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Chevron left
                             IconButton(onClick = { scope.launch { pagerState.animateScrollToPage(0) } }) {
                                 Icon(
                                     painter = painterResource(R.drawable.chevron_left),
@@ -605,7 +652,6 @@ fun NowPlayingScreen(
                                 }
                             }
 
-                            // Spacer to balance the chevron
                             Spacer(Modifier.size(48.dp))
                         }
 
@@ -618,7 +664,7 @@ fun NowPlayingScreen(
 
                         Crossfade(targetState = selectedTab, label = "TabTransition") { tab ->
                             when (tab) {
-                                0 -> { // Queue
+                                0 -> {
                                     LazyColumn(state = queueListState, modifier = Modifier.fillMaxSize()) {
                                         itemsIndexed(items = queue, key = { _, song -> song.filePath }) { index, song ->
                                             val isCurrent = song.filePath == currentSong?.filePath
@@ -655,7 +701,7 @@ fun NowPlayingScreen(
                                                                     val firstOffset = queueListState.firstVisibleItemScrollOffset
                                                                     playbackViewModel.moveQueueItem(index, index - 1)
                                                                     scope.launch {
-                                                                        delay(300)
+                                                                        delay(300.milliseconds)
                                                                         queueListState.scrollToItem(firstVisible, firstOffset)
                                                                     }
                                                                 }
@@ -676,7 +722,7 @@ fun NowPlayingScreen(
                                                                     val firstOffset = queueListState.firstVisibleItemScrollOffset
                                                                     playbackViewModel.moveQueueItem(index, index + 1)
                                                                     scope.launch {
-                                                                        delay(300)
+                                                                        delay(300.milliseconds)
                                                                         queueListState.scrollToItem(firstVisible, firstOffset)
                                                                     }
                                                                 }
@@ -715,12 +761,12 @@ fun NowPlayingScreen(
                                         }
                                     }
                                 }
-                                1 -> { // Lyrics
+                                1 -> {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         Text("Lyrics coming soon...", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.6f))
                                     }
                                 }
-                                2 -> { // Details
+                                2 -> {
                                     SelectionContainer {
                                         Column(
                                             modifier = Modifier
@@ -753,42 +799,8 @@ fun NowPlayingScreen(
     }
 }
 
-@Composable
-fun SkipIndicator(visible: Boolean, text: String, alignment: Alignment) {
-    Box(
-        modifier = Modifier.size(260.dp).clip(RoundedCornerShape(24.dp)),
-        contentAlignment = alignment
-    ) {
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(tween(80)) + scaleIn(tween(80), initialScale = 0.7f),
-            exit = fadeOut(tween(300))
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            )
-        }
-    }
-}
-
 fun getFileSize(path: String?): Long {
     if (path == null) return 0L
     val file = java.io.File(path)
     return if (file.exists()) file.length() else 0L
-}
-
-@Composable
-fun MetadataRow(label: String, value: String) {
-    Text(
-        text = "$label: $value",
-        style = MaterialTheme.typography.bodySmall,
-        color = Color.White.copy(alpha = 0.6f)
-    )
 }

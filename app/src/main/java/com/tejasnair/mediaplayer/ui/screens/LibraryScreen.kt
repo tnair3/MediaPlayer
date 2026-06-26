@@ -209,8 +209,7 @@ fun LibraryScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 56.dp),
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 TopNavigation(
@@ -430,6 +429,9 @@ fun LibraryScreen(
                 if (songs.isEmpty()) {
                     EmptyLibrary(R.drawable.disp_empty_library, "Library is Empty", "Upload media to listen")
                 } else {
+                    val isPlayerActive = playbackViewModel.currentSongId != null
+                    val totalBottomPadding = if (isPlayerActive) 64.dp else 0.dp
+
                     HorizontalPager(
                         state = pagerState,
                         modifier = Modifier.fillMaxSize(),
@@ -441,7 +443,15 @@ fun LibraryScreen(
                                 if (filteredSongs.isEmpty()) {
                                     EmptyLibrary(R.drawable.disp_empty_library, "No Results", "No songs match \"$searchQuery\"")
                                 } else {
-                                    LazyColumn {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(
+                                            bottom = totalBottomPadding,
+                                            top = 0.dp,
+                                            start = 0.dp,
+                                            end = 0.dp
+                                        )
+                                    ) {
                                         items(filteredSongs) { item ->
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
@@ -579,7 +589,15 @@ fun LibraryScreen(
                                 if (filteredAlbums.isEmpty()) {
                                     EmptyLibrary(R.drawable.disp_empty_library, "No Results", "No albums match \"$searchQuery\"")
                                 } else {
-                                    LazyColumn {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentPadding = PaddingValues(
+                                            bottom = totalBottomPadding,
+                                            top = 0.dp,
+                                            start = 0.dp,
+                                            end = 0.dp
+                                        )
+                                    ) {
                                         items(filteredAlbums) { item ->
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
@@ -626,7 +644,13 @@ fun LibraryScreen(
                             2 -> {
                                 LazyColumn(
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(
+                                        bottom = totalBottomPadding,
+                                        top = 0.dp,
+                                        start = 0.dp,
+                                        end = 0.dp
+                                    )
                                 ) {
                                     item(key = "create_playlist") {
                                         Row(

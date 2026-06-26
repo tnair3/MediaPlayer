@@ -345,11 +345,14 @@ fun AlbumScreen(
     // Main UI
 
     ThemedScreen {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+        ) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 56.dp),
+                    .fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Full bleed header
@@ -471,7 +474,18 @@ fun AlbumScreen(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                 )
 
-                LazyColumn {
+                val isPlayerActive = playbackViewModel.currentSongId != null
+                val totalBottomPadding = if (isPlayerActive) 64.dp else 0.dp
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        bottom = totalBottomPadding,
+                        top = 0.dp,
+                        start = 0.dp,
+                        end = 0.dp
+                    )
+                ) {
                     groupedSongs.forEach { (discNumber, discSongs) ->
                         item(key = "disc_header_$discNumber") {
                             if (groupedSongs.size > 1) DiscHeader(discNumber = discNumber)

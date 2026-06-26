@@ -69,7 +69,6 @@ fun FavouritesScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 56.dp)
             ) {
                 // Decorative header card
                 Box(
@@ -265,7 +264,17 @@ fun FavouritesScreen(
                         )
                     }
                 } else {
-                    LazyColumn {
+                    val isPlayerActive = playbackViewModel.currentSongId != null
+                    val totalBottomPadding = if (isPlayerActive) 64.dp else 0.dp
+
+                    LazyColumn(
+                        contentPadding = PaddingValues(
+                            bottom = totalBottomPadding,
+                            top = 0.dp,
+                            start = 0.dp,
+                            end = 0.dp
+                        )
+                    ) {
                         items(songs) { item ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
