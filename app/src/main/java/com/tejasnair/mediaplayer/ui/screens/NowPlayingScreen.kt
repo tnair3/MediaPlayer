@@ -325,7 +325,9 @@ fun NowPlayingScreen(
                             Text(
                                 text = currentSong?.artists ?: "Unknown Artist",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.7f)
+                                color = Color.White.copy(alpha = 0.7f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
 
                             Spacer(Modifier.height(20.dp))
