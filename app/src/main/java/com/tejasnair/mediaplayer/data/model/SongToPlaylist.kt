@@ -2,6 +2,7 @@ package com.tejasnair.mediaplayer.data.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 @Entity(
     tableName = "songToPlaylist",
@@ -19,6 +20,9 @@ import androidx.room.ForeignKey
             childColumns = ["playlistId"],
             onDelete = ForeignKey.CASCADE
         )
+    ],
+    indices = [
+        Index(value = ["playlistId"])
     ]
 )
 data class SongToPlaylist(
