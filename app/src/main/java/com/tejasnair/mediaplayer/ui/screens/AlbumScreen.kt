@@ -31,7 +31,9 @@ import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
 import android.util.Log
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.tejasnair.mediaplayer.ui.components.DeleteConfirmationDialog
+import com.tejasnair.mediaplayer.ui.components.drawScrollbar
 
 @Composable
 fun AlbumScreen(
@@ -100,12 +102,30 @@ fun AlbumScreen(
     }
 
     if (showDeleteSongsDialog) {
+        val lazyListState = rememberLazyListState()
+
         AlertDialog(
-            modifier = Modifier.padding(vertical = 28.dp),
             onDismissRequest = {
                 showDeleteSongsDialog = false
                 songsSelectedForDeletion.clear()
             },
+            confirmButton = {
+                TextButton(
+                    enabled = songsSelectedForDeletion.isNotEmpty(),
+                    onClick = { showConfirmEditDeleteDialog = true }
+                ) {
+                    Text(
+                        "Delete (${songsSelectedForDeletion.size})",
+                        color = if (songsSelectedForDeletion.isNotEmpty()) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    )
+                }
+            },
+            modifier = Modifier
+                .padding(vertical = 28.dp)
+                .heightIn(max = 650.dp),
+            dismissButton = { TextButton(onClick = { showDeleteSongsDialog = false; songsSelectedForDeletion.clear() }) { Text("Cancel") } },
+            icon = { Icon(painter = painterResource(id = R.drawable.options_deletesome), contentDescription = "Erasing") },
             title = { Text("Select Songs to Delete") },
             text = {
                 Column {
@@ -128,7 +148,16 @@ fun AlbumScreen(
                         )
                     }
                     HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
-                    LazyColumn {
+
+                    val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+
+                    LazyColumn(
+                        state = lazyListState,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .drawScrollbar(lazyListState, scrollbarColor)
+                            .padding(end = 8.dp)
+                    ) {
                         items(albumSongs) { song ->
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -157,49 +186,48 @@ fun AlbumScreen(
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = songsSelectedForDeletion.isNotEmpty(),
-                    onClick = { showConfirmEditDeleteDialog = true }
-                ) {
-                    Text(
-                        "Delete (${songsSelectedForDeletion.size})",
-                        color =
-                            if (songsSelectedForDeletion.isNotEmpty()) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteSongsDialog = false; songsSelectedForDeletion.clear() }) { Text("Cancel") }
             }
         )
     }
 
     if (showConfirmEditDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showConfirmEditDeleteDialog = false },
-            title = { Text("Delete Songs") },
-            text = { Text("Are you sure you want to delete ${songsSelectedForDeletion.size} song(s)? This cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    albumSongs.filter { it.filePath in songsSelectedForDeletion }
-                        .forEach { libraryViewModel.deleteSong(it) }
-                    songsSelectedForDeletion.clear()
-                    showConfirmEditDeleteDialog = false
-                    showDeleteSongsDialog = false
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+        DeleteConfirmationDialog(
+            primaryText = "Delete Songs",
+            secondaryText = if (songsSelectedForDeletion.size == 1) "Are you sure you want to delete 1 song? This cannot be undone." else "Are you sure you want to delete ${songsSelectedForDeletion.size} songs? This cannot be undone.",
+            onConfirm = {
+                albumSongs.filter { it.filePath in songsSelectedForDeletion }
+                    .forEach { libraryViewModel.deleteSong(it) }
+                songsSelectedForDeletion.clear()
+                showConfirmEditDeleteDialog = false
+                showDeleteSongsDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showConfirmEditDeleteDialog = false }) { Text("Cancel") }
-            }
+            onDismiss = { showConfirmEditDeleteDialog = false }
         )
     }
 
     if (showEditDetailsDialog) {
         AlertDialog(
             onDismissRequest = { showEditDetailsDialog = false },
+            confirmButton = {
+                TextButton(
+                    enabled = editAlbumName.isNotBlank() && editAlbumArtist.isNotBlank(),
+                    onClick = {
+                        libraryViewModel.updateAlbumDetails(
+                            oldAlbum = albumName, oldArtist = albumArtist,
+                            newAlbum = editAlbumName.trim(), newArtist = editAlbumArtist.trim(),
+                            newYear = editAlbumYear.trim().takeIf { it.isNotBlank() }
+                        )
+                        showEditDetailsDialog = false
+                    }
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    editAlbumName = albumName; editAlbumArtist = albumArtist
+                    editAlbumYear = albumYear ?: ""; showEditDetailsDialog = false
+                }) { Text("Cancel") }
+            },
+            icon = { Icon(painter = painterResource(id = R.drawable.options_edit), contentDescription = "Editing") },
             title = { Text("Edit Album Details") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -220,25 +248,6 @@ fun AlbumScreen(
                         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(size = 12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                 }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = editAlbumName.isNotBlank() && editAlbumArtist.isNotBlank(),
-                    onClick = {
-                        libraryViewModel.updateAlbumDetails(
-                            oldAlbum = albumName, oldArtist = albumArtist,
-                            newAlbum = editAlbumName.trim(), newArtist = editAlbumArtist.trim(),
-                            newYear = editAlbumYear.trim().takeIf { it.isNotBlank() }
-                        )
-                        showEditDetailsDialog = false
-                    }
-                ) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    editAlbumName = albumName; editAlbumArtist = albumArtist
-                    editAlbumYear = albumYear ?: ""; showEditDetailsDialog = false
-                }) { Text("Cancel") }
             }
         )
     }

@@ -70,17 +70,6 @@ fun PlaylistScreen(
     if (showEditNameDialog) {
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
-            title = { Text("Edit Playlist Name") },
-            text = {
-                OutlinedTextField(
-                    value = editName,
-                    onValueChange = { editName = it },
-                    label = { Text("Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            },
             confirmButton = {
                 TextButton(
                     enabled = editName.isNotBlank(),
@@ -92,7 +81,19 @@ fun PlaylistScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel") }
-            }
+            },
+            icon = { Icon(painter = painterResource(id = R.drawable.options_edit), contentDescription = "Editing") },
+            title = { Text("Edit Playlist Name") },
+            text = {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    label = { Text("Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+            },
         )
     }
 
