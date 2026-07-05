@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.ui.components.DeleteConfirmationDialog
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.SongRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
@@ -97,20 +98,15 @@ fun PlaylistScreen(
 
     // Delete dialog
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Playlist") },
-            text = { Text("Are you sure you want to delete \"${playlist?.playlistName}\"? This cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    libraryViewModel.deletePlaylist(playlistId)
-                    showDeleteDialog = false
-                    navController.navigateUp()
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+        DeleteConfirmationDialog(
+            primaryText = "Delete Playlist",
+            secondaryText = "Are you sure you want to delete \"${playlist?.playlistName}\"? This cannot be undone.",
+            onConfirm = {
+                libraryViewModel.deletePlaylist(playlistId)
+                showDeleteDialog = false
+                navController.navigateUp()
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
-            }
+            onDismiss = { showDeleteDialog = false }
         )
     }
 

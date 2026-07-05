@@ -31,6 +31,7 @@ import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 
 import android.util.Log
+import com.tejasnair.mediaplayer.ui.components.DeleteConfirmationDialog
 
 @Composable
 fun AlbumScreen(
@@ -87,19 +88,14 @@ fun AlbumScreen(
     // Dialogs
 
     if (showDeleteAlbumDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteAlbumDialog = false },
-            title = { Text("Delete Album") },
-            text = { Text("Are you sure you want to delete all songs in $albumName? This cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    albumSongs.forEach { libraryViewModel.deleteSong(it) }
-                    showDeleteAlbumDialog = false
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+        DeleteConfirmationDialog(
+            primaryText = "Delete Album",
+            secondaryText = "Are you sure you want to delete all songs in \"${albumName}\"? This cannot be undone.",
+            onConfirm = {
+                albumSongs.forEach { libraryViewModel.deleteSong(it) }
+                showDeleteAlbumDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteAlbumDialog = false }) { Text("Cancel") }
-            }
+            onDismiss = { showDeleteAlbumDialog = false }
         )
     }
 

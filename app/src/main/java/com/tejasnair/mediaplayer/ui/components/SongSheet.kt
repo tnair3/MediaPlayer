@@ -49,7 +49,8 @@ fun SongSheet(
 
     if (showDeleteDialog) {
         DeleteConfirmationDialog(
-            songTitle = song.title,
+            primaryText = "Delete Song",
+            secondaryText = "Are you sure you want to remove \"${song.title}\" from your library?",
             onConfirm = {
                 showDeleteDialog = false
                 onDelete(song)
@@ -421,19 +422,4 @@ fun OptionItem(iconRes: Int, label: String, onClick: () -> Unit) {
             Text(label, style = MaterialTheme.typography.bodyMedium, color = Color.White)
         }
     }
-}
-
-@Composable
-fun DeleteConfirmationDialog(songTitle: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Delete Song") },
-        text = { Text("Are you sure you want to remove '$songTitle' from your library?") },
-        confirmButton = {
-            TextButton(onClick = onConfirm) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
 }
