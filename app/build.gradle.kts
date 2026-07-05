@@ -20,7 +20,7 @@ android {
     defaultConfig {
         applicationId = "com.tejasnair.mediaplayer"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0-alpha2"
 
