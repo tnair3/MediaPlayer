@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 import com.tejasnair.mediaplayer.data.model.*
@@ -76,7 +77,6 @@ interface MusicDao {
     @Query("SELECT * FROM playlists ORDER BY playlistName ASC")
     fun getAllPlaylists(): Flow<List<Playlist>>
 
-
     // --- PLAYLIST-SONG CROSS REF ---
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -109,4 +109,43 @@ interface MusicDao {
 
     @Query("DELETE FROM songs")
     suspend fun clearLibrary()
+
+    // --- VINYL CRUD & QUERIES ---
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVinyl(vinyl: Vinyl): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVinylSide(side: VinylSide): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSongToVinylSide(crossRef: SongToVinylSide)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSongToVinylSideBatch(crossRefs: List<SongToVinylSide>)
+
+    @Transaction
+    @Query("SELECT * FROM vinyls WHERE vinylId = :vinylId")
+    fun getFullVinylRecordById(vinylId: String): Flow<FullVinylRecord?>
+
+    @Transaction
+    @Query("SELECT * FROM vinyls ORDER BY dateCreated DESC")
+    fun getAllFullVinylRecords(): Flow<List<FullVinylRecord>>
+
+    @Query("DELETE FROM vinyls WHERE vinylId = :vinylId")
+    suspend fun deleteVinylById(vinylId: String)
+
+    @Query("DELETE FROM songToVinylSide WHERE vinylSideId = :vinylSideId")
+    suspend fun clearVinylSideSongs(vinylSideId: String)
+
+    @Query("DELETE FROM songToVinylSide WHERE vinylSideId = :vinylSideId AND songId = :songId")
+    suspend fun removeSongFromVinylSide(vinylSideId: String, songId: String)
+
+    @Query("""
+        SELECT songs.* FROM songs
+        INNER JOIN songToVinylSide ON songs.songId = songToVinylSide.songId
+        WHERE songToVinylSide.vinylSideId = :vinylSideId
+        ORDER BY songToVinylSide.trackPosition ASC
+    """)
+    fun getSongsInVinylSide(vinylSideId: String): Flow<List<Song>>
 }

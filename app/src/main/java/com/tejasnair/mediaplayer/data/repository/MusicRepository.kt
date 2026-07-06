@@ -1,8 +1,10 @@
 package com.tejasnair.mediaplayer.data.repository
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.flow.Flow
 import com.tejasnair.mediaplayer.data.local.dao.MusicDao
 import com.tejasnair.mediaplayer.data.model.*
@@ -52,16 +54,16 @@ class MusicRepository(
         musicDao.insertSongToPlaylistBatch(crossRefs)
     }
 
-    fun copyImageToInternalStorage(context: android.content.Context, uri: android.net.Uri, playlistId: String): String? {
+    fun copyImageToInternalStorage(context: Context, uri: Uri, playlistId: String): String? {
         return try {
-            val dir = java.io.File(context.filesDir, "playlist_art").apply { mkdirs() }
-            val dest = java.io.File(dir, "cover_$playlistId.jpg")
+            val dir = File(context.filesDir, "playlist_art").apply { mkdirs() }
+            val dest = File(dir, "cover_$playlistId.jpg")
             context.contentResolver.openInputStream(uri)?.use { input ->
-                java.io.FileOutputStream(dest).use { output -> input.copyTo(output) }
+                FileOutputStream(dest).use { output -> input.copyTo(output) }
             }
             dest.absolutePath
         } catch (e: Exception) {
-            android.util.Log.e("Repository", "Failed to copy playlist cover", e)
+            Log.e("Repository", "Failed to copy playlist cover", e)
             null
         }
     }
@@ -69,7 +71,6 @@ class MusicRepository(
     suspend fun removeSongFromPlaylist(songId: String, playlistId: String) =
         musicDao.removeSongFromPlaylist(songId, playlistId)
 
-    // Reorder: replace entire song list with a new ordered list
     suspend fun reorderPlaylist(playlistId: String, orderedSongIds: List<String>) {
         musicDao.clearPlaylistSongs(playlistId)
         val crossRefs = orderedSongIds.mapIndexed { i, id -> SongToPlaylist(id, playlistId, i) }
@@ -78,6 +79,53 @@ class MusicRepository(
 
     fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> = musicDao.getSongsInPlaylist(playlistId)
     fun getPlaylistSongCount(playlistId: String): Flow<Int> = musicDao.getPlaylistSongCount(playlistId)
+
+    // --- VINYLS ---
+
+    val allVinyls: Flow<List<FullVinylRecord>> = musicDao.getAllFullVinylRecords()
+
+    fun getFullVinylRecordById(vinylId: String): Flow<FullVinylRecord?> = musicDao.getFullVinylRecordById(vinylId)
+
+    suspend fun createVinyl(vinyl: Vinyl) = musicDao.insertVinyl(vinyl)
+
+    suspend fun createVinylSide(side: VinylSide) = musicDao.insertVinylSide(side)
+
+    suspend fun deleteVinyl(vinylId: String) = musicDao.deleteVinylById(vinylId)
+
+    suspend fun addSongToVinylSide(songId: String, vinylSideId: String, trackPosition: Int) =
+        musicDao.insertSongToVinylSide(SongToVinylSide(songId, vinylSideId, trackPosition))
+
+    suspend fun addSongsToVinylSide(songIds: List<String>, vinylSideId: String, startPosition: Int) {
+        val crossRefs = songIds.mapIndexed { i, id ->
+            SongToVinylSide(id, vinylSideId, startPosition + i)
+        }
+        musicDao.insertSongToVinylSideBatch(crossRefs)
+    }
+
+    suspend fun removeSongFromVinylSide(vinylSideId: String, songId: String) =
+        musicDao.removeSongFromVinylSide(vinylSideId, songId)
+
+    suspend fun reorderVinylSide(vinylSideId: String, orderedSongIds: List<String>) {
+        musicDao.clearVinylSideSongs(vinylSideId)
+        val crossRefs = orderedSongIds.mapIndexed { i, id -> SongToVinylSide(id, vinylSideId, i) }
+        musicDao.insertSongToVinylSideBatch(crossRefs)
+    }
+
+    fun getSongsInVinylSide(vinylSideId: String): Flow<List<Song>> = musicDao.getSongsInVinylSide(vinylSideId)
+
+    fun copyVinylImageToInternalStorage(context: Context, uri: Uri, vinylId: String): String? {
+        return try {
+            val dir = File(context.filesDir, "vinyl_art").apply { mkdirs() }
+            val dest = File(dir, "vinyl_$vinylId.jpg")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(dest).use { output -> input.copyTo(output) }
+            }
+            dest.absolutePath
+        } catch (e: Exception) {
+            Log.e("Repository", "Failed to copy vinyl cover", e)
+            null
+        }
+    }
 
     // --- FILE CLEANUP ---
 
