@@ -27,8 +27,8 @@ import com.tejasnair.mediaplayer.R
 @Composable
 fun TopNavigation(
     title: String,
-    onVinylClick: () -> Unit,
     onFavouriteClick: () -> Unit,
+    onVinylClick: () -> Unit,
     onRecordedClick: () -> Unit,
     onUploadClick: () -> Unit,
     onSettingsClick: () -> Unit
@@ -44,8 +44,8 @@ fun TopNavigation(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            TopNavIcon(iconRes = R.drawable.nav_vinyl, onClick = onVinylClick)
             TopNavIcon(iconRes = R.drawable.navdisp_favourite, onClick = onFavouriteClick)
+            TopNavIcon(iconRes = R.drawable.nav_vinyl, onClick = onVinylClick)
             TopNavIcon(iconRes = R.drawable.nav_recorded, onClick = onRecordedClick)
         }
 
