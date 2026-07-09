@@ -1,6 +1,7 @@
 package com.tejasnair.mediaplayer.ui.components
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -97,6 +98,10 @@ fun ExpandingPlayerBound(
             )
             .background(Color.Transparent)
     ) {
+        BackHandler(enabled = isExpanded) {
+            onExpandToggle(false)
+        }
+
         if (fraction > 0.01f) {
             Box(
                 modifier = Modifier

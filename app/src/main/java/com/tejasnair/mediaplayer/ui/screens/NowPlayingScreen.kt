@@ -292,7 +292,7 @@ fun NowPlayingScreen(
                                         .size(dynamicArtSize)
                                         .clip(RoundedCornerShape(24.dp)),
                                     model = currentSong?.songArtUri,
-                                    contentDescription = "Album Art",
+                                    contentDescription = "Song Art",
                                     contentScale = ContentScale.Crop
                                 )
                                 Box(
