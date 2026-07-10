@@ -1,5 +1,6 @@
 package com.tejasnair.mediaplayer.ui.screens
 
+import android.app.Activity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -51,6 +52,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -61,56 +66,59 @@ fun NowPlayingScreen(
     onBackClick: () -> Unit,
     expansionFraction: Float = 1f
 ) {
+    val context = LocalContext.current
+    val window = (context as? Activity)?.window
+    var currentTime by remember { mutableStateOf("") }
     val allSongs by libraryViewModel.allSongs.collectAsState()
     val currentSong = allSongs.find { it.songId == playbackViewModel.currentSongId }
     val queue = playbackViewModel.currentQueue.mapNotNull { id -> allSongs.find { it.songId == id } }
-
     val isPlaying = playbackViewModel.isPlaying
     val currentPosition = playbackViewModel.currentPosition
     val duration = playbackViewModel.duration
     val repeatMode = playbackViewModel.repeatMode
-
+    val dynamicArtSize = (44 + (216 * expansionFraction)).dp
     val interactionSource = remember { MutableInteractionSource() }
     val isDragging by interactionSource.collectIsDraggedAsState()
-
     var sliderThumbValue by remember { mutableFloatStateOf(0f) }
     var showOptionsMenu by remember { mutableStateOf(false) }
-
-    LaunchedEffect(currentPosition, isDragging) {
-        if (!isDragging) {
-            sliderThumbValue = currentPosition.toFloat()
-        }
-    }
-
     val fileSizeString = remember(currentSong?.filePath) {
         val size = getFileSize(currentSong?.filePath)
         if (size > 0) formatBytes(size) else "Unknown"
     }
-
     val scope = rememberCoroutineScope()
     var showSkipLeft by remember { mutableStateOf(false) }
     var showSkipRight by remember { mutableStateOf(false) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     val threshold = 300f
-
     val queueListState = rememberLazyListState()
     val detailsScrollState = rememberScrollState()
-
     val pagerState = rememberPagerState(pageCount = { 2 })
+    val currentQueueIndex = remember(queue, currentSong) { queue.indexOfFirst { it.songId == currentSong?.songId } }
+    val nextSong = remember(queue, currentQueueIndex) { if (currentQueueIndex >= 0 && currentQueueIndex < queue.size - 1) queue[currentQueueIndex + 1] else null }
 
-    val currentQueueIndex = remember(queue, currentSong) {
-        queue.indexOfFirst { it.songId == currentSong?.songId }
+    LaunchedEffect(currentPosition, isDragging) { if (!isDragging) sliderThumbValue = currentPosition.toFloat() }
+
+    LaunchedEffect(Unit) {
+        val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        while (true) {
+            currentTime = formatter.format(java.util.Date())
+            delay(1000L.milliseconds)
+        }
     }
-    val nextSong = remember(queue, currentQueueIndex) {
-        if (currentQueueIndex >= 0 && currentQueueIndex < queue.size - 1)
-            queue[currentQueueIndex + 1]
-        else null
+
+    if (window != null) {
+        DisposableEffect(Unit) {
+            val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+            windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            windowInsetsController.hide(WindowInsetsCompat.Type.statusBars())
+            onDispose { windowInsetsController.show(WindowInsetsCompat.Type.statusBars()) }
+        }
     }
 
-    val dynamicArtSize = (44 + (216 * expansionFraction)).dp
-
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(Color.Black)
+    ) {
         AsyncImage(
             model = currentSong?.songArtUri,
             contentDescription = null,
@@ -147,8 +155,7 @@ fun NowPlayingScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                                .padding(top = 12.dp),
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(onClick = onBackClick) {
@@ -158,17 +165,29 @@ fun NowPlayingScreen(
                                     tint = Color.White
                                 )
                             }
-                            Text(
-                                text = currentSong?.album ?: "Now Playing",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = Color.White.copy(alpha = 0.5f),
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
 
-                            // Context Menu Container
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = currentSong?.album ?: "Now Playing",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Text(
+                                    text = currentTime,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.3f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                            }
+
                             Box {
                                 IconButton(onClick = { showOptionsMenu = true }) {
                                     Icon(
@@ -335,15 +354,12 @@ fun NowPlayingScreen(
                             Slider(
                                 value = sliderThumbValue,
                                 onValueChange = { sliderThumbValue = it },
-                                onValueChangeFinished = {
-                                    playbackViewModel.seekTo(sliderThumbValue.toLong())
-                                },
+                                onValueChangeFinished = { playbackViewModel.seekTo(sliderThumbValue.toLong()) },
                                 valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
                                 interactionSource = interactionSource,
                                 modifier = Modifier.fillMaxWidth(),
                                 track = { sliderState ->
-                                    val fraction = (sliderState.value - sliderState.valueRange.start) /
-                                            (sliderState.valueRange.endInclusive - sliderState.valueRange.start)
+                                    val fraction = (sliderState.value - sliderState.valueRange.start) / (sliderState.valueRange.endInclusive - sliderState.valueRange.start)
 
                                     Box(
                                         modifier = Modifier
@@ -362,9 +378,7 @@ fun NowPlayingScreen(
                                         )
                                     }
                                 },
-                                thumb = {
-                                    Spacer(Modifier.size(24.dp))
-                                }
+                                thumb = { Spacer(Modifier.size(24.dp)) }
                             )
 
                             Row(
@@ -415,15 +429,13 @@ fun NowPlayingScreen(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier.size(72.dp)
                                 ) {
+                                    Box(modifier = Modifier.size(72.dp).background(Color.White.copy(alpha = 0.15f), CircleShape).blur(8.dp))
+
                                     Box(
-                                        modifier = Modifier.size(72.dp).background(
-                                            Color.White.copy(alpha = 0.15f),
-                                            CircleShape
-                                        ).blur(8.dp)
-                                    )
-                                    Box(
-                                        modifier = Modifier.size(60.dp)
-                                            .background(Color.White, CircleShape).clip(CircleShape),
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .background(Color.White, CircleShape)
+                                            .clip(CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         IconButton(
@@ -460,10 +472,9 @@ fun NowPlayingScreen(
                                         else -> R.drawable.song_repeat_off
                                     }
                                     Icon(
-                                        painterResource(iconRes), "Repeat",
-                                        tint = if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(
-                                            alpha = 0.8f
-                                        ) else Color.White,
+                                        painterResource(iconRes),
+                                        "Repeat",
+                                        tint = if (repeatMode == Player.REPEAT_MODE_OFF) Color.White.copy(alpha = 0.8f) else Color.White,
                                         modifier = Modifier.size(26.dp)
                                     )
                                 }
@@ -535,18 +546,12 @@ fun NowPlayingScreen(
                                     Icon(
                                         painter = painterResource(R.drawable.song_shuffle),
                                         contentDescription = "Shuffle",
-                                        tint = if (playbackViewModel.isShuffleOn) Color.White else Color.White.copy(
-                                            alpha = 0.4f
-                                        ),
+                                        tint = if (playbackViewModel.isShuffleOn) Color.White else Color.White.copy(alpha = 0.4f),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
 
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        pagerState.animateScrollToPage(1)
-                                    }
-                                }) {
+                                IconButton(onClick = { scope.launch { pagerState.animateScrollToPage(1) } }) {
                                     Icon(
                                         painter = painterResource(R.drawable.chevron_right),
                                         contentDescription = "More",
@@ -750,10 +755,13 @@ fun NowPlayingScreen(
 
                                                     IconButton(
                                                         onClick = { playbackViewModel.removeFromQueue(index) },
-                                                        modifier = Modifier.padding(end = 8.dp).size(40.dp)
+                                                        modifier = Modifier
+                                                            .padding(end = 8.dp)
+                                                            .size(40.dp)
                                                     ) {
                                                         Icon(
-                                                            painterResource(R.drawable.options_delete), "Remove",
+                                                            painterResource(R.drawable.options_delete),
+                                                            contentDescription = "Remove",
                                                             tint = Color.White.copy(alpha = 0.5f),
                                                             modifier = Modifier.size(24.dp)
                                                         )
@@ -764,8 +772,14 @@ fun NowPlayingScreen(
                                     }
                                 }
                                 1 -> {
-                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text("Lyrics coming soon...", style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.6f))
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text("Lyrics coming soon...",
+                                             style = MaterialTheme.typography.bodyLarge,
+                                             color = Color.White.copy(alpha = 0.6f)
+                                        )
                                     }
                                 }
                                 2 -> {
