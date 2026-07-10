@@ -275,9 +275,8 @@ fun AlbumScreen(
                         }
                     ) { Text(text = "Create & Add") }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showNewPlaylistFromAlbum = false }) { Text(text = "Cancel") }
-                },
+                dismissButton = { TextButton(onClick = { showNewPlaylistFromAlbum = false }) { Text(text = "Cancel") } },
+                icon = { Icon(painter = painterResource(R.drawable.add), contentDescription = "New Playlist") },
                 title = { Text(text = "New Playlist") },
                 text = {
                     OutlinedTextField(
@@ -291,71 +290,85 @@ fun AlbumScreen(
                 }
             )
         } else {
+            val playlistPickerListState = rememberLazyListState()
             AlertDialog(
                 onDismissRequest = { showAlbumPlaylistPicker = false },
+                modifier = Modifier
+                    .padding(vertical = 28.dp)
+                    .heightIn(max = 650.dp),
                 confirmButton = {},
                 dismissButton = { TextButton(onClick = { showAlbumPlaylistPicker = false }) { Text(text = "Cancel") } },
+                icon = { Icon(painter = painterResource(id = R.drawable.song_options_playlist), contentDescription = "Add to Playlist") },
                 title = { Text(text = "Add Album to Playlist") },
                 text = {
-                    LazyColumn {
-                        item {
-                            TextButton(
-                                onClick = { showNewPlaylistFromAlbum = true },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Start,
-                                    verticalAlignment = Alignment.CenterVertically
+                    val scrollbarColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    Column {
+                        LazyColumn(
+                            state = playlistPickerListState,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .drawScrollbar(playlistPickerListState, scrollbarColor)
+                                .padding(end = 8.dp)
+                        ) {
+                            item {
+                                TextButton(
+                                    onClick = { showNewPlaylistFromAlbum = true },
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.add),
-                                        contentDescription = "New Playlist",
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(Modifier.width(12.dp))
-                                    Text(
-                                        text = "New Playlist",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                            }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        }
-                        items(playlists) { pl ->
-                            val count by libraryViewModel.getPlaylistSongCount(playlistId = pl.playlistId).collectAsState(initial = 0)
-                            TextButton(
-                                onClick = {
-                                    libraryViewModel.addSongsToPlaylist(songIds = albumSongs.map { it.songId }, playlistId = pl.playlistId, startPosition = count)
-                                    showAlbumPlaylistPicker = false
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.Start,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.song_options_playlist),
-                                        contentDescription = "Playlist",
-                                        modifier = Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(Modifier.width(12.dp))
-                                    Column {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.add),
+                                            contentDescription = "New Playlist",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.width(12.dp))
                                         Text(
-                                            text = pl.playlistName,
-                                            color = MaterialTheme.colorScheme.onSurface,
+                                            text = "New Playlist",
+                                            color = MaterialTheme.colorScheme.primary,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
-                                        Text(
-                                            text = "$count songs",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            style = MaterialTheme.typography.bodySmall
+                                    }
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            }
+                            items(playlists) { pl ->
+                                val count by libraryViewModel.getPlaylistSongCount(playlistId = pl.playlistId).collectAsState(initial = 0)
+                                TextButton(
+                                    onClick = {
+                                        libraryViewModel.addSongsToPlaylist(songIds = albumSongs.map { it.songId }, playlistId = pl.playlistId, startPosition = count)
+                                        showAlbumPlaylistPicker = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Start,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.song_options_playlist),
+                                            contentDescription = "Playlist",
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.onSurface
                                         )
+                                        Spacer(Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = pl.playlistName,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            Text(
+                                                text = "$count songs",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
                                     }
                                 }
                             }
