@@ -135,6 +135,18 @@ interface MusicDao {
     @Query("DELETE FROM vinyls WHERE vinylId = :vinylId")
     suspend fun deleteVinylById(vinylId: String)
 
+    @Query("UPDATE vinyls SET title = :title, artist = :artist WHERE vinylId = :vinylId")
+    suspend fun updateVinylDetails(vinylId: String, title: String, artist: String?)
+
+    @Query("UPDATE vinyls SET coverArtUri = :coverArtUri WHERE vinylId = :vinylId")
+    suspend fun updateVinylCoverArt(vinylId: String, coverArtUri: String?)
+
+    @Query("UPDATE vinylSides SET sideName = :newName WHERE vinylSideId = :vinylSideId")
+    suspend fun updateVinylSideName(vinylSideId: String, newName: String)
+
+    @Query("DELETE FROM vinylSides WHERE vinylSideId = :vinylSideId")
+    suspend fun deleteVinylSideById(vinylSideId: String)
+
     @Query("DELETE FROM songToVinylSide WHERE vinylSideId = :vinylSideId")
     suspend fun clearVinylSideSongs(vinylSideId: String)
 

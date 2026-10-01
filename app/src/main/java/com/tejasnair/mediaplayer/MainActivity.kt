@@ -95,7 +95,19 @@ class MainActivity : ComponentActivity() {
                         composable("settings") { SettingsScreen(settingsViewModel, libraryViewModel, navController) }
                         composable("upload") { UploadScreen(navController, uploadViewModel) }
                         composable("favourites") { FavouritesScreen(libraryViewModel, playbackViewModel, navController, mutableStateOf(isPlayerExpanded)) }
-                        composable("vinyls") { VinylsScreen(navController) }
+                        composable("vinyls") { VinylsScreen(navController = navController, libraryViewModel = libraryViewModel) }
+                        composable(
+                            route = "vinyl/{vinylId}",
+                            arguments = listOf(navArgument(name = "vinylId") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            val vinylId = backStackEntry.arguments?.getString("vinylId") ?: ""
+                            VinylDetailsScreen(
+                                vinylId = vinylId,
+                                libraryViewModel = libraryViewModel,
+                                playbackViewModel = playbackViewModel,
+                                navController = navController
+                            )
+                        }
                         composable("record") { RecordScreen(navController) }
                         composable(
                             route = "album/{albumName}/{albumArtist}",

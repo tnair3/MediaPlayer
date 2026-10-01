@@ -92,6 +92,18 @@ class MusicRepository(
 
     suspend fun deleteVinyl(vinylId: String) = musicDao.deleteVinylById(vinylId)
 
+    suspend fun updateVinylDetails(vinylId: String, title: String, artist: String?) =
+        musicDao.updateVinylDetails(vinylId, title, artist)
+
+    suspend fun updateVinylCoverArt(vinylId: String, coverArtUri: String?) =
+        musicDao.updateVinylCoverArt(vinylId, coverArtUri)
+
+    suspend fun updateVinylSideName(vinylSideId: String, newName: String) =
+        musicDao.updateVinylSideName(vinylSideId, newName)
+
+    suspend fun deleteVinylSide(vinylSideId: String) =
+        musicDao.deleteVinylSideById(vinylSideId)
+
     suspend fun addSongToVinylSide(songId: String, vinylSideId: String, trackPosition: Int) =
         musicDao.insertSongToVinylSide(SongToVinylSide(songId, vinylSideId, trackPosition))
 

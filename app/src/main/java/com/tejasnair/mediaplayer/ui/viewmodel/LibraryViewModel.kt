@@ -17,6 +17,9 @@ import kotlinx.coroutines.launch
 import com.tejasnair.mediaplayer.data.model.AlbumSummary
 import com.tejasnair.mediaplayer.data.model.Playlist
 import com.tejasnair.mediaplayer.data.model.Song
+import com.tejasnair.mediaplayer.data.model.Vinyl
+import com.tejasnair.mediaplayer.data.model.VinylSide
+import com.tejasnair.mediaplayer.data.model.FullVinylRecord
 import com.tejasnair.mediaplayer.data.repository.MusicRepository
 
 class LibraryViewModel(
@@ -38,6 +41,9 @@ class LibraryViewModel(
     val allPlaylists: StateFlow<List<Playlist>> = repository.allPlaylists
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allVinyls: StateFlow<List<FullVinylRecord>> = repository.allVinyls
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // --- SONG ACTIONS ---
 
     fun getSong(songId: String): Flow<Song?> = repository.getSongById(songId)
@@ -50,7 +56,7 @@ class LibraryViewModel(
         viewModelScope.launch(Dispatchers.IO) { repository.deleteSong(song) }
     }
 
-    // --- ALBUM ACTIONS ---
+    // --- ALBUMS ---
 
     fun getSongsByAlbum(name: String, artist: String): Flow<List<Song>> =
         repository.getSongsByAlbum(name, artist)
@@ -62,7 +68,7 @@ class LibraryViewModel(
         }
     }
 
-    // --- PLAYLIST ACTIONS ---
+    // --- PLAYLISTS ---
 
     fun createPlaylist(name: String) {
         viewModelScope.launch { repository.createPlaylist(Playlist(playlistName = name)) }
@@ -108,6 +114,70 @@ class LibraryViewModel(
             uri,
             playlistId
         )
+    }
+
+    // --- VINYLS ---
+
+    fun getFullVinylRecordById(vinylId: String): Flow<FullVinylRecord?> =
+        repository.getFullVinylRecordById(vinylId)
+
+    suspend fun createVinyl(vinyl: Vinyl) {
+        repository.createVinyl(vinyl)
+    }
+
+    suspend fun createVinylSide(side: VinylSide) {
+        repository.createVinylSide(side)
+    }
+
+    fun deleteVinyl(vinylId: String) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteVinyl(vinylId) }
+    }
+
+    fun updateVinylDetails(vinylId: String, title: String, artist: String?) {
+        viewModelScope.launch(Dispatchers.IO) { repository.updateVinylDetails(vinylId, title, artist) }
+    }
+
+    fun updateVinylCoverArt(vinylId: String, coverArtUri: String?) {
+        viewModelScope.launch(Dispatchers.IO) { repository.updateVinylCoverArt(vinylId, coverArtUri) }
+    }
+
+    fun updateVinylSideName(vinylSideId: String, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) { repository.updateVinylSideName(vinylSideId, newName) }
+    }
+
+    fun deleteVinylSide(vinylSideId: String) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteVinylSide(vinylSideId) }
+    }
+
+    fun addSongToVinylSide(songId: String, vinylSideId: String, trackPosition: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.addSongToVinylSide(songId, vinylSideId, trackPosition)
+        }
+    }
+
+    fun addSongsToVinylSide(songIds: List<String>, vinylSideId: String, startPosition: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.addSongsToVinylSide(songIds, vinylSideId, startPosition)
+        }
+    }
+
+    fun removeSongFromVinylSide(vinylSideId: String, songId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.removeSongFromVinylSide(vinylSideId, songId)
+        }
+    }
+
+    fun reorderVinylSide(vinylSideId: String, orderedSongIds: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.reorderVinylSide(vinylSideId, orderedSongIds)
+        }
+    }
+
+    fun getSongsInVinylSide(vinylSideId: String): Flow<List<Song>> =
+        repository.getSongsInVinylSide(vinylSideId)
+
+    fun copyVinylImageToInternalStorage(context: android.content.Context, uri: android.net.Uri, vinylId: String): String? {
+        return repository.copyVinylImageToInternalStorage(context, uri, vinylId)
     }
 
     // --- LIBRARY MANAGEMENT ---
