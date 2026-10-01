@@ -166,7 +166,8 @@ fun FavouritesScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp)
                             .padding(bottom = 12.dp, top = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Button(
                             onClick = {
@@ -220,7 +221,9 @@ fun FavouritesScreen(
                                 }
                                 showNowPlaying.value = true
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp),
                             shape = RoundedCornerShape(14.dp)
                         ) {
                             Icon(
