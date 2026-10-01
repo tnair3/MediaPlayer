@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.data.model.Playlist
@@ -43,6 +45,7 @@ import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
 import java.util.UUID
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 @Composable
@@ -383,7 +386,7 @@ fun AlbumScreen(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(insets = WindowInsets.safeDrawing.only(sides = WindowInsetsSides.Bottom))
+                //.windowInsetsPadding(insets = WindowInsets.safeDrawing.only(sides = WindowInsetsSides.Bottom))
         ) {
             val heroHeight = maxHeight * 0.64f
             val listState = rememberLazyListState()
@@ -396,6 +399,17 @@ fun AlbumScreen(
                 }
             }
 
+            val heroHeightPx = with(receiver = density) { heroHeight.toPx() }
+            var headerHeightPx by remember { mutableIntStateOf(value = 0) }
+            var actionsHeightPx by remember { mutableIntStateOf(value = 0) }
+            val actionsTranslationY by remember {
+                derivedStateOf {
+                    val pinnedY = headerHeightPx.toFloat()
+                    if (listState.firstVisibleItemIndex > 0) pinnedY
+                    else (heroHeightPx - listState.firstVisibleItemScrollOffset).coerceAtLeast(pinnedY)
+                }
+            }
+
             val heroAlpha = remember { Animatable(initialValue = 0f) }
             val heroScale = remember { Animatable(initialValue = 1.08f) }
             LaunchedEffect(key1 = Unit) {
@@ -404,7 +418,11 @@ fun AlbumScreen(
             }
 
             val isPlayerActive = playbackViewModel.currentSongId != null
-            val totalBottomPadding = if (isPlayerActive) 64.dp else 0.dp
+
+            val bottomPaddingDp = WindowInsets.navigationBars
+                .asPaddingValues()
+                .calculateBottomPadding()
+            val totalBottomPadding = if (isPlayerActive) bottomPaddingDp + 64.dp else bottomPaddingDp
 
             LazyColumn(
                 state = listState,
@@ -483,56 +501,7 @@ fun AlbumScreen(
                     }
                 }
 
-                item(key = "actions") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp)
-                            .padding(top = 16.dp, bottom = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                if (albumSongs.isNotEmpty()) playbackViewModel.playSong(
-                                    selectedSong = albumSongs.first(),
-                                    playlist = albumSongs
-                                )
-                                showNowPlaying.value = true
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(size = 14.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.song_play),
-                                contentDescription = "Play",
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(text = "Play")
-                        }
-                        OutlinedButton(
-                            onClick = {
-                                if (albumSongs.isNotEmpty()) {
-                                    val shuffled = albumSongs.shuffled()
-                                    playbackViewModel.playSong(
-                                        selectedSong = shuffled.first(),
-                                        playlist = shuffled
-                                    )
-                                }
-                                showNowPlaying.value = true
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(size = 14.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.song_shuffle),
-                                contentDescription = "Shuffle",
-                                modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(text = "Shuffle")
-                        }
-                    }
-                }
+                item(key = "actions_spacer") { Spacer(modifier = Modifier.height(height = with(receiver = density) { actionsHeightPx.toDp() })) }
 
                 item(key = "divider") {
                     HorizontalDivider(
@@ -560,6 +529,7 @@ fun AlbumScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(color = MaterialTheme.colorScheme.background.copy(alpha = collapseFraction))
+                    .onGloballyPositioned { coordinates -> headerHeightPx = coordinates.size.height }
                     .windowInsetsPadding(insets = WindowInsets.safeDrawing.only(sides = WindowInsetsSides.Top))
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -709,6 +679,58 @@ fun AlbumScreen(
 
                         Spacer(Modifier.height(4.dp))
                     }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset { IntOffset(x = 0, y = actionsTranslationY.roundToInt()) }
+                    .onGloballyPositioned { coordinates -> actionsHeightPx = coordinates.size.height }
+                    .background(color = MaterialTheme.colorScheme.background.copy(alpha = collapseFraction))
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp, bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = {
+                        if (albumSongs.isNotEmpty()) playbackViewModel.playSong(
+                            selectedSong = albumSongs.first(),
+                            playlist = albumSongs
+                        )
+                        showNowPlaying.value = true
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(size = 14.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.song_play),
+                        contentDescription = "Play",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = "Play")
+                }
+                OutlinedButton(
+                    onClick = {
+                        if (albumSongs.isNotEmpty()) {
+                            val shuffled = albumSongs.shuffled()
+                            playbackViewModel.playSong(
+                                selectedSong = shuffled.first(),
+                                playlist = shuffled
+                            )
+                        }
+                        showNowPlaying.value = true
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(size = 14.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.song_shuffle),
+                        contentDescription = "Shuffle",
+                        modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = "Shuffle")
                 }
             }
 
