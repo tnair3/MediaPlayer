@@ -5,8 +5,8 @@
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-4285F4?style=for-the-badge&logo=materialdesign&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 
-[![App Version](https://img.shields.io/badge/App_Version-1.0--alpha2-blue?style=for-the-badge)](https://img.shields.io/badge/App_Version-1.0--alpha2-blue?style=for-the-badge)
-[![Build](https://img.shields.io/badge/Build-debug_2026--06--24-orange?style=for-the-badge)](https://img.shields.io/badge/Build-debug_2026--06--24-orange?style=for-the-badge)
+![App Version](https://img.shields.io/badge/App_Version-1.0--alpha2-blue?style=for-the-badge)
+![Build](https://img.shields.io/badge/Build-debug_2026--06--24-orange?style=for-the-badge)
 
 A local media player app built using Kotlin for Android devices to allow users to listen to audio files they can upload onto the app's local storage
 
