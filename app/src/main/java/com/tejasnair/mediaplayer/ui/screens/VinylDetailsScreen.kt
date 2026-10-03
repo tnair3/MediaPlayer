@@ -224,7 +224,15 @@ fun VinylDetailsScreen(
                 .padding(vertical = 28.dp)
                 .heightIn(max = 650.dp),
             confirmButton = {
-                TextButton(onClick = { showManageSidesDialog = false }) { Text(text = "Done") }
+                TextButton(onClick = {
+                    sides.forEach { side ->
+                        val newName = renameDrafts[side.vinylSideId]?.trim().orEmpty()
+                        if (newName.isNotBlank() && newName != side.sideName) {
+                            libraryViewModel.updateVinylSideName(side.vinylSideId, newName)
+                        }
+                    }
+                    showManageSidesDialog = false
+                }) { Text(text = "Done") }
             },
             title = { Text(text = "Manage Sides") },
             text = {
@@ -251,18 +259,6 @@ fun VinylDetailsScreen(
                                     label = { Text(text = "Side name") },
                                     shape = RoundedCornerShape(size = 12.dp)
                                 )
-                                IconButton(onClick = {
-                                    val newName = renameDrafts[side.vinylSideId]?.trim().orEmpty()
-                                    if (newName.isNotBlank() && newName != side.sideName) {
-                                        libraryViewModel.updateVinylSideName(side.vinylSideId, newName)
-                                    }
-                                }) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.options_edit),
-                                        contentDescription = "Rename Side",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
                                 IconButton(
                                     onClick = { sideToDelete = side },
                                     enabled = sides.size > 1
@@ -280,9 +276,16 @@ fun VinylDetailsScreen(
 
                     TextButton(
                         onClick = {
-                            val nextPosition = (sides.maxOfOrNull { it.position } ?: 0) + 1
-                            val nextLetter = ('A' + sides.size)
                             coroutineScope.launch {
+                                sides.forEach { side ->
+                                    val newName = renameDrafts[side.vinylSideId]?.trim().orEmpty()
+                                    if (newName.isNotBlank() && newName != side.sideName) {
+                                        libraryViewModel.updateVinylSideName(side.vinylSideId, newName)
+                                    }
+                                }
+
+                                val nextPosition = (sides.maxOfOrNull { it.position } ?: 0) + 1
+                                val nextLetter = ('A' + sides.size)
                                 libraryViewModel.createVinylSide(
                                     VinylSide(vinylId = vinylId, position = nextPosition, sideName = "Side $nextLetter")
                                 )
