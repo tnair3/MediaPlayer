@@ -1,13 +1,14 @@
 # Media Player
+
+![](https://img.shields.io/badge/In_Active_Development-ff69b4?style=for-the-badge)
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
+![Jetpack Compose](https://img.shields.io/badge/Jetpack_Compose-4285F4?style=for-the-badge&logo=materialdesign&logoColor=white)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+
+[![App Version](https://img.shields.io/badge/App_Version-1.0--alpha2-blue?style=for-the-badge)](https://img.shields.io/badge/App_Version-1.0--alpha2-blue?style=for-the-badge)
+[![Build](https://img.shields.io/badge/Build-debug_2026--06--24-orange?style=for-the-badge)](https://img.shields.io/badge/Build-debug_2026--06--24-orange?style=for-the-badge)
+
 A local media player app built using Kotlin for Android devices to allow users to listen to audio files they can upload onto the app's local storage
-
-* App Version: 1.0-alpha2
-* Build: debug 2026-06-24
-
-## Technologies
-* Kotlin
-* Android Studio
-* Jetpack Compose
 
 ## Features
 Here are features that you can do in the current version of the application
@@ -28,6 +29,8 @@ Here are features that you can do in the current version of the application
 * Export library
 * Lyric uploads for songs
 * Improved upload screen
+
+### Future Exploration
 * iOS port
 * Windows desktop application
 
@@ -62,16 +65,23 @@ TO ADD ------
 TO ADD ------
 
 ## Running the Project
-To run the most recent build, simply download the APK onto an Android device and open it on that device, allowing any Google Play Protect scans to go through unti it
+To run the most recent complete build, simply download the APK onto an Android device and open it on that device, allowing any Google Play Protect scans to go through unti it
 lets you install
 
-To run the most recent unreleased commit:
+To run the most recent unreleased build:
+```
 1. Clone the repository
 2. Open the project in Android Studio: https://developer.android.com/studio
-3. In the toolbar, select Build > Generate App Bundles or APKs > Generate APKs
-4. Allow the Gradle Build to run and the project to compile (this may take a minute)
-5. Select locate once the project has been compiled
-6. Send the app-debug.apk file onto your device and run the file to install
+3. With USB Debugging:
+  4. Connect your Android device to your desktop, enabling USB Debugging
+  5. Run the build, with your Android device as the target (this may take a minute)
+  6. Wait for the project to build. It will auto install and open on your device
 
+3. Without USB Debugging:
+  4. In the toolbar, select Build > Generate App Bundles or APKs > Generate APKs
+  5. Allow the Gradle Build to run and the project to compile (this may take a minute)
+  6. Select locate once the project has been compiled
+  7. Send the app-debug.apk file onto your Android device and run the file to install
+```
 ## Video
 TO ADD ------
