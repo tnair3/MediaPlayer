@@ -422,7 +422,7 @@ fun AlbumScreen(
             val bottomPaddingDp = WindowInsets.navigationBars
                 .asPaddingValues()
                 .calculateBottomPadding()
-            val totalBottomPadding = if (isPlayerActive) bottomPaddingDp + 64.dp else bottomPaddingDp
+            val totalBottomPadding = if (isPlayerActive) bottomPaddingDp + 84.dp else bottomPaddingDp
 
             LazyColumn(
                 state = listState,

@@ -48,7 +48,7 @@ fun ExpandingPlayerBound(
     val scope = rememberCoroutineScope()
 
     val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
-    val miniPlayerHeightPx = with(density) { 88.dp.toPx() }
+    val miniPlayerHeightPx = with(density) { 96.dp.toPx() }
     val collapsedOffsetY = screenHeightPx - miniPlayerHeightPx
 
     val animatedOffset = remember { Animatable(collapsedOffsetY) }
@@ -121,7 +121,7 @@ fun ExpandingPlayerBound(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(88.dp)
+                    .height(96.dp)
                     .graphicsLayer { alpha = 1f - fraction }
             ) {
                 MiniPlayer(
