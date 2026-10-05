@@ -204,7 +204,6 @@ fun LibraryScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .safeDrawingPadding()
                 .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
         ) {
             Column(
@@ -430,7 +429,11 @@ fun LibraryScreen(
                     EmptyLibrary(R.drawable.disp_empty_library, "Library is Empty", "Upload media to listen")
                 } else {
                     val isPlayerActive = playbackViewModel.currentSongId != null
-                    val totalBottomPadding = if (isPlayerActive) 84.dp else 0.dp
+
+                    val bottomPaddingDp = WindowInsets.navigationBars
+                        .asPaddingValues()
+                        .calculateBottomPadding()
+                    val totalBottomPadding = if (isPlayerActive) bottomPaddingDp + 84.dp else bottomPaddingDp
 
                     HorizontalPager(
                         state = pagerState,
