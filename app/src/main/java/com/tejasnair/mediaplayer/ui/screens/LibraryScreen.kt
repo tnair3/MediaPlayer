@@ -205,6 +205,7 @@ fun LibraryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+                .windowInsetsPadding(insets = WindowInsets.safeDrawing.only(sides = WindowInsetsSides.Top))
         ) {
             Column(
                 modifier = Modifier
