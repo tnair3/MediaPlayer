@@ -19,11 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.Player
 import coil.compose.AsyncImage
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Song
@@ -39,26 +41,27 @@ fun MiniPlayer(
     isPlaying: Boolean,
     onTogglePlay: () -> Unit,
     onClick: () -> Unit,
-    onDismiss: () -> Unit,
-    onNext: () -> Unit,
-    onPrevious: () -> Unit,
-    libraryViewModel: LibraryViewModel,
     playbackViewModel: PlaybackViewModel
 ) {
     val currentPosition = playbackViewModel.currentPosition
     val duration = playbackViewModel.duration
+    val repeatMode = playbackViewModel.repeatMode
 
-    var showProgress by remember { mutableStateOf(false) }
+    val progress = remember(currentPosition, duration) {
+        if (duration > 0) (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else 0f
+    }
+
+    var showAlbum by remember { mutableStateOf(false) }
 
     LaunchedEffect(isPlaying) {
         if (isPlaying) {
             while (true) {
-                delay(3000L.milliseconds)
-                showProgress = !showProgress
+                delay(3500L.milliseconds)
+                showAlbum = !showAlbum
             }
         }
         else {
-            showProgress = false
+            showAlbum = false
         }
     }
 
@@ -125,15 +128,15 @@ fun MiniPlayer(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     AnimatedContent(
-                        targetState = showProgress,
+                        targetState = showAlbum,
                         transitionSpec = {
                             fadeIn(animationSpec = tween(600)) togetherWith fadeOut(animationSpec = tween(600))
                         },
                         label = "MiniPlayerSubtitleCrossfade"
-                    ) { targetShowProgress ->
-                        if (targetShowProgress) {
+                    ) { targetShowAlbum ->
+                        if (targetShowAlbum) {
                             Text(
-                                text = "${formatTime(currentPosition)} / ${formatTime(duration)}",
+                                text = song.album,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.75f),
                                 maxLines = 1,
@@ -149,29 +152,68 @@ fun MiniPlayer(
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .clip(CircleShape),
+                        color = Color.White,
+                        trackColor = Color.White.copy(alpha = 0.2f),
+                        drawStopIndicator = {}
+                    )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Color.White, CircleShape)
-                        .clip(CircleShape),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onTogglePlay,
-                        modifier = Modifier.size(36.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(Color.Transparent, CircleShape)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(
-                                if (isPlaying) R.drawable.song_pause
-                                else if (duration in 1..currentPosition) R.drawable.song_restart
-                                else R.drawable.song_play
+                            painter = painterResource(id = when (repeatMode) {
+                                    Player.REPEAT_MODE_ALL -> R.drawable.song_repeat_all
+                                    Player.REPEAT_MODE_ONE -> R.drawable.song_repeat_one
+                                    else -> R.drawable.song_repeat_off
+                                }
                             ),
-                            contentDescription = "Play/Pause",
-                            tint = Color.Black,
+                            contentDescription = "Repeat",
+                            tint = Color.White.copy(alpha = 0.6f),
                             modifier = Modifier.size(20.dp)
                         )
+                    }
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color.White, CircleShape)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        IconButton(
+                            onClick = onTogglePlay,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    if (isPlaying) R.drawable.song_pause
+                                    else if (duration in 1..currentPosition) R.drawable.song_restart
+                                    else R.drawable.song_play
+                                ),
+                                contentDescription = "Play/Pause",
+                                tint = Color.Black,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }

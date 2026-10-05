@@ -129,10 +129,6 @@ fun ExpandingPlayerBound(
                     isPlaying = playbackViewModel.isPlaying,
                     onTogglePlay = { playbackViewModel.togglePlayPause() },
                     onClick = { onExpandToggle(true) },
-                    onDismiss = { playbackViewModel.stopPlayback() },
-                    onNext = { playbackViewModel.skipToNext() },
-                    onPrevious = { playbackViewModel.skipToPrevious() },
-                    libraryViewModel = libraryViewModel,
                     playbackViewModel = playbackViewModel
                 )
             }
