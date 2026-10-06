@@ -11,7 +11,7 @@ import com.shabinder.jaudiotagger.audio.AudioFileIO
 import com.shabinder.jaudiotagger.tag.FieldKey
 import com.shabinder.jaudiotagger.tag.images.Artwork
 import com.tejasnair.mediaplayer.data.model.Song
-import com.tejasnair.mediaplayer.data.repository.MusicRepository
+import com.tejasnair.mediaplayer.data.repository.SongRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -19,7 +19,7 @@ import java.io.FileOutputStream
 
 class MediaScanner(
     private val context: Context,
-    private val repository: MusicRepository
+    private val songRepository: SongRepository
 ) {
 
     // Public Entry Point
@@ -52,7 +52,7 @@ class MediaScanner(
 
                 val updatedSong = song.copy(filePath = destinationFile.absolutePath)
 
-                val isDuplicate = repository.findExistingSong(
+                val isDuplicate = songRepository.findExistingSong(
                     updatedSong.title,
                     updatedSong.artists,
                     updatedSong.album,
@@ -65,7 +65,7 @@ class MediaScanner(
                     return@withContext
                 }
 
-                repository.insert(updatedSong)
+                songRepository.insert(updatedSong)
                 Log.d("MediaScanner", "Imported: ${updatedSong.title} — ${destinationFile.absolutePath}")
 
             } catch (e: Exception) {

@@ -142,7 +142,7 @@ fun VinylDetailsScreen(
                             artist = editArtist.trim().ifBlank { null }
                         )
                         editCoverUri?.let { uri ->
-                            val savedPath = libraryViewModel.copyVinylImageToInternalStorage(context, uri, vinylId)
+                            val savedPath = libraryViewModel.copyVinylImageToInternalStorage(uri, vinylId)
                             libraryViewModel.updateVinylCoverArt(vinylId, savedPath)
                         }
                         showEditDetailsDialog = false

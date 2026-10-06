@@ -31,7 +31,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.flow.flowOf
 import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
-import com.tejasnair.mediaplayer.data.repository.MusicRepository
+import com.tejasnair.mediaplayer.data.repository.PlaylistRepository
+import com.tejasnair.mediaplayer.data.repository.SongRepository
+import com.tejasnair.mediaplayer.data.repository.VinylRepository
 import com.tejasnair.mediaplayer.ui.components.ExpandingPlayerBound
 import com.tejasnair.mediaplayer.ui.components.UploadToast
 import com.tejasnair.mediaplayer.ui.screens.*
@@ -58,11 +60,20 @@ class MainActivity : ComponentActivity() {
         }
 
         val database = MusicDatabase.getDatabase(applicationContext)
-        val repository = MusicRepository(database.musicDao(), applicationContext)
+        val songRepository = SongRepository(database.songDao(), applicationContext)
+        val playlistRepository = PlaylistRepository(database.playlistDao(), applicationContext)
+        val vinylRepository = VinylRepository(database.vinylDao(), applicationContext)
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel()
-            val libraryViewModel: LibraryViewModel = viewModel(factory = LibraryViewModelFactory(repository, application))
+            val libraryViewModel: LibraryViewModel = viewModel(
+                factory = LibraryViewModelFactory(
+                    songRepository = songRepository,
+                    playlistRepository = playlistRepository,
+                    vinylRepository = vinylRepository,
+                    application = application
+                )
+            )
             val playbackViewModel: PlaybackViewModel = viewModel()
             val uploadViewModel: UploadViewModel = viewModel()
 

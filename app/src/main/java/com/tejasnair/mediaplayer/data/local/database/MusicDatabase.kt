@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.tejasnair.mediaplayer.data.local.dao.MusicDao
+import com.tejasnair.mediaplayer.data.local.dao.PlaylistDao
+import com.tejasnair.mediaplayer.data.local.dao.SongDao
+import com.tejasnair.mediaplayer.data.local.dao.VinylDao
 import com.tejasnair.mediaplayer.data.model.*
 
 @Database(
@@ -20,7 +22,9 @@ import com.tejasnair.mediaplayer.data.model.*
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
-    abstract fun musicDao(): MusicDao
+    abstract fun songDao(): SongDao
+    abstract fun playlistDao(): PlaylistDao
+    abstract fun vinylDao(): VinylDao
 
     companion object {
         @Volatile private var INSTANCE: MusicDatabase? = null

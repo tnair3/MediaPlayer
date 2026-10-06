@@ -15,7 +15,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
-import com.tejasnair.mediaplayer.data.repository.MusicRepository
+import com.tejasnair.mediaplayer.data.repository.SongRepository
 
 class UploadWorker(
     private val context: Context,
@@ -55,8 +55,8 @@ class UploadWorker(
             setForeground(buildForegroundInfo(index, total))
 
             val database = MusicDatabase.getDatabase(context)
-            val repository = MusicRepository(database.musicDao(), context)
-            val scanner = MediaScanner(context, repository)
+            val songRepository = SongRepository(database.songDao(), context)
+            val scanner = MediaScanner(context, songRepository)
 
             scanner.scanAudioFile(uri)
 

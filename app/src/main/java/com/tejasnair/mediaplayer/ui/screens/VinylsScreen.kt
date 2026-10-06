@@ -178,13 +178,7 @@ fun VinylsScreen(
                             val newVinylId = UUID.randomUUID().toString()
                             var savedArtPath: String? = null
 
-                            imageUri?.let { uri ->
-                                savedArtPath = libraryViewModel.copyVinylImageToInternalStorage(
-                                    context = context,
-                                    uri = uri,
-                                    vinylId = newVinylId
-                                )
-                            }
+                            imageUri?.let { uri -> savedArtPath = libraryViewModel.copyVinylImageToInternalStorage(uri = uri, vinylId = newVinylId) }
 
                             val newVinyl = Vinyl(
                                 vinylId = newVinylId,
