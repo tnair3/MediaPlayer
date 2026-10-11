@@ -314,7 +314,7 @@ fun SongSheet(
                                     Icon(
                                         painterResource(R.drawable.options_delete),
                                         contentDescription = "Delete",
-                                        tint = Color.White,
+                                        tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
