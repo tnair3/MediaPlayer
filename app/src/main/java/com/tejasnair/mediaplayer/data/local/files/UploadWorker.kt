@@ -16,6 +16,7 @@ import androidx.work.WorkerParameters
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.local.database.MusicDatabase
 import com.tejasnair.mediaplayer.data.repository.SongRepository
+import kotlin.time.TimeSource
 
 class UploadWorker(
     private val context: Context,
@@ -40,6 +41,8 @@ class UploadWorker(
         val total = inputData.getInt(KEY_TOTAL, 1)
         val isLast = index == total - 1
 
+        val mark = TimeSource.Monotonic.markNow()
+
         return try {
             val uriString = inputData.getString(KEY_URI)
                 ?: return Result.success()
@@ -58,10 +61,19 @@ class UploadWorker(
             val songRepository = SongRepository(database.songDao(), context)
             val scanner = MediaScanner(context, songRepository)
 
+            val timeForeground = mark.elapsedNow()
+
             scanner.scanAudioFile(uri)
+            val tScan = mark.elapsedNow() - timeForeground
 
             releasePermission(uri)
+            val gcMark = TimeSource.Monotonic.markNow()
             System.gc()
+            val timeGarbageCollection = gcMark.elapsedNow()
+
+            Log.d("ImportTiming", "worker[$index]: foreground=${timeForeground.inWholeMilliseconds}ms " +
+                    "scan=${tScan.inWholeMilliseconds}ms gc=${timeGarbageCollection.inWholeMilliseconds}ms " +
+                    "total=${mark.elapsedNow().inWholeMilliseconds}ms")
 
             if (isLast) {
                 cancelProgressNotification()

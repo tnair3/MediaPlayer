@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.time.TimeSource
 
 class MediaScanner(
     private val context: Context,
@@ -25,17 +26,17 @@ class MediaScanner(
     // Public Entry Point
 
     suspend fun scanAudioFile(fileUri: Uri) {
+        val sb = StringBuilder()
+
         withContext(Dispatchers.IO) {
             try {
-                val tempFile = copyToInternalStorage(fileUri, "temp_${System.currentTimeMillis()}")
+                val tempFile = timed("copy", sb) { copyToInternalStorage(fileUri, "temp_${System.currentTimeMillis()}") }
                     ?: run {
                         showToast("Failed to import file — could not read input")
                         return@withContext
                     }
 
-                val song = try {
-                    extractMetadata(tempFile)
-                } catch (e: Exception) {
+                val song = try { timed("meta", sb) { extractMetadata(tempFile) } } catch (e: Exception) {
                     Log.w("MediaScanner", "Metadata extraction failed", e)
                     tempFile.delete()
                     showToast("Failed to import file — could not read metadata")
@@ -52,12 +53,12 @@ class MediaScanner(
 
                 val updatedSong = song.copy(filePath = destinationFile.absolutePath)
 
-                val isDuplicate = songRepository.findExistingSong(
+                val isDuplicate = timed("dupCheck", sb) { songRepository.findExistingSong(
                     updatedSong.title,
                     updatedSong.artists,
                     updatedSong.album,
                     updatedSong.albumArtists
-                ) != null
+                ) != null }
 
                 if (isDuplicate) {
                     destinationFile.delete()
@@ -65,8 +66,9 @@ class MediaScanner(
                     return@withContext
                 }
 
-                songRepository.insert(updatedSong)
+                timed("dbInsert", sb) { songRepository.insert(updatedSong) }
                 Log.d("MediaScanner", "Imported: ${updatedSong.title} — ${destinationFile.absolutePath}")
+                Log.d("ImportTiming", "${updatedSong.title}: $sb size=${destinationFile.length() / 1024}KB")
 
             } catch (e: Exception) {
                 Log.e("MediaScanner", "Unexpected import error", e)
@@ -243,5 +245,10 @@ class MediaScanner(
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(context, message, Toast.LENGTH_LONG).show()
         }
+    }
+
+    private inline fun <T> timed(label: String, sb: StringBuilder, block: () -> T): T {
+        val m = TimeSource.Monotonic.markNow()
+        return block().also { sb.append("$label=${m.elapsedNow().inWholeMilliseconds}ms ") }
     }
 }

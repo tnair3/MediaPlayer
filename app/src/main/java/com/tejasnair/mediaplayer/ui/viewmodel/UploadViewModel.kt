@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
+import android.util.Log
+import kotlin.time.TimeSource
 
 data class UploadProgress(
     val isUploading: Boolean = false,
@@ -82,9 +84,12 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
         ) { continuation, request ->
             continuation.then(request)
         }
+
+        val batchStart = TimeSource.Monotonic.markNow()
         chain.enqueue()
 
         viewModelScope.launch {
+            var logged = false
             workManager.getWorkInfosByTagFlow(batchTag).collect { infos ->
                 if (infos.isEmpty()) return@collect
 
@@ -93,6 +98,13 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                     it.state == WorkInfo.State.RUNNING ||
                             it.state == WorkInfo.State.ENQUEUED ||
                             it.state == WorkInfo.State.BLOCKED
+                }
+
+                if (!logged && !anyActive && completed == total) {
+                    logged = true
+                    val e = batchStart.elapsedNow()
+                    Log.d("ImportTiming", "BATCH: $total files in ${e.inWholeSeconds}s " +
+                            "(${e.inWholeMilliseconds / total} ms/file)")
                 }
 
                 _uploadProgress.value = UploadProgress(
