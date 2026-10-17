@@ -89,7 +89,7 @@ class MediaScanner(
                 FileOutputStream(destination).use { output ->
                     input.copyTo(output)
                     output.flush()
-                    output.fd.sync()
+                    // output.fd.sync()
                 }
             } ?: return null
             destination
