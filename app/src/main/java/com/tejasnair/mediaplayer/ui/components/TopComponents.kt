@@ -200,7 +200,7 @@ fun ShowHelpMessage(
     val rawBodyText = when (title) {
         "Recordings" -> "This is where your recordings will appear. You can record audio directly in the app and it will be saved here for playback. Placeholder text — replace with your own description."
         "Vinyls" -> "Vinyls lets you visualise your music as a vinyl record. Placeholder text — replace with your own description."
-        "Settings" -> "v1.0-alpha3\nVinyls\nBetter Playlist Implementation\nBetter Miniplayer\nFix for Queue\nBetter Uploading\n\nv1.0-alpha4\nRecordings and Audio Trimming\nAesthetic Customisation\nLyrics Upload\n\nPlanned\nLibrary Export\niOS Port\nWindows Application"
+        "Settings" -> "v1.0-alpha3\nVinyls\nBetter Playlist Implementation\nBetter Miniplayer\nBetter Uploading\n\nv1.0-alpha4\nRecordings and Audio Trimming\nFix for Queue\nAesthetic Customisation\nLyrics Upload\n\nPlanned\nLibrary Export\niOS Port\nWindows Application"
         else -> "Help is not available for this screen."
     }
 
