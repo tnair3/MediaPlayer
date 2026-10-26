@@ -547,22 +547,49 @@ fun VinylDetailsScreen(
         Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
             Crossfade(targetState = showSongsView, label = "vinylDetailsCrossfade") { isSongsView ->
                 if (isSongsView) {
-                    VinylSongsView(
-                        vinylTitle = currentVinyl.title,
-                        sides = sides,
-                        sideSongsMap = sideSongsMap,
-                        favouriteIds = favouriteIds,
-                        isEditMode = isEditSongsMode,
-                        showOptionsMenu = showSongsOptionsMenu,
-                        onOptionsMenuChange = { showSongsOptionsMenu = it },
-                        onBack = { showSongsView = false; isEditSongsMode = false },
-                        onSongClick = { song -> selectedSongId = song.songId },
-                        onToggleEditMode = { isEditSongsMode = !isEditSongsMode },
-                        onRemoveSong = { sideId, songId -> libraryViewModel.removeSongFromVinylSide(sideId, songId) },
-                        onReorderSong = { sideId, orderedIds -> libraryViewModel.reorderVinylSide(sideId, orderedIds) },
-                        onAddSongs = { showAddSongsDialog = true },
-                        onManageSides = { showManageSidesDialog = true }
-                    )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        VinylSongsView(
+                            vinylTitle = currentVinyl.title,
+                            sides = sides,
+                            sideSongsMap = sideSongsMap,
+                            favouriteIds = favouriteIds,
+                            isEditMode = isEditSongsMode,
+                            showOptionsMenu = showSongsOptionsMenu,
+                            onOptionsMenuChange = { showSongsOptionsMenu = it },
+                            onBack = { showSongsView = false; isEditSongsMode = false },
+                            onSongClick = { song -> selectedSongId = song.songId },
+                            onToggleEditMode = { isEditSongsMode = !isEditSongsMode },
+                            onRemoveSong = { sideId, songId -> libraryViewModel.removeSongFromVinylSide(sideId, songId) },
+                            onReorderSong = { sideId, orderedIds -> libraryViewModel.reorderVinylSide(sideId, orderedIds) },
+                            onAddSongs = { showAddSongsDialog = true },
+                            onManageSides = { showManageSidesDialog = true }
+                        )
+
+                        if (isEditSongsMode) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 56.dp),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                Surface(
+                                    onClick = { isEditSongsMode = false },
+                                    shape = RoundedCornerShape(50.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                    tonalElevation = 4.dp,
+                                    shadowElevation = 4.dp
+                                ) {
+                                    Text(
+                                        text = "Confirm",
+                                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
                 } else {
                     VinylDetailsView(
                         title = currentVinyl.title,
