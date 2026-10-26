@@ -27,6 +27,5 @@ import androidx.room.Index
 )
 data class SongToPlaylist(
     val songId: String,
-    val playlistId: String,
-    val position: Int
+    val playlistId: String
 )

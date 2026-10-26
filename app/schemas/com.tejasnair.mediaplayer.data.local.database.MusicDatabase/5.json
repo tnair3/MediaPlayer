@@ -1,0 +1,361 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "586025a9ca66bfc53f954cd95fba7ad7",
+    "entities": [
+      {
+        "tableName": "songs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`songId` TEXT NOT NULL, `filePath` TEXT NOT NULL, `title` TEXT NOT NULL, `duration` INTEGER NOT NULL, `artists` TEXT NOT NULL, `album` TEXT NOT NULL, `albumArtists` TEXT NOT NULL, `discNumber` INTEGER NOT NULL, `trackNumber` INTEGER NOT NULL, `isFavourite` INTEGER NOT NULL, `year` TEXT, `dateAdded` INTEGER NOT NULL, `songArtUri` TEXT, `backCoverUri` TEXT, PRIMARY KEY(`songId`))",
+        "fields": [
+          {
+            "fieldPath": "songId",
+            "columnName": "songId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "filePath",
+            "columnName": "filePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "duration",
+            "columnName": "duration",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "artists",
+            "columnName": "artists",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "album",
+            "columnName": "album",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "albumArtists",
+            "columnName": "albumArtists",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "discNumber",
+            "columnName": "discNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackNumber",
+            "columnName": "trackNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isFavourite",
+            "columnName": "isFavourite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "year",
+            "columnName": "year",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dateAdded",
+            "columnName": "dateAdded",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "songArtUri",
+            "columnName": "songArtUri",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "backCoverUri",
+            "columnName": "backCoverUri",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "songId"
+          ]
+        }
+      },
+      {
+        "tableName": "playlists",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`playlistId` TEXT NOT NULL, `playlistName` TEXT NOT NULL, `playlistArtUri` TEXT, PRIMARY KEY(`playlistId`))",
+        "fields": [
+          {
+            "fieldPath": "playlistId",
+            "columnName": "playlistId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playlistName",
+            "columnName": "playlistName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playlistArtUri",
+            "columnName": "playlistArtUri",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "playlistId"
+          ]
+        }
+      },
+      {
+        "tableName": "songToPlaylist",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`songId` TEXT NOT NULL, `playlistId` TEXT NOT NULL, PRIMARY KEY(`songId`, `playlistId`), FOREIGN KEY(`songId`) REFERENCES `songs`(`songId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`playlistId`) REFERENCES `playlists`(`playlistId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "songId",
+            "columnName": "songId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "playlistId",
+            "columnName": "playlistId",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "songId",
+            "playlistId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_songToPlaylist_playlistId",
+            "unique": false,
+            "columnNames": [
+              "playlistId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_songToPlaylist_playlistId` ON `${TABLE_NAME}` (`playlistId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "songs",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "songId"
+            ],
+            "referencedColumns": [
+              "songId"
+            ]
+          },
+          {
+            "table": "playlists",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "playlistId"
+            ],
+            "referencedColumns": [
+              "playlistId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "vinyls",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`vinylId` TEXT NOT NULL, `title` TEXT NOT NULL, `artist` TEXT, `coverArtUri` TEXT, `dateCreated` INTEGER NOT NULL, PRIMARY KEY(`vinylId`))",
+        "fields": [
+          {
+            "fieldPath": "vinylId",
+            "columnName": "vinylId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "artist",
+            "columnName": "artist",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "coverArtUri",
+            "columnName": "coverArtUri",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "dateCreated",
+            "columnName": "dateCreated",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "vinylId"
+          ]
+        }
+      },
+      {
+        "tableName": "vinylSides",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`vinylSideId` TEXT NOT NULL, `vinylId` TEXT NOT NULL, `position` INTEGER NOT NULL, `sideName` TEXT NOT NULL, PRIMARY KEY(`vinylSideId`), FOREIGN KEY(`vinylId`) REFERENCES `vinyls`(`vinylId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "vinylSideId",
+            "columnName": "vinylSideId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vinylId",
+            "columnName": "vinylId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sideName",
+            "columnName": "sideName",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "vinylSideId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_vinylSides_vinylId",
+            "unique": false,
+            "columnNames": [
+              "vinylId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_vinylSides_vinylId` ON `${TABLE_NAME}` (`vinylId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vinyls",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vinylId"
+            ],
+            "referencedColumns": [
+              "vinylId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "songToVinylSide",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`songId` TEXT NOT NULL, `vinylSideId` TEXT NOT NULL, `trackPosition` INTEGER NOT NULL, PRIMARY KEY(`songId`, `vinylSideId`), FOREIGN KEY(`songId`) REFERENCES `songs`(`songId`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`vinylSideId`) REFERENCES `vinylSides`(`vinylSideId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "songId",
+            "columnName": "songId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vinylSideId",
+            "columnName": "vinylSideId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackPosition",
+            "columnName": "trackPosition",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "songId",
+            "vinylSideId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_songToVinylSide_vinylSideId",
+            "unique": false,
+            "columnNames": [
+              "vinylSideId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_songToVinylSide_vinylSideId` ON `${TABLE_NAME}` (`vinylSideId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "songs",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "songId"
+            ],
+            "referencedColumns": [
+              "songId"
+            ]
+          },
+          {
+            "table": "vinylSides",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vinylSideId"
+            ],
+            "referencedColumns": [
+              "vinylSideId"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '586025a9ca66bfc53f954cd95fba7ad7')"
+    ]
+  }
+}

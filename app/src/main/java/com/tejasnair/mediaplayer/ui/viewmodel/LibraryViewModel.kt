@@ -75,7 +75,7 @@ class LibraryViewModel(
     // --- PLAYLISTS ---
 
     fun createPlaylist(name: String) {
-        viewModelScope.launch { playlistRepository.createPlaylist(Playlist(playlistName = name)) }
+        viewModelScope.launch { playlistRepository.createPlaylist(Playlist(playlistName = name, playlistArtUri = null)) }
     }
 
     fun createPlaylistWithId(playlist: Playlist) {
@@ -91,19 +91,15 @@ class LibraryViewModel(
     }
 
     fun addSongToPlaylist(songId: String, playlistId: String, position: Int) {
-        viewModelScope.launch { playlistRepository.addSongToPlaylist(songId, playlistId, position) }
+        viewModelScope.launch { playlistRepository.addSongToPlaylist(songId, playlistId) }
     }
 
     fun addSongsToPlaylist(songIds: List<String>, playlistId: String, startPosition: Int) {
-        viewModelScope.launch { playlistRepository.addSongsToPlaylist(songIds, playlistId, startPosition) }
+        viewModelScope.launch { playlistRepository.addSongsToPlaylist(songIds, playlistId) }
     }
 
     fun removeSongFromPlaylist(songId: String, playlistId: String) {
         viewModelScope.launch { playlistRepository.removeSongFromPlaylist(songId, playlistId) }
-    }
-
-    fun reorderPlaylist(playlistId: String, orderedSongIds: List<String>) {
-        viewModelScope.launch { playlistRepository.reorderPlaylist(playlistId, orderedSongIds) }
     }
 
     fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> =

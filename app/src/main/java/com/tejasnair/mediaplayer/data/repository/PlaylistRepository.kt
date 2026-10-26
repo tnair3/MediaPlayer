@@ -25,24 +25,18 @@ class PlaylistRepository(
 
     suspend fun deletePlaylist(playlistId: String) = playlistDao.deletePlaylist(playlistId)
 
-    suspend fun addSongToPlaylist(songId: String, playlistId: String, position: Int) =
-        playlistDao.addSongToPlaylist(SongToPlaylist(songId, playlistId, position))
+    suspend fun addSongToPlaylist(songId: String, playlistId: String) =
+        playlistDao.addSongToPlaylist(SongToPlaylist(songId, playlistId))
 
-    suspend fun addSongsToPlaylist(songIds: List<String>, playlistId: String, startPosition: Int) {
+    suspend fun addSongsToPlaylist(songIds: List<String>, playlistId: String) {
         val crossRefs = songIds.mapIndexed { i, id ->
-            SongToPlaylist(id, playlistId, startPosition + i)
+            SongToPlaylist(id, playlistId)
         }
         playlistDao.insertSongToPlaylistBatch(crossRefs)
     }
 
     suspend fun removeSongFromPlaylist(songId: String, playlistId: String) =
         playlistDao.removeSongFromPlaylist(songId, playlistId)
-
-    suspend fun reorderPlaylist(playlistId: String, orderedSongIds: List<String>) {
-        playlistDao.clearPlaylistSongs(playlistId)
-        val crossRefs = orderedSongIds.mapIndexed { i, id -> SongToPlaylist(id, playlistId, i) }
-        playlistDao.insertSongToPlaylistBatch(crossRefs)
-    }
 
     fun getSongsInPlaylist(playlistId: String): Flow<List<Song>> = playlistDao.getSongsInPlaylist(playlistId)
     fun getPlaylistSongCount(playlistId: String): Flow<Int> = playlistDao.getPlaylistSongCount(playlistId)

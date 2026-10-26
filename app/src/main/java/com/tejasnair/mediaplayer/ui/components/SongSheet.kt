@@ -177,7 +177,8 @@ fun SongSheet(
                         val newId = java.util.UUID.randomUUID().toString()
                         val newPlaylist = Playlist(
                             playlistId = newId,
-                            playlistName = newPlaylistName.trim()
+                            playlistName = newPlaylistName.trim(),
+                            playlistArtUri = null
                         )
                         libraryViewModel.createPlaylistWithId(newPlaylist)
                         libraryViewModel.addSongToPlaylist(song.songId, newId, 0)

@@ -43,7 +43,7 @@ interface PlaylistDao {
         SELECT songs.* FROM songs 
         INNER JOIN songToPlaylist ON songs.songId = songToPlaylist.songId 
         WHERE songToPlaylist.playlistId = :playlistId 
-        ORDER BY songToPlaylist.position ASC
+        ORDER BY songs.title ASC
     """)
     fun getSongsInPlaylist(playlistId: String): Flow<List<Song>>
 }

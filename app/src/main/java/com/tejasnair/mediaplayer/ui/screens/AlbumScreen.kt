@@ -269,7 +269,7 @@ fun AlbumScreen(
                         enabled = newNameFromAlbum.isNotBlank(),
                         onClick = {
                             val newId = UUID.randomUUID().toString()
-                            val newPlaylist = Playlist(playlistId = newId, playlistName = newNameFromAlbum.trim())
+                            val newPlaylist = Playlist(playlistId = newId, playlistName = newNameFromAlbum.trim(), playlistArtUri = null)
                             libraryViewModel.createPlaylistWithId(newPlaylist)
                             libraryViewModel.addSongsToPlaylist(songIds = albumSongs.map { it.songId }, playlistId = newId, startPosition = 0)
                             showNewPlaylistFromAlbum = false
