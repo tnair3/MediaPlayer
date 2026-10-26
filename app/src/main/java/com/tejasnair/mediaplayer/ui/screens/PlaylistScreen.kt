@@ -1,13 +1,11 @@
 package com.tejasnair.mediaplayer.ui.screens
 
-import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,10 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -33,9 +29,6 @@ import com.tejasnair.mediaplayer.ui.components.StyledDropdownItem
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun PlaylistScreen(
@@ -47,7 +40,8 @@ fun PlaylistScreen(
 ) {
     val playlists by libraryViewModel.allPlaylists.collectAsState()
     val playlist = playlists.find { it.playlistId == playlistId }
-    val playlistSongs by libraryViewModel.getSongsInPlaylist(playlistId).collectAsState(initial = emptyList())
+    val rawPlaylistSongs by libraryViewModel.getSongsInPlaylist(playlistId).collectAsState(initial = emptyList())
+    val playlistSongs by remember(rawPlaylistSongs) { derivedStateOf { rawPlaylistSongs.sortedBy { it.title.lowercase() } } }
     val favouriteSongs by libraryViewModel.favouriteSongs.collectAsState()
     val favouriteIds by remember(favouriteSongs) {
         derivedStateOf { favouriteSongs.map { it.songId }.toHashSet() }
@@ -148,126 +142,165 @@ fun PlaylistScreen(
                         )
                         .padding(horizontal = 16.dp, vertical = 16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.nav_back_arrow),
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 12.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = playlist?.playlistName ?: "Playlist",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = if (playlistSongs.size == 1) "1 song" else "${playlistSongs.size} songs",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Box {
-                            IconButton(onClick = { showOptionsMenu = true }) {
+                            IconButton(onClick = { navController.navigateUp() }) {
                                 Icon(
-                                    painter = painterResource(id = R.drawable.options),
-                                    contentDescription = "Options",
+                                    painter = painterResource(id = R.drawable.nav_back_arrow),
+                                    contentDescription = "Back",
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
 
-                            DropdownMenu(
-                                expanded = showOptionsMenu,
-                                onDismissRequest = { showOptionsMenu = false },
-                                offset = DpOffset(x = (-10).dp, y = (-10).dp),
-                                shape = RoundedCornerShape(20.dp),
-                                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
-                                modifier = Modifier.width(220.dp)
+                            if (showEditSongsMode) {
+                                Surface(
+                                    onClick = { showEditSongsMode = false },
+                                    shape = RoundedCornerShape(50.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                    tonalElevation = 4.dp,
+                                    shadowElevation = 4.dp
+                                ) {
+                                    Text(
+                                        text = "Confirm",
+                                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
+                            }
+
+                            Box {
+                                IconButton(onClick = { showOptionsMenu = true }) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.options),
+                                        contentDescription = "Options",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showOptionsMenu,
+                                    onDismissRequest = { showOptionsMenu = false },
+                                    offset = DpOffset(x = (-10).dp, y = (-10).dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp),
+                                    modifier = Modifier.width(220.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = playlist?.playlistName ?: "Playlist",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1, overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = "${playlistSongs.size} songs",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+
+                                    StyledDropdownItem(R.drawable.song_play, "Play Playlist") {
+                                        showOptionsMenu = false
+                                        if (playlistSongs.isNotEmpty()) {
+                                            playbackViewModel.playSong(playlistSongs.first(), playlistSongs)
+                                            showNowPlaying.value = true
+                                        }
+                                    }
+                                    StyledDropdownItem(R.drawable.song_shuffle, "Shuffle Playlist") {
+                                        showOptionsMenu = false
+                                        if (playlistSongs.isNotEmpty()) {
+                                            val shuffled = playlistSongs.shuffled()
+                                            playbackViewModel.playSong(shuffled.first(), shuffled)
+                                            showNowPlaying.value = true
+                                        }
+                                    }
+                                    StyledDropdownItem(R.drawable.song_options_addtoqueue, "Add to Queue") {
+                                        showOptionsMenu = false
+                                        playlistSongs.forEach { playbackViewModel.addToQueue(it) }
+                                    }
+
+                                    Spacer(Modifier.height(4.dp))
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+
+                                    StyledDropdownItem(R.drawable.options_edit, "Edit Details") {
+                                        showOptionsMenu = false
+                                        editName = playlist?.playlistName ?: ""
+                                        showEditNameDialog = true
+                                    }
+                                    StyledDropdownItem(R.drawable.options_deletesome, "Edit Songs") {
+                                        showOptionsMenu = false
+                                        showEditSongsMode = !showEditSongsMode
+                                    }
+                                    StyledDropdownItem(
+                                        icon = R.drawable.options_delete,
+                                        label = "Delete Playlist",
+                                        tint = MaterialTheme.colorScheme.error
+                                    ) {
+                                        showOptionsMenu = false
+                                        showDeleteDialog = true
+                                    }
+
+                                    Spacer(Modifier.height(4.dp))
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
+
+                            Spacer(Modifier.width(16.dp))
+
+                            Column(
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                                ) {
-                                    Text(
-                                        text = playlist?.playlistName ?: "Playlist",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 1, overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = "${playlistSongs.size} songs",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                Text(
+                                    text = playlist?.playlistName ?: "Playlist",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(Modifier.height(4.dp))
-
-                                StyledDropdownItem(R.drawable.song_play, "Play Playlist") {
-                                    showOptionsMenu = false
-                                    if (playlistSongs.isNotEmpty()) {
-                                        playbackViewModel.playSong(playlistSongs.first(), playlistSongs)
-                                        showNowPlaying.value = true
-                                    }
-                                }
-                                StyledDropdownItem(R.drawable.song_shuffle, "Shuffle Playlist") {
-                                    showOptionsMenu = false
-                                    if (playlistSongs.isNotEmpty()) {
-                                        val shuffled = playlistSongs.shuffled()
-                                        playbackViewModel.playSong(shuffled.first(), shuffled)
-                                        showNowPlaying.value = true
-                                    }
-                                }
-                                StyledDropdownItem(R.drawable.song_options_addtoqueue, "Add to Queue") {
-                                    showOptionsMenu = false
-                                    playlistSongs.forEach { playbackViewModel.addToQueue(it) }
-                                }
-
-                                Spacer(Modifier.height(4.dp))
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = if (playlistSongs.size == 1) "1 song" else "${playlistSongs.size} songs",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Spacer(Modifier.height(4.dp))
-
-                                StyledDropdownItem(R.drawable.options_edit, "Edit Details") {
-                                    showOptionsMenu = false
-                                    editName = playlist?.playlistName ?: ""
-                                    showEditNameDialog = true
-                                }
-                                StyledDropdownItem(R.drawable.options_deletesome, "Edit Songs") {
-                                    showOptionsMenu = false
-                                    showEditSongsMode = !showEditSongsMode
-                                }
-                                StyledDropdownItem(
-                                    icon = R.drawable.options_delete,
-                                    label = "Delete Playlist",
-                                    tint = MaterialTheme.colorScheme.error
-                                ) {
-                                    showOptionsMenu = false
-                                    showDeleteDialog = true
-                                }
-
-                                Spacer(Modifier.height(4.dp))
                             }
                         }
                     }
@@ -364,51 +397,6 @@ fun PlaylistScreen(
                                         .padding(horizontal = 12.dp, vertical = 2.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        IconButton(
-                                            onClick = {
-                                                if (index > 0) {
-                                                    val reordered = playlistSongs.toMutableList()
-                                                    reordered.removeAt(index)
-                                                    reordered.add(index - 1, song)
-                                                    libraryViewModel.reorderPlaylist(playlistId, reordered.map { it.songId })
-                                                }
-                                            },
-                                            modifier = Modifier.size(28.dp),
-                                            enabled = index > 0
-                                        ) {
-                                            Icon(
-                                                painterResource(
-                                                    id = R.drawable.chevron_up),
-                                                contentDescription = null,
-                                                tint = if (index > 0) MaterialTheme.colorScheme.onSurface
-                                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                if (index < playlistSongs.size - 1) {
-                                                    val reordered = playlistSongs.toMutableList()
-                                                    reordered.removeAt(index)
-                                                    reordered.add(index + 1, song)
-                                                    libraryViewModel.reorderPlaylist(playlistId, reordered.map { it.songId })
-                                                }
-                                            },
-                                            modifier = Modifier.size(28.dp),
-                                            enabled = index < playlistSongs.size - 1
-                                        ) {
-                                            Icon(
-                                                painterResource(
-                                                    id = R.drawable.chevron_down),
-                                                contentDescription = null,
-                                                tint = if (index < playlistSongs.size - 1) MaterialTheme.colorScheme.onSurface
-                                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-                                    }
-
                                     Box(modifier = Modifier.weight(1f)) {
                                         SongRow(
                                             song = song, onClick = {},
@@ -440,36 +428,6 @@ fun PlaylistScreen(
                                     isFavourite = song.songId in favouriteIds
                                 )
                             }
-                        }
-                    }
-                }
-            }
-
-            // Edit songs mode banner
-            if (showEditSongsMode) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Editing songs",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                        TextButton(onClick = { showEditSongsMode = false }) {
-                            Text(
-                                text = "Done",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.SemiBold
-                            )
                         }
                     }
                 }
