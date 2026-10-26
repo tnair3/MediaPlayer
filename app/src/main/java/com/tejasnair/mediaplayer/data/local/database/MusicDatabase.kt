@@ -19,7 +19,7 @@ import com.tejasnair.mediaplayer.data.model.*
         SongToVinylSide::class
                ],
     version = 4,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class MusicDatabase : RoomDatabase() {
     abstract fun songDao(): SongDao
