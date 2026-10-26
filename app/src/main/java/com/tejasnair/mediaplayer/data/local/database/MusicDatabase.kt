@@ -1,6 +1,7 @@
 package com.tejasnair.mediaplayer.data.local.database
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -19,7 +20,8 @@ import com.tejasnair.mediaplayer.data.model.*
         SongToVinylSide::class
                ],
     version = 4,
-    exportSchema = true
+    exportSchema = true,
+    autoMigrations = [AutoMigration(from = 3, to = 4)]
 )
 abstract class MusicDatabase : RoomDatabase() {
     abstract fun songDao(): SongDao
@@ -36,7 +38,7 @@ abstract class MusicDatabase : RoomDatabase() {
                     klass = MusicDatabase::class.java,
                     name = "music_database"
                 )
-                    .fallbackToDestructiveMigration(dropAllTables = true)
+                    .fallbackToDestructiveMigrationFrom(true, 1, 2)
                     .build()
                     .also { INSTANCE = it }
             }
