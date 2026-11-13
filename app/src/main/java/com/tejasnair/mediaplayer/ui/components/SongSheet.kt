@@ -1,7 +1,12 @@
 package com.tejasnair.mediaplayer.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,11 +29,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.data.model.Playlist
 import com.tejasnair.mediaplayer.data.model.Song
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import java.util.UUID
 
 @Composable
 fun SongSheet(
@@ -157,40 +164,107 @@ fun SongSheet(
     }
 
     if (showNewPlaylistDialog) {
+        var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+        val imagePickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? -> selectedImageUri = uri }
+
         AlertDialog(
-            onDismissRequest = { showNewPlaylistDialog = false },
-            title = { Text("New Playlist") },
-            text = {
-                OutlinedTextField(
-                    value = newPlaylistName,
-                    onValueChange = { newPlaylistName = it },
-                    label = { Text("Playlist name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+            onDismissRequest = {
+                showNewPlaylistDialog = false
+                newPlaylistName = ""
+                selectedImageUri = null
+            },
+            title = {
+                Text(
+                    text = "New Playlist",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { imagePickerLauncher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selectedImageUri != null) {
+                            Image(
+                                painter = rememberAsyncImagePainter(model = selectedImageUri),
+                                contentDescription = "Selected artwork",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.options_edit),
+                                    contentDescription = "Upload Art",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Add Cover",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        label = { Text("Title (Required)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(
                     enabled = newPlaylistName.isNotBlank(),
                     onClick = {
-                        val newId = java.util.UUID.randomUUID().toString()
+                        val newId = UUID.randomUUID().toString()
+                        var savedArtPath: String? = null
+                        selectedImageUri?.let { uri ->
+                            savedArtPath = libraryViewModel.copyImageToInternalStorage(uri, newId)
+                        }
                         val newPlaylist = Playlist(
                             playlistId = newId,
                             playlistName = newPlaylistName.trim(),
-                            playlistArtUri = null
+                            playlistArtUri = savedArtPath
                         )
                         libraryViewModel.createPlaylistWithId(newPlaylist)
                         libraryViewModel.addSongToPlaylist(song.songId, newId, 0)
                         showNewPlaylistDialog = false
                         newPlaylistName = ""
+                        selectedImageUri = null
                         onDismiss()
                     }
                 ) { Text("Create & Add") }
             },
             dismissButton = {
-                TextButton(onClick = { showNewPlaylistDialog = false }) { Text("Cancel") }
-            }
+                TextButton(onClick = {
+                    showNewPlaylistDialog = false
+                    selectedImageUri = null
+                }) { Text("Cancel") }
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 

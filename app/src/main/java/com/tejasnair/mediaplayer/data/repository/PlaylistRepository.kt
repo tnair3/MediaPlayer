@@ -23,6 +23,9 @@ class PlaylistRepository(
     suspend fun updatePlaylistName(playlistId: String, newName: String) =
         playlistDao.updatePlaylistName(playlistId, newName)
 
+    suspend fun updatePlaylistArt(playlistId: String, artUri: String?) =
+        playlistDao.updatePlaylistArt(playlistId, artUri)
+
     suspend fun deletePlaylist(playlistId: String) = playlistDao.deletePlaylist(playlistId)
 
     suspend fun addSongToPlaylist(songId: String, playlistId: String) =

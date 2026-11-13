@@ -1,6 +1,10 @@
 package com.tejasnair.mediaplayer.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -11,15 +15,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.DeleteConfirmationDialog
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
@@ -29,6 +36,7 @@ import com.tejasnair.mediaplayer.ui.components.StyledDropdownItem
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import java.io.File
 
 @Composable
 fun PlaylistScreen(
@@ -55,6 +63,26 @@ fun PlaylistScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditSongsMode by remember { mutableStateOf(false) }
     var editName by remember(playlist?.playlistName) { mutableStateOf(playlist?.playlistName ?: "") }
+
+    val artUri = playlist?.playlistArtUri
+    var localArtUri by remember(playlistId, artUri) { mutableStateOf(artUri) }
+    var artVersion by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(artUri) {
+        localArtUri = artUri
+        artVersion = System.currentTimeMillis()
+    }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val savedPath = libraryViewModel.copyImageToInternalStorage(it, playlistId)
+            libraryViewModel.updatePlaylistArt(playlistId, savedPath)
+            localArtUri = savedPath
+            artVersion = System.currentTimeMillis()
+        }
+    }
 
     LaunchedEffect(playlist) {
         if (playlist == null && playlists.isNotEmpty()) navController.navigateUp()
@@ -140,10 +168,40 @@ fun PlaylistScreen(
                             ),
                             shape = RoundedCornerShape(24.dp)
                         )
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
                 ) {
+                    val hasArt = localArtUri != null && File(localArtUri!!).exists()
+
+                    if (hasArt) {
+                        Box(modifier = Modifier.matchParentSize()) {
+                            val imageModel = remember(localArtUri, artVersion) {
+                                localArtUri?.let { path ->
+                                    val file = File(path)
+                                    if (file.exists()) {
+                                        Uri.fromFile(file).buildUpon().appendQueryParameter("t", artVersion.toString()).build()
+                                    } else null
+                                }
+                            }
+
+                            Image(
+                                painter = rememberAsyncImagePainter(model = imageModel),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(20.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.4f))
+                            )
+                        }
+                    }
+
                     Column(
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -154,7 +212,7 @@ fun PlaylistScreen(
                                 Icon(
                                     painter = painterResource(id = R.drawable.nav_back_arrow),
                                     contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.onSurface
+                                    tint = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurface
                                 )
                             }
 
@@ -181,7 +239,7 @@ fun PlaylistScreen(
                                     Icon(
                                         painter = painterResource(id = R.drawable.options),
                                         contentDescription = "Options",
-                                        tint = MaterialTheme.colorScheme.onSurface
+                                        tint = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurface
                                     )
                                 }
 
@@ -244,6 +302,33 @@ fun PlaylistScreen(
                                     )
                                     Spacer(Modifier.height(4.dp))
 
+                                    StyledDropdownItem(
+                                        icon = R.drawable.playlist_cover_custom,
+                                        label = if (hasArt) "Change Cover Art" else "Add Cover Art")
+                                    {
+                                        showOptionsMenu = false
+                                        imagePickerLauncher.launch("image/*")
+                                    }
+
+                                    if (hasArt) {
+                                        StyledDropdownItem(R.drawable.playlist_cover_remove, "Remove Cover Art") {
+                                            showOptionsMenu = false
+                                            try {
+                                                artUri?.let { File(it).delete() }
+                                            } catch (_: Exception) {}
+                                            libraryViewModel.updatePlaylistArt(playlistId, null)
+                                            localArtUri = null
+                                            artVersion = System.currentTimeMillis()
+                                        }
+                                    }
+
+                                    Spacer(Modifier.height(4.dp))
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+
                                     StyledDropdownItem(R.drawable.options_edit, "Edit Details") {
                                         showOptionsMenu = false
                                         editName = playlist?.playlistName ?: ""
@@ -275,14 +360,31 @@ fun PlaylistScreen(
                                 .padding(horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                            )
+                            if (hasArt) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    val imageModel = remember(localArtUri, artVersion) {
+                                        localArtUri?.let { path ->
+                                            val file = File(path)
+                                            if (file.exists()) {
+                                                Uri.fromFile(file).buildUpon().appendQueryParameter("t", artVersion.toString()).build()
+                                            } else null
+                                        }
+                                    }
+                                    Image(
+                                        painter = rememberAsyncImagePainter(model = imageModel),
+                                        contentDescription = playlist?.playlistName,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
 
-                            Spacer(Modifier.width(16.dp))
+                                Spacer(Modifier.width(16.dp))
+                            }
 
                             Column(
                                 modifier = Modifier.weight(1f)
@@ -291,7 +393,7 @@ fun PlaylistScreen(
                                     text = playlist?.playlistName ?: "Playlist",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    color = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -299,7 +401,7 @@ fun PlaylistScreen(
                                 Text(
                                     text = if (playlistSongs.size == 1) "1 song" else "${playlistSongs.size} songs",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (hasArt) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

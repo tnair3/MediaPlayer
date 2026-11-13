@@ -1,8 +1,13 @@
 package com.tejasnair.mediaplayer.ui.screens
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +38,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.tejasnair.mediaplayer.data.model.Playlist
 import com.tejasnair.mediaplayer.R
 import com.tejasnair.mediaplayer.ui.components.DeleteConfirmationDialog
@@ -262,35 +268,111 @@ fun AlbumScreen(
         var newNameFromAlbum by remember { mutableStateOf(value = "") }
 
         if (showNewPlaylistFromAlbum) {
+            var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+            val imagePickerLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.GetContent()
+            ) { uri: Uri? -> selectedImageUri = uri }
+
             AlertDialog(
-                onDismissRequest = { showNewPlaylistFromAlbum = false },
+                onDismissRequest = {
+                    showNewPlaylistFromAlbum = false
+                    newNameFromAlbum = ""
+                    selectedImageUri = null
+                },
+                title = {
+                    Text(
+                        text = "New Playlist",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { imagePickerLauncher.launch("image/*") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (selectedImageUri != null) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(model = selectedImageUri),
+                                    contentDescription = "Selected artwork",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.options_edit),
+                                        contentDescription = "Upload Art",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Add Cover",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = newNameFromAlbum,
+                            onValueChange = { newNameFromAlbum = it },
+                            label = { Text("Title (Required)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
                 confirmButton = {
                     TextButton(
                         enabled = newNameFromAlbum.isNotBlank(),
                         onClick = {
                             val newId = UUID.randomUUID().toString()
-                            val newPlaylist = Playlist(playlistId = newId, playlistName = newNameFromAlbum.trim(), playlistArtUri = null)
+                            var savedArtPath: String? = null
+                            selectedImageUri?.let { uri ->
+                                savedArtPath = libraryViewModel.copyImageToInternalStorage(uri, newId)
+                            }
+                            val newPlaylist = Playlist(
+                                playlistId = newId,
+                                playlistName = newNameFromAlbum.trim(),
+                                playlistArtUri = savedArtPath
+                            )
                             libraryViewModel.createPlaylistWithId(newPlaylist)
-                            libraryViewModel.addSongsToPlaylist(songIds = albumSongs.map { it.songId }, playlistId = newId, startPosition = 0)
+                            libraryViewModel.addSongsToPlaylist(
+                                songIds = albumSongs.map { it.songId },
+                                playlistId = newId,
+                                startPosition = 0
+                            )
                             showNewPlaylistFromAlbum = false
                             showAlbumPlaylistPicker = false
                             newNameFromAlbum = ""
+                            selectedImageUri = null
                         }
-                    ) { Text(text = "Create & Add") }
+                    ) { Text("Create & Add") }
                 },
-                dismissButton = { TextButton(onClick = { showNewPlaylistFromAlbum = false }) { Text(text = "Cancel") } },
-                icon = { Icon(painter = painterResource(R.drawable.add), contentDescription = "New Playlist") },
-                title = { Text(text = "New Playlist") },
-                text = {
-                    OutlinedTextField(
-                        value = newNameFromAlbum,
-                        onValueChange = { newNameFromAlbum = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(text = "Playlist name") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(size = 12.dp)
-                    )
-                }
+                dismissButton = {
+                    TextButton(onClick = {
+                        showNewPlaylistFromAlbum = false
+                        selectedImageUri = null
+                    }) { Text("Cancel") }
+                },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.surface
             )
         } else {
             val playlistPickerListState = rememberLazyListState()

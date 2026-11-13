@@ -2,8 +2,11 @@ package com.tejasnair.mediaplayer.ui.screens
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -17,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -37,10 +41,12 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import com.tejasnair.mediaplayer.R
+import com.tejasnair.mediaplayer.data.model.Playlist
 import com.tejasnair.mediaplayer.ui.components.EmptyLibrary
 import com.tejasnair.mediaplayer.ui.components.FilterRow
 import com.tejasnair.mediaplayer.ui.components.SongSheet
@@ -51,6 +57,8 @@ import com.tejasnair.mediaplayer.ui.components.formatTime
 import com.tejasnair.mediaplayer.ui.theme.ThemedScreen
 import com.tejasnair.mediaplayer.ui.viewmodel.LibraryViewModel
 import com.tejasnair.mediaplayer.ui.viewmodel.PlaybackViewModel
+import java.io.File
+import java.util.UUID
 
 enum class SortDirection { ASC, DESC }
 
@@ -163,31 +171,97 @@ fun LibraryScreen(
         if (playlistSortDirection == SortDirection.DESC) sorted.reversed() else sorted
     }
 
-    // Create Playlist dialog
+// Create Playlist dialog
     if (showCreatePlaylistDialog) {
+        var newPlaylistName by remember { mutableStateOf("") }
+        var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+        val imagePickerLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? -> selectedImageUri = uri }
+
         AlertDialog(
             onDismissRequest = {
                 showCreatePlaylistDialog = false
                 newPlaylistName = ""
+                selectedImageUri = null
             },
-            title = { Text("New Playlist") },
-            text = {
-                OutlinedTextField(
-                    value = newPlaylistName,
-                    onValueChange = { newPlaylistName = it },
-                    label = { Text("Playlist name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+            title = {
+                Text(
+                    text = "New Playlist",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { imagePickerLauncher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selectedImageUri != null) {
+                            Image(
+                                painter = rememberAsyncImagePainter(model = selectedImageUri),
+                                contentDescription = "Selected artwork",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.options_edit),
+                                    contentDescription = "Upload Art",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Add Cover",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = newPlaylistName,
+                        onValueChange = { newPlaylistName = it },
+                        label = { Text("Title (Required)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(
                     enabled = newPlaylistName.isNotBlank(),
                     onClick = {
-                        libraryViewModel.createPlaylist(newPlaylistName.trim())
+                        val newId = UUID.randomUUID().toString()
+                        var savedArtPath: String? = null
+                        selectedImageUri?.let { uri ->
+                            savedArtPath = libraryViewModel.copyImageToInternalStorage(uri, newId)
+                        }
+                        val newPlaylist = Playlist(
+                            playlistId = newId,
+                            playlistName = newPlaylistName.trim(),
+                            playlistArtUri = savedArtPath
+                        )
+                        libraryViewModel.createPlaylistWithId(newPlaylist)
                         showCreatePlaylistDialog = false
                         newPlaylistName = ""
+                        selectedImageUri = null
                     }
                 ) { Text("Create") }
             },
@@ -195,8 +269,11 @@ fun LibraryScreen(
                 TextButton(onClick = {
                     showCreatePlaylistDialog = false
                     newPlaylistName = ""
+                    selectedImageUri = null
                 }) { Text("Cancel") }
-            }
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -560,8 +637,8 @@ fun LibraryScreen(
                                                     Spacer(Modifier.width(12.dp))
                                                     Column(modifier = Modifier.weight(1f)) {
                                                         Text(item.title, style = MaterialTheme.typography.bodyLarge,
-                                                            fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
-                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                             fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
+                                                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Row(
                                                             modifier = Modifier.fillMaxWidth(),
                                                             verticalAlignment = Alignment.CenterVertically,
@@ -633,11 +710,11 @@ fun LibraryScreen(
                                                     Spacer(Modifier.width(12.dp))
                                                     Column(modifier = Modifier.weight(1f)) {
                                                         Text(item.album, style = MaterialTheme.typography.bodyLarge,
-                                                            fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
-                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                             fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface,
+                                                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text(item.albumArtists, style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                     }
                                                 }
                                             }
@@ -719,11 +796,11 @@ fun LibraryScreen(
                                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                                     Spacer(Modifier.height(16.dp))
                                                     Text("No Playlists", style = MaterialTheme.typography.titleMedium,
-                                                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                                         fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                                                     Spacer(Modifier.height(4.dp))
                                                     Text("Create a playlist to see it here",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                         style = MaterialTheme.typography.bodySmall,
+                                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                 }
                                             }
                                         }
@@ -731,6 +808,9 @@ fun LibraryScreen(
                                         items(filteredPlaylists, key = { it.playlistId }) { playlist ->
                                             val songCount by libraryViewModel.getPlaylistSongCount(playlist.playlistId)
                                                 .collectAsState(initial = 0)
+
+                                            val artUri = playlist.playlistArtUri
+                                            val hasArt = artUri != null && File(artUri).exists()
 
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
@@ -741,30 +821,73 @@ fun LibraryScreen(
                                                     }
                                                     .padding(horizontal = 12.dp, vertical = 4.dp)
                                             ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
+                                                Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
+                                                        .height(64.dp)
                                                         .clip(RoundedCornerShape(12.dp))
-                                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                                                        .padding(horizontal = 10.dp, vertical = 8.dp)
                                                 ) {
-                                                    Column(
+                                                    if (hasArt) {
+                                                        Box(modifier = Modifier.matchParentSize()) {
+                                                            Image(
+                                                                painter = rememberAsyncImagePainter(model = File(artUri)),
+                                                                contentDescription = null,
+                                                                modifier = Modifier
+                                                                    .fillMaxSize()
+                                                                    .blur(20.dp),
+                                                                contentScale = ContentScale.Crop
+                                                            )
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .fillMaxSize()
+                                                                    .background(Color.Black.copy(alpha = 0.4f))
+                                                            )
+                                                        }
+                                                    } else {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .matchParentSize()
+                                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                                        )
+                                                    }
+
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
                                                         modifier = Modifier
-                                                            .weight(1f)
-                                                            .padding(vertical = 4.dp)
-                                                        )
-                                                    {
-                                                        Text(playlist.playlistName,
-                                                            style = MaterialTheme.typography.bodyLarge,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = MaterialTheme.colorScheme.onSurface,
-                                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                        Text(
-                                                            text = if (songCount == 1) "1 song" else "$songCount songs",
-                                                            style = MaterialTheme.typography.bodySmall,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
+                                                            .fillMaxSize()
+                                                            .padding(horizontal = 10.dp, vertical = 8.dp)
+                                                    ) {
+                                                        if (hasArt) {
+                                                            AsyncImage(
+                                                                model = File(artUri),
+                                                                contentDescription = null,
+                                                                modifier = Modifier
+                                                                    .size(48.dp)
+                                                                    .clip(RoundedCornerShape(8.dp)),
+                                                                contentScale = ContentScale.Crop
+                                                            )
+                                                            Spacer(Modifier.width(12.dp))
+                                                        }
+
+                                                        Column(
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .padding(vertical = 4.dp)
+                                                        ) {
+                                                            Text(
+                                                                playlist.playlistName,
+                                                                style = MaterialTheme.typography.bodyLarge,
+                                                                fontWeight = FontWeight.Medium,
+                                                                color = if (hasArt) Color.White else MaterialTheme.colorScheme.onSurface,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
+                                                            )
+                                                            Text(
+                                                                text = if (songCount == 1) "1 song" else "$songCount songs",
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = if (hasArt) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }

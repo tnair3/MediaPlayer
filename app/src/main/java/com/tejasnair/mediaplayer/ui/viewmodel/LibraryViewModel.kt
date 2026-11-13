@@ -86,6 +86,10 @@ class LibraryViewModel(
         viewModelScope.launch { playlistRepository.updatePlaylistName(playlistId, newName) }
     }
 
+    fun updatePlaylistArt(playlistId: String, artUri: String?) {
+        viewModelScope.launch { playlistRepository.updatePlaylistArt(playlistId, artUri) }
+    }
+
     fun deletePlaylist(playlistId: String) {
         viewModelScope.launch { playlistRepository.deletePlaylist(playlistId) }
     }
